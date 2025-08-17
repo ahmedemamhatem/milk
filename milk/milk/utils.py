@@ -10,15 +10,15 @@ from datetime import datetime, timedelta
 
 def get_company_from_milk_settings():
     """
-    Fetch the company from Milk Settings.
+    Fetch the company from Milk Setting.
     """
     try:
-        company = frappe.db.get_single_value("Milk Settings", "company")
+        company = frappe.db.get_single_value("Milk Setting", "company")
         if not company:
             frappe.throw("لم يتم ضبط الشركة في إعدادات الحليب 😅")
         return company
     except Exception as e:
-        frappe.log_error(str(e), "Error Fetching Company from Milk Settings")
+        frappe.log_error(str(e), "Error Fetching Company from Milk Setting")
         frappe.throw("حدث خطأ أثناء الحصول على إعدادات الشركة 😢")
         
         
