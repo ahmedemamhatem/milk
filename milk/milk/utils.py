@@ -123,8 +123,8 @@ def get_driver_report(from_date, to_date, driver=None):
             SELECT
                 driver,
                 date,
-                SUM(morning) AS collected_morning,
-                SUM(evening) AS collected_evening
+                SUM(CASE WHEN morning = 1 THEN quantity ELSE 0 END) AS collected_morning,
+                SUM(CASE WHEN evening = 1 THEN quantity ELSE 0 END) AS collected_evening
             FROM
                 `tabMilk Entries Log`
             WHERE
@@ -140,13 +140,13 @@ def get_driver_report(from_date, to_date, driver=None):
             as_dict=True,
         )
 
-        # Query Car Collection: Car Morning and Evening Totals
+        # Query Car Collection: Calculate Morning and Evening Totals Based on Flags
         car_collection_query = f"""
             SELECT
                 driver,
                 date,
-                SUM(morning) AS car_morning,
-                SUM(evening) AS car_evening
+                SUM(CASE WHEN morning = 1 THEN quantity ELSE 0 END) AS car_morning,
+                SUM(CASE WHEN evening = 1 THEN quantity ELSE 0 END) AS car_evening
             FROM
                 `tabCar Collection`
             WHERE
@@ -171,8 +171,8 @@ def get_driver_report(from_date, to_date, driver=None):
             report_data[key] = {
                 "driver": entry["driver"],
                 "date": entry["date"],
-                "collected_morning": entry["collected_morning"] or 0,
-                "collected_evening": entry["collected_evening"] or 0,
+                "collected_morning": float(entry["collected_morning"] or 0),
+                "collected_evening": float(entry["collected_evening"] or 0),
                 "car_morning": 0,
                 "car_evening": 0,
             }
@@ -187,15 +187,15 @@ def get_driver_report(from_date, to_date, driver=None):
                     "collected_morning": 0,
                     "collected_evening": 0,
                 }
-            report_data[key]["car_morning"] = entry["car_morning"] or 0
-            report_data[key]["car_evening"] = entry["car_evening"] or 0
+            report_data[key]["car_morning"] = float(entry["car_morning"] or 0)
+            report_data[key]["car_evening"] = float(entry["car_evening"] or 0)
 
         # Calculate Differences and Totals
         final_report = []
         for key, data in report_data.items():
             collected_total = data["collected_morning"] + data["collected_evening"]
             car_total = data["car_morning"] + data["car_evening"]
-            morning_diff =  data["car_morning"] - data["collected_morning"]
+            morning_diff = data["car_morning"] - data["collected_morning"]
             evening_diff = data["car_evening"] - data["collected_evening"]
             total_diff = car_total - collected_total
 
@@ -224,7 +224,6 @@ def get_driver_report(from_date, to_date, driver=None):
             "status": "error",
             "message": f"حدث خطأ أثناء جلب التقرير: {str(e)}"
         }
-        
         
 @frappe.whitelist()
 def insert_car_collection(data):
