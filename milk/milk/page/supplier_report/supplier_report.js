@@ -13,9 +13,9 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     "جاموس": "Buffalo",
   };
 
-  // Utility function for milk type translation
-  function translateMilkType(type, toArabic = true) {
-    return toArabic ? milkTypeTranslations[type] || type : milkTypeTranslations[type] || type;
+  // Utility function to translate milk type
+  function translateMilkType(type) {
+    return milkTypeTranslations[type] || type;
   }
 
   // Add Filter Section
@@ -56,22 +56,18 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
   // Event: Fetch Report
   filter_container.find("#fetch-button").on("click", function () {
     const selected_date = filters.date.get_value();
-    const selected_supplier = filters.supplier.get_value();
+    const selected_supplier = filters.supplier.get_value(); // Can be null for all suppliers
 
     if (!selected_date) {
       frappe.throw(__("يرجى تحديد تاريخ البداية."));
     }
 
-    // Display the selected day name near the filter
-    const selected_day_name = getDayName(selected_date);
-    filter_container.find("#day-name-display").text(`(${selected_day_name})`);
-
-    // Call backend to fetch records
+    // Fetch and Render the Report
     frappe.call({
       method: "milk.milk.utils.get_supplier_report_seven_days",
       args: {
         selected_date,
-        supplier: selected_supplier || null,
+        supplier: selected_supplier || null, // Pass null if no supplier is selected
       },
       callback: function (response) {
         if (response.message.status === "success") {
@@ -98,7 +94,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
       frappe.msgprint(__("لا توجد بيانات للطباعة."));
       return;
     }
-    window.print(); // Trigger print
+    window.print();
   });
 
   // Function to Render Results
@@ -110,29 +106,38 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
       return;
     }
 
-    // Sort the days to start from the selected date
-    const start_day = new Date(selected_date).getDay();
-    const sorted_data = data.map((supplier) => {
-      const sorted_days = sortDays(supplier.days, start_day);
-      return { ...supplier, days: sorted_days };
-    });
+    // Get the Arabic date range
+    const dateRangeArabic = getDateRangeInArabic(selected_date);
 
-    // Render up to 5 suppliers
-    sorted_data.slice(0, 5).forEach((supplier) => {
+    // Render all suppliers
+    data.forEach((supplier) => {
+      const custom_villages = supplier.custom_villages || "غير محدد";
+
       const supplier_section = $(`
         <div class="supplier-section">
           <div class="supplier-header text-center mb-1">
             <div class="header-line">
-              <span><strong>${__("المورد")}:</strong> ${supplier.supplier_name}</span> |
-              <span><strong>${__("التاريخ")}:</strong> ${supplier.week_start}</span> |
-              <span><strong>${__("النوع")}:</strong> ${translateMilkType(supplier.milk_type, true)}</span> <!-- Translate milk type -->
+              <span style="color: red; font-weight: bold;">البان العمري</span> |
+              <span style="color: blue;">${supplier.supplier_name}</span>
+              <span style="color: red;">(${custom_villages})</span> |
+              <span>(${dateRangeArabic})</span> |
+              <span>(${translateMilkType(supplier.milk_type)})</span>
             </div>
           </div>
+
           <table class="table text-center table-bordered">
             <thead>
               <tr>
                 <th>${__("اليوم")}</th>
-                ${supplier.days.map((day) => `<th>${day.day_name}</th>`).join("")}
+                ${supplier.days
+                  .map((day) => {
+                    if (!day.day_name) {
+                      console.error("Missing day_name for day:", day);
+                      return `<th>${__("تاريخ غير صالح")}</th>`;
+                    }
+                    return `<th>${day.day_name}</th>`;
+                  })
+                  .join("")}
               </tr>
             </thead>
             <tbody>
@@ -146,14 +151,13 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
               </tr>
             </tbody>
             <tfoot>
-              <tr class="font-weight-bold bg-light">
-                <td>${__("الإجمالي")}</td>
+              <tr>
+                <td><strong>${__("الإجمالي")}</strong></td>
                 <td colspan="${supplier.days.length}">
-                  ${__("إجمالي الصباح")}: ${supplier.total_morning} ${__("كجم")} | 
-                  ${__("إجمالي المساء")}: ${supplier.total_evening} ${__("كجم")} | 
-                  ${__("الإجمالي الكلي")}: ${supplier.total_quantity} ${__("كجم")} | 
-                  ${__("السعر")}: ${supplier.rate} ${__("جنيه مصري لكل كجم")} | 
-                  ${__("التكلفة الإجمالية")}: ${supplier.total_amount} ${__("جنيه مصري")}
+                  ${__("إجمالي الصباح")}: ${supplier.total_morning} ${__("كجم")} |
+                  ${__("إجمالي المساء")}: ${supplier.total_evening} ${__("كجم")} |
+                  ${__("الإجمالي الكلي")}: ${supplier.total_quantity} ${__("كجم")} |
+                  ${__("الإجمالي بالقيمة")}: ${supplier.total_amount.toLocaleString()} ${__("جنيه")}
                 </td>
               </tr>
             </tfoot>
@@ -165,68 +169,64 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     });
   }
 
-  // Helper function to get the day name in Arabic from a date string
-  function getDayName(date) {
-    const days = [__("الأحد"), __("الاثنين"), __("الثلاثاء"), __("الأربعاء"), __("الخميس"), __("الجمعة"), __("السبت")];
-    const dayIndex = new Date(date).getDay();
-    return days[dayIndex];
-  }
+  // Function to Get Arabic Date Range
+  function getDateRangeInArabic(startDate) {
+    const start = new Date(startDate);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
 
-  // Helper function to sort days starting from a specific day
-  function sortDays(days, start_day) {
-    const day_order = [__("الأحد"), __("الاثنين"), __("الثلاثاء"), __("الأربعاء"), __("الخميس"), __("الجمعة"), __("السبت")];
-    const sorted_order = [...day_order.slice(start_day), ...day_order.slice(0, start_day)];
-
-    return days.sort((a, b) => {
-      return sorted_order.indexOf(a.day_name) - sorted_order.indexOf(b.day_name);
+    const formatter = new Intl.DateTimeFormat("ar-EG", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
     });
+
+    const formattedStart = formatter.format(start); // Arabic date for start
+    const formattedEnd = formatter.format(end); // Arabic date for end
+
+    return `${formattedStart} - ${formattedEnd}`;
   }
 
-  // Add CSS for styling
+  // Add CSS for Double and Bold Borders
   const css = `
-    #printable-content {
-      font-family: "Arial", sans-serif;
-      color: #000;
+    table, th, td {
+      border: 3px double black;
+      padding: 8px;
+      text-align: center;
+    }
+
+    table {
+      border: 5px solid black;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+
+    th {
+      background-color: #f8f9fa;
+      font-weight: bold;
+    }
+
+    tfoot td {
+      background-color: #f1f5f9;
+      font-weight: bold;
     }
 
     .supplier-section {
-      margin-bottom: 20px;
+      margin-bottom: 30px;
       page-break-inside: avoid;
     }
 
     .supplier-header .header-line {
       display: flex;
       justify-content: center;
-      gap: 20px;
+      gap: 10px;
       font-size: 16px;
       font-weight: bold;
     }
 
-    .table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-
-    .table th,
-    .table td {
-      border: 1px solid #000;
-      padding: 8px;
-      text-align: center;
-    }
-
-    .table th {
-      background-color: #f8f9fa;
-    }
-
     @media print {
-      body {
-        margin: 0;
-        padding: 0;
-      }
-
       .btn {
-        display: none; /* Hide buttons in print */
+        display: none;
       }
 
       .supplier-section {

@@ -7,6 +7,9 @@ import frappe
 from datetime import datetime
 from frappe.utils import now
 from datetime import datetime, timedelta
+from datetime import datetime, timedelta
+import frappe
+
 
 @frappe.whitelist()
 def get_company_from_milk_settings():
@@ -24,7 +27,6 @@ def get_company_from_milk_settings():
         
 @frappe.whitelist()    
 def get_supplier_report_seven_days(selected_date, supplier=None):
-
     try:
         # Parse the selected date
         start_date = datetime.strptime(selected_date, "%Y-%m-%d")
@@ -32,6 +34,11 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
 
         # Arabic day names mapping
         arabic_days = ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"]
+
+        # Function to convert numbers into Arabic numerals
+        def to_arabic_numerals(number):
+            arabic_numerals = "٠١٢٣٤٥٦٧٨٩"
+            return "".join(arabic_numerals[int(digit)] if digit.isdigit() else digit for digit in str(number))
 
         # Prepare filters
         filters = {
@@ -52,23 +59,25 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
         for record in records:
             supplier_name = record["supplier"]
 
-            # Fetch supplier-specific rates
+            # Fetch supplier-specific rates and custom_villages
             supplier_doc = frappe.get_doc("Supplier", supplier_name)
             cow_price = supplier_doc.custom_cow_price or 0  # Default to 0 if not set
             buffalo_price = supplier_doc.custom_buffalo_price or 0  # Default to 0 if not set
+            custom_villages = supplier_doc.custom_villages or "غير محدد"  # Default to "غير محدد" if not set
 
             # Determine rate based on milk type
             milk_type = record["milk_type"]
             rate_per_kg = cow_price if milk_type == "Cow" else buffalo_price
             company = get_company_from_milk_settings()
-            
+
             # Initialize supplier and milk type grouping
             if supplier_name not in grouped_data:
                 grouped_data[supplier_name] = {
                     "supplier_name": supplier_name,
                     "milk_type": milk_type,
+                    "custom_villages": custom_villages,  # Include custom_villages
                     "week_start": str(start_date.date()),
-                    "days": {day.date(): {"day_name": f"{arabic_days[day.weekday()]} - {day.strftime('%m-%d')}",
+                    "days": {day.date(): {"day_name": f"{arabic_days[day.weekday()]} - {to_arabic_numerals(day.strftime('%m-%d'))}",
                                           "morning": 0, "evening": 0} for day in days_of_week},  # Initialize all days
                     "total_morning": 0,
                     "total_evening": 0,
@@ -98,6 +107,7 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
             # Convert days dictionary to a list for easier frontend rendering
             supplier_data["days"] = list(supplier_data["days"].values())
 
+        # Return success response with grouped data
         return {"status": "success", "data": list(grouped_data.values())}
 
     except Exception as e:
