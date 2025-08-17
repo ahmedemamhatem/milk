@@ -99,75 +99,76 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
 
   // Function to Render Results
   function renderResults(data, selected_date) {
-    results_container.empty();
+  results_container.empty();
 
-    if (!data || Object.keys(data).length === 0) {
-      results_container.html(`<div class="alert alert-warning">${__("لا توجد بيانات.")}</div>`);
-      return;
-    }
-
-    // Get the Arabic date range
-    const dateRangeArabic = getDateRangeInArabic(selected_date);
-
-    // Render all suppliers
-    data.forEach((supplier) => {
-      const custom_villages = supplier.custom_villages || "غير محدد";
-
-      const supplier_section = $(`
-        <div class="supplier-section">
-          <div class="supplier-header text-center mb-1">
-            <div class="header-line">
-              <span style="color: red; font-weight: bold;">البان العمري</span> |
-              <span style="color: blue;">${supplier.supplier_name}</span>
-              <span style="color: red;">(${custom_villages})</span> |
-              <span>(${dateRangeArabic})</span> |
-              <span>(${translateMilkType(supplier.milk_type)})</span>
-            </div>
-          </div>
-
-          <table class="table text-center table-bordered">
-            <thead>
-              <tr>
-                <th>${__("اليوم")}</th>
-                ${supplier.days
-                  .map((day) => {
-                    if (!day.day_name) {
-                      console.error("Missing day_name for day:", day);
-                      return `<th>${__("تاريخ غير صالح")}</th>`;
-                    }
-                    return `<th>${day.day_name}</th>`;
-                  })
-                  .join("")}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>${__("الصباح")}</strong></td>
-                ${supplier.days.map((day) => `<td>${day.morning || 0} ${__("كجم")}</td>`).join("")}
-              </tr>
-              <tr>
-                <td><strong>${__("المساء")}</strong></td>
-                ${supplier.days.map((day) => `<td>${day.evening || 0} ${__("كجم")}</td>`).join("")}
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr>
-                <td><strong>${__("الإجمالي")}</strong></td>
-                <td colspan="${supplier.days.length}">
-                  ${__("إجمالي الصباح")}: ${supplier.total_morning} ${__("كجم")} |
-                  ${__("إجمالي المساء")}: ${supplier.total_evening} ${__("كجم")} |
-                  ${__("الإجمالي الكلي")}: ${supplier.total_quantity} ${__("كجم")} |
-                  ${__("الإجمالي بالقيمة")}: ${supplier.total_amount.toLocaleString()} ${__("جنيه")}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      `);
-
-      results_container.append(supplier_section);
-    });
+  if (!data || Object.keys(data).length === 0) {
+    results_container.html(`<div class="alert alert-warning">${__("لا توجد بيانات.")}</div>`);
+    return;
   }
+
+  // Get the Arabic date range
+  const dateRangeArabic = getDateRangeInArabic(selected_date);
+
+  // Render all suppliers
+  data.forEach((supplier) => {
+    const custom_villages = supplier.custom_villages || "غير محدد";
+    const encrypted_price = supplier.rate * 90; // Encrypt the rate by multiplying by 90
+
+    const supplier_section = $(`
+      <div class="supplier-section">
+        <div class="supplier-header text-center mb-1">
+          <div class="header-line">
+            <span style="color: red; font-weight: bold;">البان العمري</span> |
+            <span style="color: blue;">${supplier.supplier_name}</span>
+            <span style="color: red;">(${custom_villages})</span> |
+            <span>(${dateRangeArabic})</span> |
+            <span>(${translateMilkType(supplier.milk_type)} ${encrypted_price})</span>
+          </div>
+        </div>
+
+        <table class="table text-center table-bordered">
+          <thead>
+            <tr>
+              <th>${__("اليوم")}</th>
+              ${supplier.days
+                .map((day) => {
+                  if (!day.day_name) {
+                    console.error("Missing day_name for day:", day);
+                    return `<th>${__("تاريخ غير صالح")}</th>`;
+                  }
+                  return `<th>${day.day_name}</th>`;
+                })
+                .join("")}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>${__("الصباح")}</strong></td>
+              ${supplier.days.map((day) => `<td>${day.morning || 0} ${__("كجم")}</td>`).join("")}
+            </tr>
+            <tr>
+              <td><strong>${__("المساء")}</strong></td>
+              ${supplier.days.map((day) => `<td>${day.evening || 0} ${__("كجم")}</td>`).join("")}
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td><strong>${__("الإجمالي")}</strong></td>
+              <td colspan="${supplier.days.length}">
+                ${__("إجمالي الصباح")}: ${supplier.total_morning} ${__("كجم")} |
+                ${__("إجمالي المساء")}: ${supplier.total_evening} ${__("كجم")} |
+                ${__("الإجمالي الكلي")}: ${supplier.total_quantity} ${__("كجم")} |
+                ${__("الإجمالي بالقيمة")}: ${supplier.total_amount.toLocaleString()} ${__("جنيه")}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    `);
+
+    results_container.append(supplier_section);
+  });
+}
 
   // Function to Get Arabic Date Range
   function getDateRangeInArabic(startDate) {
