@@ -1,19 +1,32 @@
 frappe.pages["supplier-report"].on_page_load = function (wrapper) {
   const page = frappe.ui.make_app_page({
     parent: wrapper,
-    title: "تقرير الموردين",
+    title: __("تقرير الموردين"),
     single_column: true,
   });
 
-  // Add Filter Section (One Line)
+  // Translation map for milk types
+  const milkTypeTranslations = {
+    "Cow": "بقر",
+    "Buffalo": "جاموس",
+    "بقر": "Cow",
+    "جاموس": "Buffalo",
+  };
+
+  // Utility function for milk type translation
+  function translateMilkType(type, toArabic = true) {
+    return toArabic ? milkTypeTranslations[type] || type : milkTypeTranslations[type] || type;
+  }
+
+  // Add Filter Section
   const filter_container = $(`
     <div class="flex items-center gap-4 mb-4" style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
       <div id="filter-wrapper-date" style="flex: 1 1 auto;"></div>
       <div id="filter-wrapper-supplier" style="flex: 1 1 auto;"></div>
       <strong id="day-name-display" class="text-primary" style="white-space: nowrap;"></strong>
-      <button class="btn btn-primary" id="fetch-button" style="white-space: nowrap;">جلب التقرير</button>
-      <button class="btn btn-secondary" id="refresh-button" style="white-space: nowrap;">تحديث</button>
-      <button class="btn btn-success" id="print-button" style="white-space: nowrap;">طباعة التقرير</button>
+      <button class="btn btn-primary" id="fetch-button" style="white-space: nowrap;">${__("جلب التقرير")}</button>
+      <button class="btn btn-secondary" id="refresh-button" style="white-space: nowrap;">${__("تحديث")}</button>
+      <button class="btn btn-success" id="print-button" style="white-space: nowrap;">${__("طباعة التقرير")}</button>
     </div>
   `).appendTo(page.body);
 
@@ -21,7 +34,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
   const filters = {};
   filters.date = page.add_field({
     fieldname: "date",
-    label: "تحديد تاريخ البداية",
+    label: __("تحديد تاريخ البداية"),
     fieldtype: "Date",
     reqd: 1,
     container: filter_container.find("#filter-wrapper-date")[0],
@@ -29,11 +42,11 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
 
   filters.supplier = page.add_field({
     fieldname: "supplier",
-    label: "اسم المورد",
+    label: __("اسم المورد"),
     fieldtype: "Link",
     options: "Supplier",
     reqd: 0,
-    placeholder: "اختياري",
+    placeholder: __("اختياري"),
     container: filter_container.find("#filter-wrapper-supplier")[0],
   });
 
@@ -46,7 +59,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     const selected_supplier = filters.supplier.get_value();
 
     if (!selected_date) {
-      frappe.throw("يرجى تحديد تاريخ البداية.");
+      frappe.throw(__("يرجى تحديد تاريخ البداية."));
     }
 
     // Display the selected day name near the filter
@@ -58,14 +71,14 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
       method: "milk.milk.utils.get_supplier_report_seven_days",
       args: {
         selected_date,
-        supplier: selected_supplier || null, // Pass supplier filter if selected
+        supplier: selected_supplier || null,
       },
       callback: function (response) {
         if (response.message.status === "success") {
           renderResults(response.message.data, selected_date);
         } else {
           frappe.msgprint({
-            title: "خطأ",
+            title: __("خطأ"),
             indicator: "red",
             message: response.message.message,
           });
@@ -82,7 +95,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
   // Event: Print Report
   filter_container.find("#print-button").on("click", function () {
     if (results_container.children().length === 0) {
-      frappe.msgprint("لا توجد بيانات للطباعة.");
+      frappe.msgprint(__("لا توجد بيانات للطباعة."));
       return;
     }
     window.print(); // Trigger print
@@ -93,7 +106,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     results_container.empty();
 
     if (!data || Object.keys(data).length === 0) {
-      results_container.html(`<div class="alert alert-warning">لا توجد بيانات.</div>`);
+      results_container.html(`<div class="alert alert-warning">${__("لا توجد بيانات.")}</div>`);
       return;
     }
 
@@ -110,35 +123,37 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
         <div class="supplier-section">
           <div class="supplier-header text-center mb-1">
             <div class="header-line">
-              <span><strong>المورد:</strong> ${supplier.supplier_name}</span> |
-              <span><strong>التاريخ:</strong> ${supplier.week_start}</span> |
-              <span><strong>النوع:</strong> ${supplier.milk_type}</span>
+              <span><strong>${__("المورد")}:</strong> ${supplier.supplier_name}</span> |
+              <span><strong>${__("التاريخ")}:</strong> ${supplier.week_start}</span> |
+              <span><strong>${__("النوع")}:</strong> ${translateMilkType(supplier.milk_type, true)}</span> <!-- Translate milk type -->
             </div>
           </div>
           <table class="table text-center table-bordered">
             <thead>
               <tr>
-                <th>اليوم</th>
+                <th>${__("اليوم")}</th>
                 ${supplier.days.map((day) => `<th>${day.day_name}</th>`).join("")}
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td><strong>الصباح</strong></td>
-                ${supplier.days.map((day) => `<td>${day.morning || 0} كجم</td>`).join("")}
+                <td><strong>${__("الصباح")}</strong></td>
+                ${supplier.days.map((day) => `<td>${day.morning || 0} ${__("كجم")}</td>`).join("")}
               </tr>
               <tr>
-                <td><strong>المساء</strong></td>
-                ${supplier.days.map((day) => `<td>${day.evening || 0} كجم</td>`).join("")}
+                <td><strong>${__("المساء")}</strong></td>
+                ${supplier.days.map((day) => `<td>${day.evening || 0} ${__("كجم")}</td>`).join("")}
               </tr>
             </tbody>
             <tfoot>
               <tr class="font-weight-bold bg-light">
-                <td>الإجمالي</td>
+                <td>${__("الإجمالي")}</td>
                 <td colspan="${supplier.days.length}">
-                  إجمالي الصباح: ${supplier.total_morning} كجم | إجمالي المساء: ${supplier.total_evening} كجم | 
-                  الإجمالي الكلي: ${supplier.total_quantity} كجم | السعر: ${supplier.rate} جنيه مصري لكل كجم | 
-                  التكلفة الإجمالية: ${supplier.total_amount} جنيه مصري
+                  ${__("إجمالي الصباح")}: ${supplier.total_morning} ${__("كجم")} | 
+                  ${__("إجمالي المساء")}: ${supplier.total_evening} ${__("كجم")} | 
+                  ${__("الإجمالي الكلي")}: ${supplier.total_quantity} ${__("كجم")} | 
+                  ${__("السعر")}: ${supplier.rate} ${__("جنيه مصري لكل كجم")} | 
+                  ${__("التكلفة الإجمالية")}: ${supplier.total_amount} ${__("جنيه مصري")}
                 </td>
               </tr>
             </tfoot>
@@ -152,14 +167,14 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
 
   // Helper function to get the day name in Arabic from a date string
   function getDayName(date) {
-    const days = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+    const days = [__("الأحد"), __("الاثنين"), __("الثلاثاء"), __("الأربعاء"), __("الخميس"), __("الجمعة"), __("السبت")];
     const dayIndex = new Date(date).getDay();
     return days[dayIndex];
   }
 
   // Helper function to sort days starting from a specific day
   function sortDays(days, start_day) {
-    const day_order = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+    const day_order = [__("الأحد"), __("الاثنين"), __("الثلاثاء"), __("الأربعاء"), __("الخميس"), __("الجمعة"), __("السبت")];
     const sorted_order = [...day_order.slice(start_day), ...day_order.slice(0, start_day)];
 
     return days.sort((a, b) => {
@@ -177,7 +192,6 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     .supplier-section {
       margin-bottom: 20px;
       page-break-inside: avoid;
-      height: calc(100vh / 5 - 10px); /* Ensure 5 sections fit on one A4 page */
     }
 
     .supplier-header .header-line {
