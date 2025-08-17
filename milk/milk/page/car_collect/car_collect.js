@@ -5,18 +5,18 @@ frappe.pages['car-collect'].on_page_load = function (wrapper) {
         single_column: true
     });
 
-    // Injecting Enhanced Styles
+    // Scoped Styles
     const styles = `
         <style>
-            /* Full-View Container */
-            body {
+            /* Scoped Container */
+            .car-collect-page {
                 margin: 0;
                 padding: 0;
-                background: linear-gradient(135deg, #dbeafe, #e0f2fe);
+                background: #f8f9fa; /* Light neutral background */
                 font-family: 'Inter', sans-serif;
             }
 
-            .car-form-container {
+            .car-collect-page .car-form-container {
                 max-width: 900px;
                 margin: 50px auto;
                 padding: 40px 30px;
@@ -27,7 +27,7 @@ frappe.pages['car-collect'].on_page_load = function (wrapper) {
             }
 
             /* Header */
-            .car-form-header {
+            .car-collect-page .car-form-header {
                 font-size: 36px;
                 font-weight: 800;
                 text-align: center;
@@ -41,7 +41,7 @@ frappe.pages['car-collect'].on_page_load = function (wrapper) {
             }
 
             /* Form Section */
-            .car-form-section {
+            .car-collect-page .car-form-section {
                 display: flex;
                 flex-wrap: wrap;
                 gap: 30px;
@@ -49,14 +49,14 @@ frappe.pages['car-collect'].on_page_load = function (wrapper) {
                 margin-bottom: 30px;
             }
 
-            .form-item {
+            .car-collect-page .form-item {
                 flex: 1;
                 min-width: 280px;
                 max-width: 400px;
                 text-align: center;
             }
 
-            .form-item label {
+            .car-collect-page .form-item label {
                 font-size: 18px;
                 font-weight: 700;
                 color: #2563eb;
@@ -66,8 +66,8 @@ frappe.pages['car-collect'].on_page_load = function (wrapper) {
                 letter-spacing: 0.8px;
             }
 
-            .form-item input,
-            .form-item select {
+            .car-collect-page .form-item input,
+            .car-collect-page .form-item select {
                 width: 100%;
                 padding: 14px 16px;
                 border: 2px solid #cbd5e1;
@@ -78,22 +78,22 @@ frappe.pages['car-collect'].on_page_load = function (wrapper) {
                 box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
             }
 
-            .form-item input:focus,
-            .form-item select:focus {
+            .car-collect-page .form-item input:focus,
+            .car-collect-page .form-item select:focus {
                 border-color: #2563eb;
-                background: #ffffff;
+                background: white;
                 box-shadow: 0 3px 10px rgba(37, 99, 235, 0.2);
             }
 
             /* Toggle Buttons */
-            .toggle-group {
+            .car-collect-page .toggle-group {
                 display: flex;
                 justify-content: center;
                 gap: 20px;
                 flex-wrap: wrap;
             }
 
-            .toggle-btn {
+            .car-collect-page .toggle-btn {
                 padding: 12px 24px;
                 font-size: 16px;
                 font-weight: 700;
@@ -106,12 +106,12 @@ frappe.pages['car-collect'].on_page_load = function (wrapper) {
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
             }
 
-            .toggle-btn:hover {
+            .car-collect-page .toggle-btn:hover {
                 background: #e2e8f0;
                 color: #2563eb;
             }
 
-            .toggle-btn.active {
+            .car-collect-page .toggle-btn.active {
                 background: linear-gradient(to right, #2563eb, #1d4ed8);
                 color: white;
                 border-color: #1d4ed8;
@@ -119,14 +119,14 @@ frappe.pages['car-collect'].on_page_load = function (wrapper) {
             }
 
             /* Action Buttons */
-            .actions {
+            .car-collect-page .actions {
                 display: flex;
                 justify-content: center;
                 gap: 40px;
                 margin-top: 40px;
             }
 
-            .btn {
+            .car-collect-page .btn {
                 padding: 18px 50px;
                 font-size: 20px;
                 font-weight: 800;
@@ -137,24 +137,24 @@ frappe.pages['car-collect'].on_page_load = function (wrapper) {
                 text-transform: uppercase;
             }
 
-            .btn-primary {
+            .car-collect-page .btn-primary {
                 background: linear-gradient(to right, #2563eb, #1d4ed8);
                 color: white;
                 box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
             }
 
-            .btn-primary:hover {
+            .car-collect-page .btn-primary:hover {
                 background: linear-gradient(to right, #1e40af, #1d4ed8);
                 box-shadow: 0 10px 25px rgba(37, 99, 235, 0.6);
             }
 
-            .btn-secondary {
+            .car-collect-page .btn-secondary {
                 background: #e2e8f0;
                 color: #475569;
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             }
 
-            .btn-secondary:hover {
+            .car-collect-page .btn-secondary:hover {
                 background: #cbd5e1;
                 color: #1e293b;
             }
@@ -173,15 +173,15 @@ frappe.pages['car-collect'].on_page_load = function (wrapper) {
 
             /* Responsive Design */
             @media (max-width: 768px) {
-                .form-item {
+                .car-collect-page .form-item {
                     flex: 1 1 100%;
                 }
 
-                .car-form-header {
+                .car-collect-page .car-form-header {
                     font-size: 28px;
                 }
 
-                .btn {
+                .car-collect-page .btn {
                     width: 100%;
                 }
             }
@@ -189,50 +189,52 @@ frappe.pages['car-collect'].on_page_load = function (wrapper) {
     `;
     $(wrapper).append(styles);
 
-    // Full-View Form HTML
+    // Scoped HTML
     const form_html = `
-        <div class="car-form-container">
-            <div class="car-form-header">استلام سيارة</div>
+        <div class="car-collect-page">
+            <div class="car-form-container">
+                <div class="car-form-header">استلام سيارة</div>
 
-            <div class="car-form-section">
-                <div class="form-item" id="driver-container">
-                    <label>اختر السائق</label>
-                </div>
-                <div class="form-item" id="warehouse-container">
-                    <label>اختر المخزن</label>
-                </div>
-            </div>
-
-            <div class="car-form-section">
-                <div class="form-item" id="date-container">
-                    <label>التاريخ</label>
-                </div>
-                <div class="form-item">
-                    <label>الكمية (كجم)</label>
-                    <input id="quantity" type="number" min="1" placeholder="أدخل الكمية" />
-                </div>
-            </div>
-
-            <div class="car-form-section">
-                <div class="form-item">
-                    <label>وقت الجمع</label>
-                    <div class="toggle-group" id="time-buttons">
-                        <div class="toggle-btn" data-value="morning">صباحاً</div>
-                        <div class="toggle-btn" data-value="evening">مساءً</div>
+                <div class="car-form-section">
+                    <div class="form-item" id="driver-container">
+                        <label>اختر السائق</label>
+                    </div>
+                    <div class="form-item" id="warehouse-container">
+                        <label>اختر المخزن</label>
                     </div>
                 </div>
-                <div class="form-item">
-                    <label>نوع الحليب</label>
-                    <div class="toggle-group" id="milk-buttons">
-                        <div class="toggle-btn" data-value="Cow">بقر</div>
-                        <div class="toggle-btn" data-value="Buffalo">جاموسي</div>
+
+                <div class="car-form-section">
+                    <div class="form-item" id="date-container">
+                        <label>التاريخ</label>
+                    </div>
+                    <div class="form-item">
+                        <label>الكمية (كجم)</label>
+                        <input id="quantity" type="number" min="1" placeholder="أدخل الكمية" />
                     </div>
                 </div>
-            </div>
 
-            <div class="actions">
-                <button class="btn btn-secondary" id="clear-btn">مسح</button>
-                <button class="btn btn-primary" id="save-btn">حفظ</button>
+                <div class="car-form-section">
+                    <div class="form-item">
+                        <label>وقت الجمع</label>
+                        <div class="toggle-group" id="time-buttons">
+                            <div class="toggle-btn" data-value="morning">صباحاً</div>
+                            <div class="toggle-btn" data-value="evening">مساءً</div>
+                        </div>
+                    </div>
+                    <div class="form-item">
+                        <label>نوع الحليب</label>
+                        <div class="toggle-group" id="milk-buttons">
+                            <div class="toggle-btn" data-value="Cow">بقر</div>
+                            <div class="toggle-btn" data-value="Buffalo">جاموسي</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-secondary" id="clear-btn">مسح</button>
+                    <button class="btn btn-primary" id="save-btn">حفظ</button>
+                </div>
             </div>
         </div>
     `;
@@ -253,14 +255,6 @@ frappe.pages['car-collect'].on_page_load = function (wrapper) {
             fieldname: 'warehouse',
             placeholder: 'اختر المخزن',
             fetch_if_empty: true,
-            get_query: () => {
-                return {
-                    filters: {
-                        is_group: 0,
-                        disabled: 0
-                    }
-                };
-            }
         },
         render_input: true
     });
