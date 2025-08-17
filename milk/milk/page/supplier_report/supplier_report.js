@@ -179,50 +179,50 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
       const encrypted_price = supplier.rate * 90;
 
       const supplier_section = $(`
-        <div class="supplier-section">
-          <div class="supplier-header text-center mb-1">
-            <div class="header-line">
-              <span style="color: red; font-weight: bold; font-style: italic;">البان العمري</span> |
-              <span style="color: blue;">${supplier.supplier_name}</span>
-              <span style="color: red;">(${custom_villages})</span> |
-              <span>(${dateRangeArabic})</span> |
-              <span>(${translateMilkType(supplier.milk_type)} ${encrypted_price})</span>
-            </div>
-          </div>
+<div class="supplier-section">
+  <div class="supplier-header text-center mb-1">
+    <div class="header-line">
+      <span style="color: blue;">${supplier.supplier_name}</span> |
+      <span style="color: red;">(${custom_villages})</span> |
+      <span>(${dateRangeArabic})</span> |
+      <span>(${translateMilkType(supplier.milk_type)} ${encrypted_price})</span> |
+      <span style="color: red; font-weight: bold; font-style: italic;">البان العمري</span>
+    </div>
+  </div>
 
-          <table class="table text-center table-bordered">
-            <thead>
-              <tr>
-                <th>${__("اليوم")}</th>
-                ${supplier.days
-                  .map((day) => `<th>${day.day_name || __("تاريخ غير صالح")}</th>`)
-                  .join("")}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>${__("الصباح")}</strong></td>
-                ${supplier.days.map((day) => `<td>${day.morning || 0} ${__("كجم")}</td>`).join("")}
-              </tr>
-              <tr>
-                <td><strong>${__("المساء")}</strong></td>
-                ${supplier.days.map((day) => `<td>${day.evening || 0} ${__("كجم")}</td>`).join("")}
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr>
-                <td><strong>${__("الإجمالي")}</strong></td>
-                <td colspan="${supplier.days.length}">
-                  ${__("إجمالي الصباح")}: ${supplier.total_morning} ${__("كجم")} |
-                  ${__("إجمالي المساء")}: ${supplier.total_evening} ${__("كجم")} |
-                  ${__("الإجمالي الكلي")}: ${supplier.total_quantity} ${__("كجم")} |
-                  ${__("الإجمالي بالقيمة")}: ${supplier.total_amount.toLocaleString()} ${__("جنيه")}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      `);
+  <table class="table text-center table-bordered">
+    <thead>
+      <tr>
+        <th>${__("اليوم")}</th>
+        ${supplier.days
+          .map((day) => `<th>${day.day_name || __("تاريخ غير صالح")}</th>`)
+          .join("")}
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>${__("الصباح")}</strong></td>
+        ${supplier.days.map((day) => `<td>${day.morning || 0} ${__("كجم")}</td>`).join("")}
+      </tr>
+      <tr>
+        <td><strong>${__("المساء")}</strong></td>
+        ${supplier.days.map((day) => `<td>${day.evening || 0} ${__("كجم")}</td>`).join("")}
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td><strong>${__("الإجمالي")}</strong></td>
+        <td colspan="${supplier.days.length}">
+          ${__("إجمالي الصباح")}: ${supplier.total_morning} ${__("كجم")} |
+          ${__("إجمالي المساء")}: ${supplier.total_evening} ${__("كجم")} |
+          ${__("الإجمالي الكلي")}: ${supplier.total_quantity} ${__("كجم")} |
+          ${__("الإجمالي بالقيمة")}: ${supplier.total_amount.toLocaleString()} ${__("جنيه")}
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+`);
 
       results_container.append(supplier_section);
     });
