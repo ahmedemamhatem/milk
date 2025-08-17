@@ -64,6 +64,7 @@ class CarCollection(Document):
         stock_entry = frappe.get_doc({
             "doctype": "Stock Entry",
             "posting_date": nowdate(),
+            "company": milk_setting.company,
             "stock_entry_type": "Material Receipt",
             "items": [
                 {

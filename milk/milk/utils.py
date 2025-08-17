@@ -1,14 +1,28 @@
 import frappe
 import json
+from datetime import datetime
 import frappe
 from frappe.utils import getdate, add_days, nowdate
 import frappe
 from datetime import datetime
 from frappe.utils import now
+from datetime import datetime, timedelta
 
-
+def get_company_from_milk_settings():
+    """
+    Fetch the company from Milk Settings.
+    """
+    try:
+        company = frappe.db.get_single_value("Milk Settings", "company")
+        if not company:
+            frappe.throw("لم يتم ضبط الشركة في إعدادات الحليب 😅")
+        return company
+    except Exception as e:
+        frappe.log_error(str(e), "Error Fetching Company from Milk Settings")
+        frappe.throw("حدث خطأ أثناء الحصول على إعدادات الشركة 😢")
+        
+        
 def get_supplier_report_seven_days(selected_date, supplier=None):
-    from datetime import datetime, timedelta
 
     try:
         # Parse the selected date
@@ -45,7 +59,8 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
             # Determine rate based on milk type
             milk_type = record["milk_type"]
             rate_per_kg = cow_price if milk_type == "Cow" else buffalo_price
-
+            company = get_company_from_milk_settings()
+            
             # Initialize supplier and milk type grouping
             if supplier_name not in grouped_data:
                 grouped_data[supplier_name] = {
@@ -213,9 +228,7 @@ def get_driver_report(from_date, to_date, driver=None):
         
 @frappe.whitelist()
 def insert_car_collection(data):
-    import json
-    from datetime import datetime
-
+    
     try:
         data = json.loads(data)
 
@@ -261,13 +274,14 @@ def insert_car_collection(data):
             limit_page_length=1
         ):
             frappe.throw("فيه سجل بنفس السائق، التاريخ، والوقت 😬")
-
+        company = get_company_from_milk_settings()
         # Insert document
         doc = frappe.get_doc({
             "doctype": "Car Collection",
             "driver": data["driver"],
             "warehouse": data["warehouse"],
             "quantity": quantity,
+            "company": company,
             "date": data["date"],
             "morning": morning,
             "evening": evening,
@@ -451,7 +465,7 @@ def submit_milk_collection(driver, village, collection_date, milk_entries=None):
             frappe.throw("مطلوب تحديد السائق، القرية، والتاريخ عشان نقدر نسلم جمع الحليب 😅")
 
         milk_entries = frappe.parse_json(milk_entries)
-
+        company = get_company_from_milk_settings()
         # Check for an existing draft document
         existing_doc = frappe.db.get_value(
             "Milk Collection",

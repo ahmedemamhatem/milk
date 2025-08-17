@@ -6,7 +6,9 @@
  "engine": "InnoDB",
  "field_order": [
   "buffalo_item",
-  "cow_item"
+  "cow_item",
+  "column_break_ulcb",
+  "company"
  ],
  "fields": [
   {
@@ -24,12 +26,23 @@
    "label": "Cow Item",
    "options": "Item",
    "reqd": 1
+  },
+  {
+   "fieldname": "column_break_ulcb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-08-17 09:44:45.999427",
+ "modified": "2025-08-17 19:25:18.987789",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Milk Setting",
