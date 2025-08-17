@@ -1,0 +1,22 @@
+{
+ "content": null,
+ "creation": "2025-08-17 15:50:55.018625",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-08-17 15:50:55.018625",
+ "modified_by": "Administrator",
+ "module": "Milk",
+ "name": "supplier-report",
+ "owner": "Administrator",
+ "page_name": "supplier-report",
+ "roles": [
+  {
+   "role": "All"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}

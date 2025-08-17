@@ -1,0 +1,22 @@
+{
+ "content": null,
+ "creation": "2025-08-07 09:24:25.864918",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-08-07 09:24:25.864918",
+ "modified_by": "Administrator",
+ "module": "Milk",
+ "name": "milk_collection",
+ "owner": "Administrator",
+ "page_name": "milk_collection",
+ "roles": [
+  {
+   "role": "All"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}

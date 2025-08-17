@@ -1,0 +1,22 @@
+{
+ "content": null,
+ "creation": "2025-08-17 14:37:24.783756",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-08-17 14:37:24.783756",
+ "modified_by": "Administrator",
+ "module": "Milk",
+ "name": "driver-report",
+ "owner": "Administrator",
+ "page_name": "driver-report",
+ "roles": [
+  {
+   "role": "All"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}

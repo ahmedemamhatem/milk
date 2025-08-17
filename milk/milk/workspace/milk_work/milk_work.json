@@ -1,0 +1,113 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"nxdQ7H6RGd\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Milk Work</span>\",\"col\":12}},{\"id\":\"SwVmehbJCQ\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"t-j5c1fVBM\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"\u0627\u0633\u062a\u0644\u0627\u0645 \u0633\u064a\u0627\u0631\u0647\",\"col\":3}},{\"id\":\"k8tPIeu7p1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u0644\u0645 \u0627\u0644\u064a\u0648\u0645\u064a \",\"col\":3}},{\"id\":\"cDBqdpssRr\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"\u062a\u0642\u0631\u064a\u0631 \u0641\u0631\u0642 \u0633\u0627\u0626\u0642 \u064a\u0648\u0645\u064a\",\"col\":3}},{\"id\":\"SbuA_ER2uF\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"\u0643\u0634\u0641 \u0627\u0644\u0639\u0645\u0644\u0627\u0621 \u0627\u0644\u0627\u0633\u0628\u0648\u0639\u064a\",\"col\":3}},{\"id\":\"hyGf4dLuJi\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"iSPv_xjNy0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"\u0642\u0627\u0626\u0645\u0647 \u0645\u0648\u0631\u062f\u064a\u0646\",\"col\":3}},{\"id\":\"IJFHBCsCf3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"\u0642\u0627\u0626\u0645\u0647 \u0627\u0644\u0627\u0635\u0646\u0627\u0641\",\"col\":3}},{\"id\":\"idJLdiaZpv\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"\u0642\u0627\u0626\u0645\u0647 \u0633\u0627\u0626\u0642\u064a\u0646\",\"col\":3}},{\"id\":\"3-Tof12X37\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"\u0627\u0644\u0642\u0631\u064a\",\"col\":3}},{\"id\":\"996v6O5_Iu\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"Ofb8aT3eI7\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"\u0627\u0639\u062f\u0627\u062f\u0627\u062a \u0639\u0627\u0645\u0647\",\"col\":3}},{\"id\":\"ku82P0S81p\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"\u0642\u0627\u0626\u0645\u0647 \u0627\u0633\u062a\u0644\u0627\u0645 \u0627\u0644\u0633\u064a\u0627\u0631\u0627\u062a\",\"col\":3}},{\"id\":\"1aD_kXz5Vw\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"\u0642\u0627\u0626\u0645\u0647 \u0627\u0644\u0644\u0645 \u0627\u0644\u064a\u0648\u0645\u064a \",\"col\":3}}]",
+ "creation": "2025-08-17 15:36:33.738360",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "table",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Milk Work",
+ "links": [],
+ "modified": "2025-08-17 17:08:56.909214",
+ "modified_by": "Administrator",
+ "module": "Milk",
+ "name": "Milk Work",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "\u0627\u0633\u062a\u0644\u0627\u0645 \u0633\u064a\u0627\u0631\u0647",
+   "link_to": "car-collect",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "\u0627\u0644\u0642\u0631\u064a",
+   "link_to": "Village",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "\u0643\u0634\u0641 \u0627\u0644\u0639\u0645\u0644\u0627\u0621 \u0627\u0644\u0627\u0633\u0628\u0648\u0639\u064a",
+   "link_to": "supplier-report",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u0644\u0645 \u0627\u0644\u064a\u0648\u0645\u064a ",
+   "link_to": "milk_collection",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "\u0627\u0639\u062f\u0627\u062f\u0627\u062a \u0639\u0627\u0645\u0647",
+   "link_to": "Milk Setting",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "\u0642\u0627\u0626\u0645\u0647 \u0627\u0633\u062a\u0644\u0627\u0645 \u0627\u0644\u0633\u064a\u0627\u0631\u0627\u062a",
+   "link_to": "Car Collection",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "\u062a\u0642\u0631\u064a\u0631 \u0641\u0631\u0642 \u0633\u0627\u0626\u0642 \u064a\u0648\u0645\u064a",
+   "link_to": "driver-report",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "\u0642\u0627\u0626\u0645\u0647 \u0645\u0648\u0631\u062f\u064a\u0646",
+   "link_to": "Supplier",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "\u0642\u0627\u0626\u0645\u0647 \u0627\u0644\u0644\u0645 \u0627\u0644\u064a\u0648\u0645\u064a ",
+   "link_to": "Milk Collection",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "\u0642\u0627\u0626\u0645\u0647 \u0627\u0644\u0627\u0635\u0646\u0627\u0641",
+   "link_to": "Item",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "\u0642\u0627\u0626\u0645\u0647 \u0633\u0627\u0626\u0642\u064a\u0646",
+   "link_to": "Driver",
+   "stats_filter": "[]",
+   "type": "DocType"
+  }
+ ],
+ "title": "Milk Work"
+}
