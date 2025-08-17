@@ -8,6 +8,7 @@ from datetime import datetime
 from frappe.utils import now
 from datetime import datetime, timedelta
 
+@frappe.whitelist()
 def get_company_from_milk_settings():
     """
     Fetch the company from Milk Setting.
@@ -21,7 +22,7 @@ def get_company_from_milk_settings():
         frappe.log_error(str(e), "Error Fetching Company from Milk Setting")
         frappe.throw("حدث خطأ أثناء الحصول على إعدادات الشركة 😢")
         
-        
+@frappe.whitelist()    
 def get_supplier_report_seven_days(selected_date, supplier=None):
 
     try:
