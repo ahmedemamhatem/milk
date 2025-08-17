@@ -7,7 +7,6 @@ from datetime import datetime
 from frappe.utils import now
 
 
-@frappe.whitelist()
 def get_supplier_report_seven_days(selected_date, supplier=None):
     from datetime import datetime, timedelta
 
@@ -17,7 +16,7 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
         days_of_week = [start_date + timedelta(days=i) for i in range(7)]  # Generate all 7 days
 
         # Arabic day names mapping
-        arabic_days = [ "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت" ,"الأحد"]
+        arabic_days = ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"]
 
         # Prepare filters
         filters = {
@@ -33,14 +32,19 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
             fields=["date", "day_name", "supplier", "morning", "evening", "quantity", "milk_type"]
         )
 
-        # Fixed rate per kilogram in Egyptian Pounds (EGP)
-        rate_per_kg = 10  # Example rate: 10 EGP per kg
-
         # Organize data by Supplier and Milk Type
         grouped_data = {}
         for record in records:
             supplier_name = record["supplier"]
+
+            # Fetch supplier-specific rates
+            supplier_doc = frappe.get_doc("Supplier", supplier_name)
+            cow_price = supplier_doc.custom_cow_price or 0  # Default to 0 if not set
+            buffalo_price = supplier_doc.custom_buffalo_price or 0  # Default to 0 if not set
+
+            # Determine rate based on milk type
             milk_type = record["milk_type"]
+            rate_per_kg = cow_price if milk_type == "Cow" else buffalo_price
 
             # Initialize supplier and milk type grouping
             if supplier_name not in grouped_data:
