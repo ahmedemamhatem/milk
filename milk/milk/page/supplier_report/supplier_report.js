@@ -262,7 +262,7 @@ function renderResults(data, selected_date) {
     </div>
   </div>
 
-  <table class="table text-center table-bordered">
+  <table class="table text-center table-bordered" style="margin-bottom: 0;">
     <thead>
       <tr>
         <th>${__("اليوم")}</th>
@@ -299,16 +299,33 @@ function renderResults(data, selected_date) {
           ${__("إجمالي المساء")}: ${supplier.total_evening} ${__("كجم")} |
           ${__("الإجمالي الكلي")}: ${supplier.total_quantity} ${__("كجم")} |
           ${__("الإجمالي المالي")}: ${supplier.total_amount.toFixed(2)} ${__("جنيه")}
-      
         </td>
       </tr>
     </tfoot>
   </table>
+  <div class="contact-info text-center" style="font-size: 14px; font-weight: bold; padding: 0; margin: 0;">
+    ${__("الحسابات : ٠١٠١٨١١٥٤١٥١")} &nbsp;&nbsp; -- &nbsp;&nbsp; ${__("الحاج احمد : ٠١١٢٦٩٥٤٧٠٠")}
+  </div>
 </div>
 `);
 
     results_container.append(supplier_section);
   });
+
+  // Add CSS for both screen and print styling
+  const unifiedStyles = `
+    <style>
+      .table {
+        margin-bottom: 0 !important; /* Remove extra space below the table */
+      }
+      .contact-info {
+        margin-top: 0 !important; /* Remove extra space above the contact info */
+        padding: 0 !important;
+      }
+    </style>
+  `;
+
+  $("head").append(unifiedStyles);
 }
   // Helper to format date range in Arabic
   function getDateRangeInArabic(startDate) {
