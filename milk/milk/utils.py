@@ -101,7 +101,7 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
 
         # Arabic day names mapping
         arabic_days = ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"]
-
+        arabic_numbers = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
         # Prepare filters
         filters = {
             "date": ["between", [start_date.date(), (start_date + timedelta(days=6)).date()]],
@@ -139,7 +139,7 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
                     "custom_pont_size_rate": custom_pont_size_rate,
                     "encrypted_rate": encrypted_rate,  # Include encrypted rate if applicable
                     "week_start": str(start_date.date()),
-                    "days": {day.date(): {"day_name": f"{arabic_days[day.weekday()]} - {day.strftime('%m-%d')}",
+                    "days": {day.date(): {"day_name": f"{arabic_days[day.weekday()]} - {day.strftime('%m-%d').translate(arabic_numbers)}",
                                           "morning": {"qty": 0, "pont": 0},
                                           "evening": {"qty": 0, "pont": 0}} for day in days_of_week},
                     "total_morning": 0,
