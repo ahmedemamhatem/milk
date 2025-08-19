@@ -297,7 +297,9 @@ function renderResults(data, selected_date) {
         <td colspan="${supplier.days.length}">
           ${__("إجمالي الصباح")}: ${supplier.total_morning} ${__("كجم")} |
           ${__("إجمالي المساء")}: ${supplier.total_evening} ${__("كجم")} |
-          ${__("الإجمالي الكلي")}: ${supplier.total_quantity} ${__("كجم")}
+          ${__("الإجمالي الكلي")}: ${supplier.total_quantity} ${__("كجم")} |
+          ${__("الإجمالي المالي")}: ${supplier.total_amount.toFixed(2)} ${__("جنيه")}
+      
         </td>
       </tr>
     </tfoot>
@@ -308,7 +310,6 @@ function renderResults(data, selected_date) {
     results_container.append(supplier_section);
   });
 }
-
   // Helper to format date range in Arabic
   function getDateRangeInArabic(startDate) {
     const start = new Date(startDate);

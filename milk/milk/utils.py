@@ -147,6 +147,7 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
                     "total_morning": 0,
                     "total_evening": 0,
                     "total_quantity": 0,
+                    "total_amount": 0,  # Initialize total amount
                 }
 
             # Populate morning and evening data
@@ -175,7 +176,24 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
         final_data = []
         for (supplier_name, milk_type), data in grouped_data.items():
             data["total_quantity"] = data["total_morning"] + data["total_evening"]
-            data["days"] = list(data["days"].values())  # Convert days dict to list
+
+            # Calculate total amount
+            if data["custom_pont_size_rate"] == 0:
+                # Amount = total_quantity * rate
+                data["total_amount"] = data["total_quantity"] * (data["encrypted_rate"] / 90)
+            else:
+                # Amount = Sum of (qty * rate * pont) for each day
+                total_amount = 0
+                for day in data["days"].values():
+                    morning = day["morning"]
+                    evening = day["evening"]
+                    total_amount += (morning["qty"] * (data["encrypted_rate"] / 90) * morning["pont"])
+                    total_amount += (evening["qty"] * (data["encrypted_rate"] / 90) * evening["pont"])
+                data["total_amount"] = total_amount
+
+            # Convert days dict to list for frontend rendering
+            data["days"] = list(data["days"].values())
+
             final_data.append(data)
 
         return {"status": "success", "data": final_data}
