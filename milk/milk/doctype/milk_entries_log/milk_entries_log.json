@@ -8,6 +8,7 @@
   "date",
   "village",
   "supplier",
+  "pont",
   "morning",
   "evening",
   "column_break_xubm",
@@ -110,12 +111,19 @@
    "fieldtype": "Data",
    "label": "Milk Collection",
    "read_only": 1
+  },
+  {
+   "fieldname": "pont",
+   "fieldtype": "Float",
+   "label": "Pint",
+   "non_negative": 1,
+   "read_only": 1
   }
  ],
  "in_create": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-17 15:21:55.200738",
+ "modified": "2025-08-19 09:10:14.567723",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Milk Entries Log",

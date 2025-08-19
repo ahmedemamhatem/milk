@@ -5,6 +5,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     single_column: true,
   });
 
+  // Translations for Milk Type
   const milkTypeTranslations = {
     "Cow": "بقر",
     "Buffalo": "جاموس",
@@ -16,6 +17,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     return milkTypeTranslations[type] || type;
   }
 
+  // Add filter UI
   const filter_container = $(`
     <div class="flex items-center gap-4 mb-4" style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
       <div id="filter-wrapper-date" style="flex: 1 1 auto;"></div>
@@ -27,6 +29,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     </div>
   `).appendTo(page.body);
 
+  // Add filters for date and supplier
   const filters = {};
   filters.date = page.add_field({
     fieldname: "date",
@@ -46,8 +49,10 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     container: filter_container.find("#filter-wrapper-supplier")[0],
   });
 
+  // Results container
   const results_container = $(`<div id="printable-content" class="results mt-4"></div>`).appendTo(page.body);
 
+  // Fetch button action
   filter_container.find("#fetch-button").on("click", function () {
     const selected_date = filters.date.get_value();
     const selected_supplier = filters.supplier.get_value();
@@ -76,30 +81,91 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     });
   });
 
+  // Refresh button action
   filter_container.find("#refresh-button").on("click", function () {
     location.reload();
   });
 
+  // Print button action
   filter_container.find("#print-button").on("click", function () {
-    if (results_container.children().length === 0) {
-      frappe.msgprint(__("لا توجد بيانات للطباعة."));
-      return;
-    }
+  if (results_container.children().length === 0) {
+    frappe.msgprint(__("لا توجد بيانات للطباعة."));
+    return;
+  }
 
-    let printContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          @media print {
-            @page {
-              size: A4;
-              margin: 1cm;
-            }
-          }
+  let printContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        @media print {
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 14px; /* Larger base font size */
+    margin: 0;
+    padding: 0;
+    direction: rtl; /* Set direction to right-to-left */
+    text-align: right; /* Align text to the right */
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    font-size: 13px; /* Larger table font size */
+    direction: rtl; /* Ensure tables follow RTL direction */
+    text-align: right; /* Align table text to the right */
+  }
+
+  th, td {
+    border: 1px solid black;
+    padding: 8px; /* Larger padding for better spacing */
+    text-align: right; /* Align table cells to the right */
+  }
+
+  th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    font-size: 14px; /* Larger font for table headers */
+  }
+
+  tfoot td {
+    background-color: #f1f5f9;
+    font-weight: bold;
+    font-size: 13px; /* Larger font for table footers */
+  }
+
+  .supplier-section {
+    margin-bottom: 20px;
+    page-break-inside: avoid; /* Prevent dividing the section between pages */
+    border: 1px solid black;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 14px; /* Larger font size for supplier sections */
+    direction: rtl; /* Ensure section follows RTL */
+    text-align: right; /* Align section text to the right */
+  }
+
+  .supplier-header .header-line {
+    display: flex;
+    justify-content: flex-start; /* Align header line to the right */
+    gap: 8px;
+    font-size: 14px; /* Larger font for header lines */
+    font-weight: bold;
+    margin-bottom: 10px;
+    direction: rtl; /* RTL for header */
+    text-align: right; /* Align header text to the right */
+  }
+}
 
           body {
             font-family: Arial, sans-serif;
+            font-size: 10px; /* Small font size for print */
             margin: 0;
             padding: 0;
           }
@@ -108,11 +174,12 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
+            font-size: 9px; /* Smaller table font size */
           }
 
           th, td {
             border: 1px solid black;
-            padding: 8px;
+            padding: 4px; /* Smaller padding for print */
             text-align: center;
           }
 
@@ -127,65 +194,70 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
           }
 
           .supplier-section {
-            margin-bottom: 30px;
-            page-break-inside: avoid;
-            border: 2px solid black;
-            padding: 10px;
-            border-radius: 5px;
+            margin-bottom: 20px;
+            page-break-inside: avoid; /* Prevent dividing the section between pages */
+            border: 1px solid black;
+            padding: 8px;
+            border-radius: 3px;
+            font-size: 10px; /* Adjust font size for supplier sections */
           }
 
           .supplier-header .header-line {
             display: flex;
             justify-content: center;
-            gap: 10px;
-            font-size: 16px;
+            gap: 8px;
+            font-size: 10px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
           }
-        </style>
-      </head>
-      <body>
-    `;
+        }
+      </style>
+    </head>
+    <body>
+  `;
 
-    results_container.find(".supplier-section").each(function () {
-      printContent += $(this).prop("outerHTML");
-    });
-
-    printContent += `
-      </body>
-      </html>
-    `;
-
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.onafterprint = () => printWindow.close();
+  results_container.find(".supplier-section").each(function () {
+    printContent += $(this).prop("outerHTML");
   });
 
-  function renderResults(data, selected_date) {
-    results_container.empty();
+  printContent += `
+    </body>
+    </html>
+  `;
 
-    if (!data || Object.keys(data).length === 0) {
-      results_container.html(`<div class="alert alert-warning">${__("لا توجد بيانات.")}</div>`);
-      return;
-    }
+  const printWindow = window.open("", "_blank");
+  printWindow.document.write(printContent);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.onafterprint = () => printWindow.close();
+});
 
-    const dateRangeArabic = getDateRangeInArabic(selected_date);
+  // Render results
+function renderResults(data, selected_date) {
+  results_container.empty();
 
-    data.forEach((supplier) => {
-      const custom_villages = supplier.custom_villages || "غير محدد";
-      const encrypted_price = supplier.rate * 90;
+  if (!data || Object.keys(data).length === 0) {
+    results_container.html(`<div class="alert alert-warning">${__("لا توجد بيانات.")}</div>`);
+    return;
+  }
 
-      const supplier_section = $(`
+  const dateRangeArabic = getDateRangeInArabic(selected_date);
+
+  data.forEach((supplier) => {
+    const custom_villages = supplier.custom_villages || "غير محدد";
+
+    // Combine milk type and encrypted rate for display
+    const milkTypeDisplay = `${translateMilkType(supplier.milk_type)} (${supplier.encrypted_rate})`;
+
+    const supplier_section = $(`
 <div class="supplier-section">
   <div class="supplier-header text-center mb-1">
     <div class="header-line">
       <span style="color: blue;">${supplier.supplier_name}</span> |
       <span style="color: red;">(${custom_villages})</span> |
       <span>(${dateRangeArabic})</span> |
-      <span>(${translateMilkType(supplier.milk_type)} ${encrypted_price})</span> |
+      <span>${milkTypeDisplay}</span>
       <span style="color: red; font-weight: bold; font-style: italic;">البان العمري</span>
     </div>
   </div>
@@ -202,11 +274,21 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     <tbody>
       <tr>
         <td><strong>${__("الصباح")}</strong></td>
-        ${supplier.days.map((day) => `<td>${day.morning || 0} ${__("كجم")}</td>`).join("")}
+        ${supplier.days.map((day) => {
+          const morning = day.morning || { qty: 0, pont: 0 };
+          return supplier.custom_pont_size_rate === 1
+           ? `<td>${morning.qty} ${__("كجم")} - (${morning.pont})</td>`
+            : `<td>${morning.qty} ${__("كجم")}</td>`;
+        }).join("")}
       </tr>
       <tr>
         <td><strong>${__("المساء")}</strong></td>
-        ${supplier.days.map((day) => `<td>${day.evening || 0} ${__("كجم")}</td>`).join("")}
+        ${supplier.days.map((day) => {
+          const evening = day.evening || { qty: 0, pont: 0 };
+          return supplier.custom_pont_size_rate === 1
+            ? `<td>${evening.qty} ${__("كجم")} - (${evening.pont})</td>`
+            : `<td>${evening.qty} ${__("كجم")}</td>`;
+        }).join("")}
       </tr>
     </tbody>
     <tfoot>
@@ -215,8 +297,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
         <td colspan="${supplier.days.length}">
           ${__("إجمالي الصباح")}: ${supplier.total_morning} ${__("كجم")} |
           ${__("إجمالي المساء")}: ${supplier.total_evening} ${__("كجم")} |
-          ${__("الإجمالي الكلي")}: ${supplier.total_quantity} ${__("كجم")} |
-          ${__("الإجمالي بالقيمة")}: ${supplier.total_amount.toLocaleString()} ${__("جنيه")}
+          ${__("الإجمالي الكلي")}: ${supplier.total_quantity} ${__("كجم")}
         </td>
       </tr>
     </tfoot>
@@ -224,10 +305,11 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
 </div>
 `);
 
-      results_container.append(supplier_section);
-    });
-  }
+    results_container.append(supplier_section);
+  });
+}
 
+  // Helper to format date range in Arabic
   function getDateRangeInArabic(startDate) {
     const start = new Date(startDate);
     const end = new Date(start);

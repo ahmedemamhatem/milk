@@ -42,13 +42,16 @@
    "in_preview": 1,
    "in_standard_filter": 1,
    "label": "Village",
-   "options": "Village",
-   "reqd": 1
+   "options": "Village"
   },
   {
    "default": "Today",
    "fieldname": "collection_date",
    "fieldtype": "Date",
+   "in_filter": 1,
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
    "label": "Collection Date"
   },
   {
@@ -98,7 +101,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-17 09:03:11.257351",
+ "modified": "2025-08-19 10:40:05.749487",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Milk Collection",

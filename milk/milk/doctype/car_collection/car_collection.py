@@ -12,7 +12,8 @@ class CarCollection(Document):
         filters = {
             "driver": self.driver,
             "date": self.date,
-            "docstatus": ["<", 2],  # Exclude cancelled documents
+            "milk_type": self.milk_type,
+            "docstatus": ["<", 2],  
         }
 
         if self.morning:

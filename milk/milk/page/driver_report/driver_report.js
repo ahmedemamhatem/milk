@@ -1,11 +1,11 @@
-frappe.pages["driver-report"].on_page_load = function(wrapper) {
+frappe.pages["driver-report"].on_page_load = function (wrapper) {
     const page = frappe.ui.make_app_page({
         parent: wrapper,
-        title: "تقرير السائق اليومي 🥛",
+        title: "تقرير السائق اليومي",
         single_column: true,
     });
 
-    $(page.wrapper).css("direction","rtl");
+    $(page.wrapper).css("direction", "rtl");
 
     // --- Filters ---
     const filter_card = $(`
@@ -17,26 +17,26 @@ frappe.pages["driver-report"].on_page_load = function(wrapper) {
     const filter_row = filter_card.find(".row");
     let filters = {};
 
-    filters.from_date = page.add_field({ 
-        fieldname: "from_date", 
-        label: "من تاريخ", 
-        fieldtype: "Date", 
-        reqd:1, 
-        container:$('<div class="col-md-3"></div>').appendTo(filter_row)
+    filters.from_date = page.add_field({
+        fieldname: "from_date",
+        label: "من تاريخ",
+        fieldtype: "Date",
+        reqd: 1,
+        container: $('<div class="col-md-3"></div>').appendTo(filter_row),
     });
-    filters.to_date = page.add_field({ 
-        fieldname: "to_date", 
-        label: "إلى تاريخ", 
-        fieldtype: "Date", 
-        reqd:1, 
-        container:$('<div class="col-md-3"></div>').appendTo(filter_row)
+    filters.to_date = page.add_field({
+        fieldname: "to_date",
+        label: "إلى تاريخ",
+        fieldtype: "Date",
+        reqd: 1,
+        container: $('<div class="col-md-3"></div>').appendTo(filter_row),
     });
-    filters.driver = page.add_field({ 
-        fieldname: "driver", 
-        label: "السائق", 
-        fieldtype: "Link", 
-        options:"Driver", 
-        container:$('<div class="col-md-3"></div>').appendTo(filter_row)
+    filters.driver = page.add_field({
+        fieldname: "driver",
+        label: "السائق",
+        fieldtype: "Link",
+        options: "Driver",
+        container: $('<div class="col-md-3"></div>').appendTo(filter_row),
     });
 
     const button_container = $('<div class="col-md-3 d-flex gap-2"></div>').appendTo(filter_row);
@@ -45,83 +45,166 @@ frappe.pages["driver-report"].on_page_load = function(wrapper) {
 
     const results_container = $('<div class="mt-3"></div>').appendTo(page.body);
 
-    fetch_button.on("click", function() {
+    // --- Fetch Data ---
+    fetch_button.on("click", function () {
         const from_date = filters.from_date.get_value();
         const to_date = filters.to_date.get_value();
         const driver = filters.driver.get_value();
-        if(!from_date || !to_date) frappe.throw("يرجى تحديد التاريخ من وإلى للحصول على التقرير.");
+
+        if (!from_date || !to_date) frappe.throw("يرجى تحديد التاريخ من وإلى للحصول على التقرير.");
 
         frappe.call({
-            method:"milk.milk.utils.get_driver_report",
-            args:{from_date,to_date,driver},
-            callback:function(response){
-                if(response.message.status==="success") renderDailyView(response.message.data);
-                else frappe.msgprint({title:"خطأ",indicator:"red",message:response.message.message});
-            }
+            method: "milk.milk.utils.get_driver_report",
+            args: { from_date, to_date, driver },
+            callback: function (response) {
+                if (response.message.status === "success") renderSectionsView(response.message.data);
+                else frappe.msgprint({ title: "خطأ", indicator: "red", message: response.message.message });
+            },
         });
     });
 
-    clear_button.on("click", function() {
+    // --- Clear Filters ---
+    clear_button.on("click", function () {
         filters.from_date.set_value(null);
         filters.to_date.set_value(null);
         filters.driver.set_value(null);
         results_container.empty();
-        frappe.show_alert({message:"تم مسح البيانات وتحديث الصفحة.",indicator:"green"});
+        frappe.show_alert({ message: "تم مسح البيانات وتحديث الصفحة.", indicator: "green" });
     });
 
-    function renderDailyView(data){
+    // --- Render Results ---
+    function renderSectionsView(data) {
         results_container.empty();
-        if(!data || !data.length){
+
+        if (!data || !data.length) {
             results_container.html(`<div class="alert alert-warning">لا توجد بيانات.</div>`);
             return;
         }
 
-        const table = $(`
-            <div class="table-responsive shadow-sm rounded">
-                <table class="table table-bordered table-hover text-end align-middle mb-0" style="font-size:1.1rem;">
-                    <thead class="bg-primary text-white" style="font-size:1.2rem;">
+        // Group data by driver and date
+        const groupedData = data.reduce((acc, row) => {
+            const driver = row.driver || "غير محدد";
+            const date = row.date;
+
+            if (!acc[driver]) acc[driver] = {};
+            if (!acc[driver][date]) acc[driver][date] = [];
+            acc[driver][date].push(row);
+
+            return acc;
+        }, {});
+
+        // Build sections for each driver and date
+        Object.keys(groupedData).forEach((driver) => {
+            Object.keys(groupedData[driver]).forEach((date) => {
+                const driverSection = $(`
+                    <div class="card shadow-sm rounded mb-5">
+                        <div class="card-header" style="background-color: #d1ecf1; color: black; display: flex; justify-content: space-between; align-items: center;">
+                            <h3 class="mb-0">${driver}</h3>
+                            <p class="mb-0">التاريخ: ${date}</p>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover text-end align-middle" style="font-size:1.1rem;">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>نوع الحليب</th>
+                                            <th>صباح - الموردين</th>
+                                            <th>صباح - السيارة</th>
+                                            <th>فرق الصباح</th>
+                                            <th>مساء - الموردين</th>
+                                            <th>مساء - السيارة</th>
+                                            <th>فرق المساء</th>
+                                            <th>إجمالي - الموردين</th>
+                                            <th>إجمالي - السيارة</th>
+                                            <th>إجمالي الفرق</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                    <tfoot class="bg-light">
+                                        <tr>
+                                            <th>الإجمالي</th>
+                                            <td class="total-collected-morning"></td>
+                                            <td class="total-car-morning"></td>
+                                            <td class="total-morning-diff"></td>
+                                            <td class="total-collected-evening"></td>
+                                            <td class="total-car-evening"></td>
+                                            <td class="total-evening-diff"></td>
+                                            <td class="total-collected-total"></td>
+                                            <td class="total-car-total"></td>
+                                            <td class="total-diff-total"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `);
+
+                const tbody = driverSection.find("tbody");
+                const tfoot = driverSection.find("tfoot");
+
+                // Initialize totals
+                let totals = {
+                    collected_morning: 0,
+                    car_morning: 0,
+                    morning_diff: 0,
+                    collected_evening: 0,
+                    car_evening: 0,
+                    evening_diff: 0,
+                    collected_total: 0,
+                    car_total: 0,
+                    total_diff: 0,
+                };
+
+                // Render rows and calculate totals
+                groupedData[driver][date].forEach((row) => {
+                    // Translate milk type to Arabic
+                    const milkTypeArabic = row.milk_type === "Cow" ? "بقر" : row.milk_type === "Buffalo" ? "جاموس" : "غير محدد";
+
+                    const morning_diff_class = row.morning_diff >= 0 ? "bg-success text-white" : "bg-danger text-white";
+                    const evening_diff_class = row.evening_diff >= 0 ? "bg-success text-white" : "bg-danger text-white";
+                    const total_diff_class = row.total_diff >= 0 ? "bg-success text-white" : "bg-danger text-white";
+
+                    tbody.append(`
                         <tr>
-                            <th>التاريخ</th>
-                            <th>السائق</th>
-                            <th>صباح -الموردين</th>
-                            <th>صباح -السيارة</th>
-                            <th>فرق الصباح</th>
-                            <th>مساء -الموردين</th>
-                            <th>مساء -السيارة</th>
-                            <th>فرق المساء</th>
-                            <th>إجمالي -الموردين</th>
-                            <th>إجمالي -السيارة</th>
-                            <th>إجمالي الفرق</th>
+                            <td>${milkTypeArabic}</td>
+                            <td>${row.collected_morning} كجم</td>
+                            <td>${row.car_morning} كجم</td>
+                            <td><span class="badge ${morning_diff_class}">${row.morning_diff} كجم</span></td>
+                            <td>${row.collected_evening} كجم</td>
+                            <td>${row.car_evening} كجم</td>
+                            <td><span class="badge ${evening_diff_class}">${row.evening_diff} كجم</span></td>
+                            <td>${row.collected_total} كجم</td>
+                            <td>${row.car_total} كجم</td>
+                            <td><span class="badge ${total_diff_class}">${row.total_diff} كجم</span></td>
                         </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        `);
-        const tbody = table.find("tbody");
+                    `);
 
-        data.forEach(row=>{
-            const morning_diff_class = row.morning_diff>=0?"bg-success text-white":"bg-danger text-white";
-            const evening_diff_class = row.evening_diff>=0?"bg-success text-white":"bg-danger text-white";
-            const total_diff_class = row.total_diff>=0?"bg-success text-white":"bg-danger text-white";
+                    // Update totals
+                    totals.collected_morning += row.collected_morning;
+                    totals.car_morning += row.car_morning;
+                    totals.morning_diff += row.morning_diff;
+                    totals.collected_evening += row.collected_evening;
+                    totals.car_evening += row.car_evening;
+                    totals.evening_diff += row.evening_diff;
+                    totals.collected_total += row.collected_total;
+                    totals.car_total += row.car_total;
+                    totals.total_diff += row.total_diff;
+                });
 
-            tbody.append(`
-                <tr style="font-size:1.1rem;">
-                    <td>${row.date}</td>
-                    <td>${row.driver || "غير محدد"}</td>
-                    <td>${row.collected_morning} كجم</td>
-                    <td>${row.car_morning} كجم</td>
-                    <td><span class="badge ${morning_diff_class}" style="font-size:1rem;">${row.morning_diff} كجم</span></td>
-                    <td>${row.collected_evening} كجم</td>
-                    <td>${row.car_evening} كجم</td>
-                    <td><span class="badge ${evening_diff_class}" style="font-size:1rem;">${row.evening_diff} كجم</span></td>
-                    <td>${row.collected_total} كجم</td>
-                    <td>${row.car_total} كجم</td>
-                    <td><span class="badge ${total_diff_class}" style="font-size:1rem;">${row.total_diff} كجم</span></td>
-                </tr>
-            `);
+                // Append totals to the footer
+                tfoot.find(".total-collected-morning").text(`${totals.collected_morning} كجم`);
+                tfoot.find(".total-car-morning").text(`${totals.car_morning} كجم`);
+                tfoot.find(".total-morning-diff").text(`${totals.morning_diff} كجم`);
+                tfoot.find(".total-collected-evening").text(`${totals.collected_evening} كجم`);
+                tfoot.find(".total-car-evening").text(`${totals.car_evening} كجم`);
+                tfoot.find(".total-evening-diff").text(`${totals.evening_diff} كجم`);
+                tfoot.find(".total-collected-total").text(`${totals.collected_total} كجم`);
+                tfoot.find(".total-car-total").text(`${totals.car_total} كجم`);
+                tfoot.find(".total-diff-total").text(`${totals.total_diff} كجم`);
+
+                results_container.append(driverSection);
+            });
         });
-
-        results_container.append(table);
     }
 };

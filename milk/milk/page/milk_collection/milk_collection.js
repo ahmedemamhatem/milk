@@ -4,6 +4,7 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
         title: __('تسجيل اللبن'),
         single_column: true,
     });
+
     // Translation map for milk types
     const milkTypeTranslations = {
         "Cow": "بقر",
@@ -11,11 +12,20 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
         "بقر": "Cow",
         "جاموس": "Buffalo",
     };
-    // Translate milk type from English to Arabic or Arabic to English
+
+    // Translate milk type from English to Arabic or vice versa
     function translateMilkType(type, toArabic = true) {
         return toArabic ? milkTypeTranslations[type] || type : milkTypeTranslations[type] || type;
     }
-    // Add custom styles
+
+    // Helper to get Arabic day names
+    function getArabicDayName(dateStr) {
+        const daysInArabic = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+        const date = new Date(dateStr);
+        return daysInArabic[date.getDay()];
+    }
+
+    // Styles
     const styles = `
         <style>
             body {
@@ -160,7 +170,7 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
 
     const village = frappe.ui.form.make_control({
         parent: $('<div class="filter-item"></div>').appendTo(filter_section),
-        df: { fieldname: 'village', label: __('القرية'), fieldtype: 'Link', options: 'Village', reqd: 1 },
+        df: { fieldname: 'village', label: __('القرية'), fieldtype: 'Link', options: 'Village', reqd: 0 },
         render_input: true,
     });
 
@@ -181,11 +191,13 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
                         <th>${__('المورد')}</th>
                         <th>${__('نوع اللبن')}</th>
                         <th>${__('كمية الصباح')}</th>
+                        <th>${__('بنط الصباح')}</th>
                         <th>${__('كمية المساء')}</th>
+                        <th>${__('بنط المساء')}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td colspan="5" style="text-align:center;">${__('لا توجد بيانات')}</td></tr>
+                    <tr><td colspan="7" style="text-align:center;">${__('لا توجد بيانات')}</td></tr>
                 </tbody>
             </table>
         </div>
@@ -199,124 +211,262 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
         </div>
     `).appendTo(page.body);
 
-    // Populate Table with Data
-  // Populate Table with Data and Translate Milk Types to Arabic
-    function populate_table_with_data(data, readOnly = false) {
+    // Function to validate pont fields
+    function validate_pont_field(pontValue, milkType, isReadonly) {
+        if (isReadonly) {
+            return "readonly"; // Skip validation for readonly fields
+        }
+        if (pontValue === 0) return "zero";
+        if (milkType === "Cow" && (pontValue < 3 || pontValue > 5)) return "invalid_cow";
+        if (milkType === "Buffalo" && (pontValue < 6 || pontValue > 9)) return "invalid_buffalo";
+        return "valid";
+    }
+
+    // Function to validate quantities against averages
+    function validate_quantity_against_average(supplier, morning_quantity, evening_quantity, callback) {
+    frappe.call({
+        method: "milk.milk.utils.get_average_quantity",
+        args: { supplier, days: 10 },
+        callback: function (response) {
+            // Default values if no response or empty response
+            const average = response.message || { morning: 0, evening: 0 };
+
+            // Calculate valid ranges for morning and evening
+            const morning_min = average.morning - 2;
+            const morning_max = average.morning + 2;
+            const evening_min = average.evening - 2;
+            const evening_max = average.evening + 2;
+
+            let errors = [];
+
+            // Validate morning quantity
+            if (morning_quantity < morning_min || morning_quantity > morning_max) {
+                errors.push(
+                    `كمية الصباح (${morning_quantity}) خارج النطاق المسموح به (المتوسط: ${average.morning} ± 2).`
+                );
+            }
+
+            // Validate evening quantity
+            if (evening_quantity < evening_min || evening_quantity > evening_max) {
+                errors.push(
+                    `كمية المساء (${evening_quantity}) خارج النطاق المسموح به (المتوسط: ${average.evening} ± 2).`
+                );
+            }
+
+            // Pass validation result back via the callback
+            callback({
+                valid: errors.length === 0,
+                messages: errors,
+            });
+        },
+    });
+}
+    // Populate table with data
+    function populate_table_with_data(data, isSubmitted = false) {
         const tbody = table_section.find("tbody");
         tbody.empty();
 
         let rowCount = 1;
         data.forEach((entry) => {
-            // Translate milk types to Arabic
+            const isPontEditable = entry.custom_pont_size_rate === 1;
             const milkTypes = entry.milk_type.split(",").map((type) => translateMilkType(type, true));
             milkTypes.forEach((milk_type) => {
-                const row = `
+                const row = $(`
                     <tr>
                         <td>${rowCount++}</td>
                         <td>${entry.supplier || __('غير معروف')}</td>
                         <td>${milk_type}</td>
-                        <td>
-                            <input type="number" class="morning-quantity" value="${entry.morning_quantity || 0}" 
-                                style="width: 100%;" ${readOnly ? "readonly" : ""}>
-                        </td>
-                        <td>
-                            <input type="number" class="evening-quantity" value="${entry.evening_quantity || 0}" 
-                                style="width: 100%;" ${readOnly ? "readonly" : ""}>
-                        </td>
+                        <td><input type="number" class="morning-quantity" value="${entry.morning_quantity || 0}" ${isSubmitted ? "readonly" : ""}></td>
+                        <td><input type="number" class="morning-pont" value="${entry.morning_pont || 0}" ${!isPontEditable ? "readonly" : ""}></td>
+                        <td><input type="number" class="evening-quantity" value="${entry.evening_quantity || 0}" ${isSubmitted ? "readonly" : ""}></td>
+                        <td><input type="number" class="evening-pont" value="${entry.evening_pont || 0}" ${!isPontEditable ? "readonly" : ""}></td>
                     </tr>
-                `;
+                `);
                 tbody.append(row);
             });
         });
     }
 
-    // Handle Save and Submit
-    // Collect data from table and translate Milk Types to English before submitting
-function save_or_submit(action) {
+    // Save or submit data
+    // Save or submit data
+async function save_or_submit(action) {
     const milk_entries = [];
+    let validation_issues = [];
     let invalid_rows = false;
 
-    table_section.find("tbody tr").each(function () {
-        const supplier = $(this).find("td:nth-child(2)").text().trim();
-        const milk_type = translateMilkType($(this).find("td:nth-child(3)").text().trim(), false); // Translate to English
-        const morning_quantity = parseFloat($(this).find(".morning-quantity").val()) || 0;
-        const evening_quantity = parseFloat($(this).find(".evening-quantity").val()) || 0;
+    const validationPromises = [];
 
-        if (!supplier || !milk_type) {
+    table_section.find("tbody tr").each(function (index, row) {
+        const $row = $(row);
+        const supplier = $row.find("td:nth-child(2)").text().trim();
+        const milk_type = translateMilkType($row.find("td:nth-child(3)").text().trim(), false);
+        const morning_quantity = parseFloat($row.find(".morning-quantity").val()) || 0;
+        const morning_pont = parseFloat($row.find(".morning-pont").val()) || 0;
+        const evening_quantity = parseFloat($row.find(".evening-quantity").val()) || 0;
+        const evening_pont = parseFloat($row.find(".evening-pont").val()) || 0;
+
+        const isMorningPontReadonly = $row.find(".morning-pont").prop("readonly");
+        const isEveningPontReadonly = $row.find(".evening-pont").prop("readonly");
+
+        // Validate pont fields
+        const morningPontValidation = validate_pont_field(morning_pont, milk_type, isMorningPontReadonly);
+        if (morningPontValidation === "invalid_cow") {
+            frappe.msgprint(`خطأ في الصف ${index + 1}: بنط الصباح (بقر) يجب أن يكون بين 3 و 5.`);
             invalid_rows = true;
+            return false; // break
+        }
+        if (morningPontValidation === "invalid_buffalo") {
+            frappe.msgprint(`خطأ في الصف ${index + 1}: بنط الصباح (جاموس) يجب أن يكون بين 6 و 9.`);
+            invalid_rows = true;
+            return false; // break
         }
 
-        milk_entries.push({
-            supplier,
-            milk_type,
-            morning_quantity,
-            evening_quantity,
-        });
+        const eveningPontValidation = validate_pont_field(evening_pont, milk_type, isEveningPontReadonly);
+        if (eveningPontValidation === "invalid_cow") {
+            frappe.msgprint(`خطأ في الصف ${index + 1}: بنط المساء (بقر) يجب أن يكون بين 3 و 5.`);
+            invalid_rows = true;
+            return false;
+        }
+        if (eveningPontValidation === "invalid_buffalo") {
+            frappe.msgprint(`خطأ في الصف ${index + 1}: بنط المساء (جاموس) يجب أن يكون بين 6 و 9.`);
+            invalid_rows = true;
+            return false;
+        }
+
+        // Push validation promise for quantities
+        // Push validation promise for quantities
+const promise = new Promise((resolve) => {
+    frappe.call({
+        method: "milk.milk.utils.get_average_quantity",
+        args: { supplier, milk_type, days: 10 },
+        callback: function (response) {
+            const average = response.message || { morning: 0, evening: 0 };
+
+            const morning_min = average.morning - 2;
+            const morning_max = average.morning + 2;
+            const evening_min = average.evening - 2;
+            const evening_max = average.evening + 2;
+
+            let errors = [];
+
+            // Morning validation
+            if (morning_quantity > 0) {
+                if (morning_quantity < morning_min || morning_quantity > morning_max) {
+                    errors.push(
+                        `كمية الصباح (${morning_quantity}) خارج النطاق المسموح به (المتوسط: ${average.morning} ± 2).`
+                    );
+                }
+            } else if (morning_quantity === 0) {
+                errors.push(`كمية الصباح = 0`);
+            }
+
+            // Evening validation
+            if (evening_quantity > 0) {
+                if (evening_quantity < evening_min || evening_quantity > evening_max) {
+                    errors.push(
+                        `كمية المساء (${evening_quantity}) خارج النطاق المسموح به (المتوسط: ${average.evening} ± 2).`
+                    );
+                }
+            } else if (evening_quantity === 0) {
+                errors.push(`كمية المساء = 0`);
+            }
+
+            if (errors.length > 0) {
+                validation_issues.push(`صف ${index + 1}: ${errors.join(" | ")}`);
+            }
+
+            milk_entries.push({
+                supplier,
+                milk_type,
+                morning_quantity,
+                morning_pont,
+                evening_quantity,
+                evening_pont,
+            });
+            resolve();
+        },
+    });
+});
+
+
+        validationPromises.push(promise);
     });
 
     if (invalid_rows) {
-        frappe.msgprint({
-            title: __('خطأ'),
-            indicator: 'red',
-            message: __('يرجى التأكد من أن جميع الصفوف تحتوي على بيانات صحيحة.')
-        });
+        frappe.msgprint("يرجى تصحيح الأخطاء قبل المتابعة!");
         return;
     }
 
-    // Call backend
-    frappe.call({
-        method: action === 'save' ? 'milk.milk.utils.save_milk_collection' : 'milk.milk.utils.submit_milk_collection',
-        args: {
-            driver: driver.get_value(),
-            village: village.get_value(),
-            collection_date: collection_date.get_value(),
-            milk_entries: milk_entries,
-        },
-        callback: function () {
-            frappe.msgprint({
-                title: __('تم'),
-                indicator: 'green',
-                message: action === 'save' ? __('تم حفظ البيانات بنجاح.') : __('تم تأكيد البيانات بنجاح.')
-            });
+    // Wait for all async validations
+    await Promise.all(validationPromises);
 
-            if (action === 'submit') {
-                table_section.find('input').attr('readonly', true);
-            }
-        },
-    });
+    if (validation_issues.length > 0) {
+        const confirmation_message = validation_issues.join("<br>");
+        frappe.confirm(
+            `تحذير: توجد مشاكل في الكميات.<br>${confirmation_message}<br>هل تريد المتابعة؟`,
+            () => proceed_with_save_or_submit(action, milk_entries),
+            () => frappe.msgprint("تم إلغاء العملية.")
+        );
+    } else {
+        proceed_with_save_or_submit(action, milk_entries);
+    }
 }
 
-    actions_section.find('.save-btn').click(() => save_or_submit('save'));
-    actions_section.find('.submit-btn').click(() => save_or_submit('submit'));
-
-    get_suppliers_button.click(() => {
+    // Proceed with saving or submitting data
+    function proceed_with_save_or_submit(action, milk_entries) {
         frappe.call({
-            method: "milk.milk.utils.get_suppliers",
+            method: action === "save" ? "milk.milk.utils.save_milk_collection" : "milk.milk.utils.submit_milk_collection",
             args: {
                 driver: driver.get_value(),
                 village: village.get_value(),
                 collection_date: collection_date.get_value(),
+                milk_entries,
+            },
+            callback: function () {
+                frappe.msgprint(action === "save" ? "تم حفظ البيانات بنجاح!" : "تم تأكيد البيانات بنجاح!");
+                clear_table_and_filters();
+            },
+        });
+    }
+
+    // Clear table and filters
+    function clear_table_and_filters() {
+        table_section.find("tbody").html(`<tr><td colspan="7">لا توجد بيانات</td></tr>`);
+        frappe.msgprint("تم مسح البيانات.");
+    }
+
+    // Fetch suppliers on button click
+    get_suppliers_button.click(() => {
+        const selectedDriver = driver.get_value();
+        const selectedDate = collection_date.get_value();
+
+        if (!selectedDriver || !selectedDate) {
+            frappe.msgprint("يرجى تحديد السائق وتاريخ التجميع!");
+            return;
+        }
+
+        frappe.call({
+            method: "milk.milk.utils.get_suppliers",
+            args: {
+                driver: selectedDriver,
+                collection_date: selectedDate,
+                villages: [village.get_value()],
             },
             callback: function (response) {
-                const { status, milk_entries, suppliers, message } = response.message;
-
-                frappe.msgprint(message);
-
-                if (status === 'submitted') {
-                    populate_table_with_data(milk_entries, true);
-                } else if (status === 'draft') {
-                    populate_table_with_data(milk_entries, false);
-                } else if (status === 'new') {
-                    populate_table_with_data(suppliers, false);
+                if (response.message.status === "submitted") {
+                    populate_table_with_data(response.message.milk_entries, true);
+                } else if (response.message.status === "draft") {
+                    populate_table_with_data(response.message.milk_entries, false);
+                } else if (response.message.status === "new") {
+                    populate_table_with_data(response.message.suppliers, false);
                 }
+                frappe.msgprint(response.message.message);
             },
         });
     });
 
-    actions_section.find('.clear-btn').click(() => {
-        table_section.find('tbody').html(`
-            <tr><td colspan="5" style="text-align:center;">${__('لا توجد بيانات')}</td></tr>
-        `);
-        frappe.msgprint(__('تم مسح البيانات بنجاح 🧹'));
-    });
+    // Attach event handlers for buttons
+    actions_section.find(".save-btn").click(() => save_or_submit("save"));
+    actions_section.find(".submit-btn").click(() => save_or_submit("submit"));
+    actions_section.find(".clear-btn").click(clear_table_and_filters);
 };

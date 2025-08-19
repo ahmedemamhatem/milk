@@ -12,6 +12,73 @@ import frappe
 
 
 @frappe.whitelist()
+def get_average_quantity(supplier, milk_type, days=10):
+    """
+    Calculate the average morning or evening quantities for the supplier over the last `days`.
+    Args:
+        supplier (str): The supplier name.
+        days (int or str): The number of days to calculate the average for.
+    Returns:
+        dict: A dictionary containing the average morning and evening quantities.
+    """
+    import datetime
+
+    # Convert days to integer, if it's a string
+    days = int(days)
+
+    # Get the last `days` dates
+    end_date = datetime.date.today()
+    start_date = end_date - datetime.timedelta(days=days)
+
+    # Fetch milk entries for the supplier within the date range
+    milk_entries = frappe.db.get_all(
+        "Milk Entries Log",
+        filters={
+            "supplier": supplier,
+            "date": ["between", [start_date, end_date]]
+        },
+        fields=["morning", "evening", "quantity"]
+    )
+
+    # Initialize totals and counters
+    total_morning = 0
+    total_evening = 0
+    morning_count = 0
+    evening_count = 0
+
+    # Process each milk entry
+    for entry in milk_entries:
+        if entry.get("morning", 0) == 1: 
+            if entry.get("quantity", 0) > 0:
+                total_morning += entry.get("quantity", 0)
+                morning_count += 1
+
+        if entry.get("evening", 0) == 1:  
+            if entry.get("quantity", 0) > 0:
+                total_evening += entry.get("quantity", 0)
+                evening_count += 1
+
+    # Calculate averages
+    average_morning = total_morning / morning_count if morning_count > 0 else 0
+    average_evening = total_evening / evening_count if evening_count > 0 else 0
+
+    return {
+        "morning": average_morning,
+        "evening": average_evening
+    }
+
+@frappe.whitelist()
+def get_drivers():
+    return frappe.get_all("Driver", fields=["name"])
+
+@frappe.whitelist()
+def get_villages(driver=None):
+    if driver:
+        return frappe.get_all("Village", filters={"driver_responsible": driver}, fields=["name"])
+    return []
+
+      
+@frappe.whitelist()
 def get_company_from_milk_settings():
     """
     Fetch the company from Milk Setting.
@@ -35,11 +102,6 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
         # Arabic day names mapping
         arabic_days = ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"]
 
-        # Function to convert numbers into Arabic numerals
-        def to_arabic_numerals(number):
-            arabic_numerals = "٠١٢٣٤٥٦٧٨٩"
-            return "".join(arabic_numerals[int(digit)] if digit.isdigit() else digit for digit in str(number))
-
         # Prepare filters
         filters = {
             "date": ["between", [start_date.date(), (start_date + timedelta(days=6)).date()]],
@@ -51,7 +113,7 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
         records = frappe.get_all(
             "Milk Entries Log",
             filters=filters,
-            fields=["date", "day_name", "supplier", "morning", "evening", "quantity", "milk_type"]
+            fields=["date", "day_name", "supplier", "morning", "evening", "quantity", "milk_type", "pont"]
         )
 
         # Organize data by Supplier and Milk Type
@@ -59,55 +121,59 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
         for record in records:
             supplier_name = record["supplier"]
 
-            # Fetch supplier-specific rates and custom_villages
+            # Fetch supplier-specific rates and custom_pont_size_rate
             supplier_doc = frappe.get_doc("Supplier", supplier_name)
-            cow_price = supplier_doc.custom_cow_price or 0  # Default to 0 if not set
-            buffalo_price = supplier_doc.custom_buffalo_price or 0  # Default to 0 if not set
-            custom_villages = supplier_doc.custom_villages or "غير محدد"  # Default to "غير محدد" if not set
-
-            # Determine rate based on milk type
-            milk_type = record["milk_type"]
-            rate_per_kg = cow_price if milk_type == "Cow" else buffalo_price
-            company = get_company_from_milk_settings()
+            custom_pont_size_rate = supplier_doc.custom_pont_size_rate or 0
+            cow_price = supplier_doc.custom_cow_price or 0
+            buffalo_price = supplier_doc.custom_buffalo_price or 0
+            rate = cow_price if record["milk_type"] == "Cow" else buffalo_price
+            encrypted_rate = rate * 90
+            custom_villages = supplier_doc.custom_villages or "غير محدد"
 
             # Initialize supplier and milk type grouping
             if supplier_name not in grouped_data:
                 grouped_data[supplier_name] = {
                     "supplier_name": supplier_name,
-                    "milk_type": milk_type,
-                    "custom_villages": custom_villages,  # Include custom_villages
+                    "milk_type": record["milk_type"],
+                    "custom_villages": custom_villages,
+                    "custom_pont_size_rate": custom_pont_size_rate,
+                    "encrypted_rate": encrypted_rate,  # Include encrypted rate if applicable
                     "week_start": str(start_date.date()),
-                    "days": {day.date(): {"day_name": f"{arabic_days[day.weekday()]} - {to_arabic_numerals(day.strftime('%m-%d'))}",
-                                          "morning": 0, "evening": 0} for day in days_of_week},  # Initialize all days
+                    "days": {day.date(): {"day_name": f"{arabic_days[day.weekday()]} - {day.strftime('%m-%d')}",
+                                          "morning": {"qty": 0, "pont": 0},
+                                          "evening": {"qty": 0, "pont": 0}} for day in days_of_week},
                     "total_morning": 0,
                     "total_evening": 0,
                     "total_quantity": 0,
-                    "rate": rate_per_kg,
                     "total_amount": 0,
                 }
 
             # Populate actual records
             date_key = record["date"]
             if date_key in grouped_data[supplier_name]["days"]:
-                # Assign quantities to morning and evening based on flags
+                # Assign quantities and ponts to morning and evening based on flags
                 if record["morning"] == 1:
-                    grouped_data[supplier_name]["days"][date_key]["morning"] = record["quantity"]
+                    grouped_data[supplier_name]["days"][date_key]["morning"] = {
+                        "qty": record["quantity"],
+                        "pont": record["pont"],
+                    }
                 if record["evening"] == 1:
-                    grouped_data[supplier_name]["days"][date_key]["evening"] = record["quantity"]
+                    grouped_data[supplier_name]["days"][date_key]["evening"] = {
+                        "qty": record["quantity"],
+                        "pont": record["pont"],
+                    }
 
-        # Calculate totals for each supplier
+                # Calculate total for the supplier
+                grouped_data[supplier_name]["total_morning"] += record["quantity"] if record["morning"] == 1 else 0
+                grouped_data[supplier_name]["total_evening"] += record["quantity"] if record["evening"] == 1 else 0
+
+        # Final calculations
         for supplier_data in grouped_data.values():
-            for day_data in supplier_data["days"].values():
-                supplier_data["total_morning"] += day_data["morning"]
-                supplier_data["total_evening"] += day_data["evening"]
-
             supplier_data["total_quantity"] = supplier_data["total_morning"] + supplier_data["total_evening"]
-            supplier_data["total_amount"] = supplier_data["total_quantity"] * supplier_data["rate"]
 
             # Convert days dictionary to a list for easier frontend rendering
             supplier_data["days"] = list(supplier_data["days"].values())
 
-        # Return success response with grouped data
         return {"status": "success", "data": list(grouped_data.values())}
 
     except Exception as e:
@@ -119,7 +185,7 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
 def get_driver_report(from_date, to_date, driver=None):
     """
     Generate a daily report comparing milk collected from suppliers (Milk Entries Log)
-    and car collection (Car Collection) for each driver within the specified date range.
+    and car collection (Car Collection), grouped by milk type for each driver within the specified date range.
     """
     try:
         # Validate input
@@ -129,11 +195,12 @@ def get_driver_report(from_date, to_date, driver=None):
         # Filter conditions for driver (optional)
         driver_condition = f"AND driver = %(driver)s" if driver else ""
 
-        # Query Milk Entries Log: Collected Morning and Evening Totals
+        # Query Milk Entries Log: Collected Morning and Evening Totals by Milk Type
         milk_entries_query = f"""
             SELECT
                 driver,
                 date,
+                milk_type,
                 SUM(CASE WHEN morning = 1 THEN quantity ELSE 0 END) AS collected_morning,
                 SUM(CASE WHEN evening = 1 THEN quantity ELSE 0 END) AS collected_evening
             FROM
@@ -142,7 +209,7 @@ def get_driver_report(from_date, to_date, driver=None):
                 date BETWEEN %(from_date)s AND %(to_date)s
                 {driver_condition}
             GROUP BY
-                driver, date
+                driver, date, milk_type
         """
 
         milk_entries = frappe.db.sql(
@@ -151,11 +218,12 @@ def get_driver_report(from_date, to_date, driver=None):
             as_dict=True,
         )
 
-        # Query Car Collection: Calculate Morning and Evening Totals Based on Flags
+        # Query Car Collection: Calculate Morning and Evening Totals by Milk Type
         car_collection_query = f"""
             SELECT
                 driver,
                 date,
+                milk_type,
                 SUM(CASE WHEN morning = 1 THEN quantity ELSE 0 END) AS car_morning,
                 SUM(CASE WHEN evening = 1 THEN quantity ELSE 0 END) AS car_evening
             FROM
@@ -164,7 +232,7 @@ def get_driver_report(from_date, to_date, driver=None):
                 date BETWEEN %(from_date)s AND %(to_date)s
                 {driver_condition}
             GROUP BY
-                driver, date
+                driver, date, milk_type
         """
 
         car_collection = frappe.db.sql(
@@ -178,10 +246,11 @@ def get_driver_report(from_date, to_date, driver=None):
 
         # Populate Milk Entries Log Data
         for entry in milk_entries:
-            key = (entry["driver"], entry["date"])
+            key = (entry["driver"], entry["date"], entry["milk_type"])
             report_data[key] = {
                 "driver": entry["driver"],
                 "date": entry["date"],
+                "milk_type": entry["milk_type"],
                 "collected_morning": float(entry["collected_morning"] or 0),
                 "collected_evening": float(entry["collected_evening"] or 0),
                 "car_morning": 0,
@@ -190,11 +259,12 @@ def get_driver_report(from_date, to_date, driver=None):
 
         # Populate Car Collection Data
         for entry in car_collection:
-            key = (entry["driver"], entry["date"])
+            key = (entry["driver"], entry["date"], entry["milk_type"])
             if key not in report_data:
                 report_data[key] = {
                     "driver": entry["driver"],
                     "date": entry["date"],
+                    "milk_type": entry["milk_type"],
                     "collected_morning": 0,
                     "collected_evening": 0,
                 }
@@ -213,6 +283,7 @@ def get_driver_report(from_date, to_date, driver=None):
             final_report.append({
                 "driver": data["driver"],
                 "date": data["date"],
+                "milk_type": data["milk_type"],
                 "collected_morning": data["collected_morning"],
                 "car_morning": data["car_morning"],
                 "morning_diff": morning_diff,
@@ -224,8 +295,8 @@ def get_driver_report(from_date, to_date, driver=None):
                 "total_diff": total_diff,
             })
 
-        # Sort by date and driver
-        final_report.sort(key=lambda x: (x["date"], x["driver"]))
+        # Sort by date, driver, and milk type
+        final_report.sort(key=lambda x: (x["date"], x["driver"], x["milk_type"]))
 
         return {"status": "success", "data": final_report}
 
@@ -269,6 +340,7 @@ def insert_car_collection(data):
         # Time validation
         morning = int(data.get("morning", 0))
         evening = int(data.get("evening", 0))
+        milk_type = data.get("milk_type")
         if not morning and not evening:
             frappe.throw("اختار صباحاً أو مساءً ⏰")
 
@@ -278,6 +350,7 @@ def insert_car_collection(data):
             filters={
                 "driver": data["driver"],
                 "date": data["date"],
+                "milk_type": milk_type,
                 "morning": morning,
                 "evening": evening
             },
@@ -308,9 +381,7 @@ def insert_car_collection(data):
     except Exception as e:
         frappe.throw(f"حصل خطأ: {str(e)} 😢")
 
-
-        
-        
+    
 @frappe.whitelist()
 def validate_supplier_data(driver, village, collection_date, milk_entries):
     """
@@ -360,25 +431,27 @@ def validate_supplier_data(driver, village, collection_date, milk_entries):
             return {"status": "success", "warnings": []}
 
     except Exception as e:
-        frappe.log_error(message=str(e), title="خطأ في فحص جمع الحليب 🐄")
+        frappe.log_error(message=str(e), title="خطأ في فحص تسجيل اللبن 🐄")
         return {"status": "error", "message": f"حصل خطأ: {str(e)} 😢"}
 
-  
 
 @frappe.whitelist()
-def get_suppliers(driver, village, collection_date):
+def get_suppliers(driver, collection_date, villages=None):
     """
-    Fetch suppliers, load draft, or load submitted milk collection based on the driver, village, and date.
+    Fetch suppliers, load draft, or load submitted milk collection based on the driver, villages, and date.
     """
     try:
         # Validate inputs
-        if not driver or not village or not collection_date:
-            frappe.throw("مطلوب تحديد السائق، القرية، وتاريخ الجمع عشان نجيب الموردين 😅")
+        if not driver or not collection_date:
+            frappe.throw("مطلوب تحديد السائق وتاريخ الجمع عشان نجيب الموردين 😅")
+
+        if not villages or not isinstance(villages, list):
+            villages = []  # Default to an empty list if no villages are provided
 
         # Check for existing Milk Collection documents
         existing_doc = frappe.db.get_value(
             "Milk Collection",
-            {"driver": driver, "village": village, "collection_date": collection_date},
+            {"driver": driver, "collection_date": collection_date},
             ["name", "docstatus"],
             as_dict=True
         )
@@ -389,78 +462,97 @@ def get_suppliers(driver, village, collection_date):
             return {
                 "status": "submitted",
                 "milk_entries": submitted_doc.milk_entries,
-                "message": f"جمع الحليب للسائق '{driver}', القرية '{village}', والتاريخ '{collection_date}' متسلم بالفعل ✅"
+                "message": f"تسجيل اللبن للسائق '{driver}' والتاريخ '{collection_date}' متسلم بالفعل ✅"
             }
 
         # Handle draft document
         if existing_doc and existing_doc["docstatus"] == 0:
             draft_doc = frappe.get_doc("Milk Collection", existing_doc["name"])
+            # Process draft entries to include custom_pont_size_rate
             return {
                 "status": "draft",
                 "milk_entries": process_milk_entries(draft_doc.milk_entries),
                 "message": "في مسودة موجودة، ممكن تكمل إدخال البيانات ✍️"
             }
 
-        # Fetch suppliers
+        # New entries logic (if no draft or submitted document exists)
+        filters = {"custom_driver_in_charge": driver}
+        if villages:
+            filters["custom_villages"] = ["in", villages]
+
         suppliers = frappe.get_all(
             "Supplier",
-            filters={"custom_driver_in_charge": driver, "custom_villages": village},
-            fields=["name", "custom_cow", "custom_buffalo"]
+            filters=filters,
+            fields=["name", "custom_cow", "custom_buffalo", "custom_cow_price", "custom_buffalo_price", "custom_pont_size_rate"]
         )
 
         if not suppliers:
             return {
                 "status": "no_suppliers",
                 "suppliers": [],
-                "message": f"لا يوجد موردين للسائق '{driver}' والقرية '{village}' 😞"
+                "message": f"لا يوجد موردين للسائق '{driver}' والقرى المحددة 😞"
             }
 
-        # Process suppliers for new records
+        # Process suppliers for new milk entries
         processed_suppliers = []
         for supplier in suppliers:
-            supplier_name = supplier.get("name") or "غير معروف"  # Fallback for missing names
+            supplier_name = supplier.get("name") or "غير معروف"
             milk_types = []
             if supplier.get("custom_cow"):
                 milk_types.append("Cow")
             if supplier.get("custom_buffalo"):
                 milk_types.append("Buffalo")
 
+            pont_size_rate = supplier.get("custom_pont_size_rate", 0)
+
             processed_suppliers.append({
                 "supplier": supplier_name,
                 "milk_type": ",".join(milk_types),
+                "custom_pont_size_rate": pont_size_rate,
                 "morning_quantity": 0,
                 "evening_quantity": 0,
+                "morning_pont": 0 if pont_size_rate == 0 else None,
+                "evening_pont": 0 if pont_size_rate == 0 else None,
+                "cow_price": supplier.get("custom_cow_price", 0),
+                "buffalo_price": supplier.get("custom_buffalo_price", 0),
             })
 
         return {
             "status": "new",
             "suppliers": processed_suppliers,
-            "message": f"تم جلب الموردين للسائق '{driver}' والقرية '{village}' 🐄"
+            "message": f"تم جلب الموردين للسائق '{driver}' والقرى المحددة ✅"
         }
 
     except Exception as e:
         frappe.log_error(message=str(e), title="خطأ في جلب الموردين 🐄")
         return {"status": "error", "message": f"حصل خطأ وإحنا بنجيب الموردين 😢: {str(e)}"}
-
+    
 
 def process_milk_entries(milk_entries):
     """
-    Process milk entries (e.g., draft records) to ensure valid supplier names and milk types.
+    Process draft milk entries to ensure valid supplier names, milk types,
+    and respect the supplier's custom_pont_size_rate for editable ponts.
     """
-    milk_type_map = {
-        "Cow": "Cow",
-        "Buffalo": "Buffalo"
-    }
-
     processed_entries = []
     for entry in milk_entries:
+        supplier_name = entry.get("supplier")
+        
+        if supplier_name:
+            # Fetch supplier's custom_pont_size_rate
+            supplier = frappe.get_doc("Supplier", supplier_name)
+            custom_pont_size_rate = supplier.custom_pont_size_rate or 0
+        else:
+            custom_pont_size_rate = 0
+
         processed_entries.append({
-            "supplier": entry.get("supplier") or "غير معروف",  # Fallback for missing supplier
-            "milk_type": milk_type_map.get(entry.get("milk_type"), "غير معروف"),  # Map or fallback for milk type
+            "supplier": supplier_name or "غير معروف",  # Fallback for missing supplier
+            "milk_type": entry.get("milk_type"),
             "morning_quantity": entry.get("morning_quantity", 0),
             "evening_quantity": entry.get("evening_quantity", 0),
+            "morning_pont": entry.get("morning_pont", 0),
+            "evening_pont": entry.get("evening_pont", 0),
+            "custom_pont_size_rate": custom_pont_size_rate,  # Include supplier's pont rate for frontend logic
         })
-
     return processed_entries
     
     
@@ -471,11 +563,14 @@ def submit_milk_collection(driver, village, collection_date, milk_entries=None):
     """
     try:
         # Validate inputs
-        if not driver or not village or not collection_date:
-            frappe.throw("مطلوب تحديد السائق، القرية، والتاريخ عشان نقدر نسلم جمع الحليب 😅")
+        if not driver or not collection_date:
+            frappe.throw("مطلوب تحديد السائق، القرية، والتاريخ عشان نقدر نسلم تسجيل اللبن 😅")
+        if not milk_entries:
+            frappe.throw("مطلوب إدخال بيانات الحليب عشان نقدر نسلمها 😬")
 
         milk_entries = frappe.parse_json(milk_entries)
         company = get_company_from_milk_settings()
+
         # Check for an existing draft document
         existing_doc = frappe.db.get_value(
             "Milk Collection",
@@ -493,10 +588,26 @@ def submit_milk_collection(driver, village, collection_date, milk_entries=None):
             doc = frappe.get_doc("Milk Collection", existing_doc)
             doc.milk_entries = []  # Clear existing entries
             for entry in milk_entries:
-                doc.append("milk_entries", entry)
+                # Fetch supplier's custom_pont_size_rate
+                supplier_name = entry.get("supplier")
+                if supplier_name:
+                    supplier = frappe.get_doc("Supplier", supplier_name)
+                    custom_pont_size_rate = supplier.get("custom_pont_size_rate", 0)
+                else:
+                    custom_pont_size_rate = 0
+
+                # Append entry with processed ponts
+                doc.append("milk_entries", {
+                    "supplier": supplier_name,
+                    "milk_type": entry.get("milk_type"),
+                    "morning_quantity": entry.get("morning_quantity", 0),
+                    "evening_quantity": entry.get("evening_quantity", 0),
+                    "morning_pont": entry.get("morning_pont", 0) if custom_pont_size_rate else 0,  # Default to 0
+                    "evening_pont": entry.get("evening_pont", 0) if custom_pont_size_rate else 0,  # Default to 0
+                })
             doc.submit()  # Submit the updated document
 
-            message = f"✅ تم تسليم جمع الحليب '{doc.name}' بنجاح يا معلم!"
+            message = f"✅ تم تسليم تسجيل اللبن '{doc.name}' بنجاح يا معلم!"
         
         else:
             # No draft exists, create a new document and submit it
@@ -505,11 +616,27 @@ def submit_milk_collection(driver, village, collection_date, milk_entries=None):
             doc.village = village
             doc.collection_date = collection_date
             for entry in milk_entries:
-                doc.append("milk_entries", entry)
+                # Fetch supplier's custom_pont_size_rate
+                supplier_name = entry.get("supplier")
+                if supplier_name:
+                    supplier = frappe.get_doc("Supplier", supplier_name)
+                    custom_pont_size_rate = supplier.get("custom_pont_size_rate", 0)
+                else:
+                    custom_pont_size_rate = 0
+
+                # Append entry with processed ponts
+                doc.append("milk_entries", {
+                    "supplier": supplier_name,
+                    "milk_type": entry.get("milk_type"),
+                    "morning_quantity": entry.get("morning_quantity", 0),
+                    "evening_quantity": entry.get("evening_quantity", 0),
+                    "morning_pont": entry.get("morning_pont", 0) if custom_pont_size_rate else 0,  # Default to 0
+                    "evening_pont": entry.get("evening_pont", 0) if custom_pont_size_rate else 0,  # Default to 0
+                })
             doc.insert()
             doc.submit()  # Submit the newly created document
 
-            message = f"✅ ملقناش مسودة فعملنا واحدة جديدة وسلمنا جمع الحليب '{doc.name}' بنجاح!"
+            message = f"✅ ملقناش مسودة فعملنا واحدة جديدة وسلمنا تسجيل اللبن '{doc.name}' بنجاح!"
 
         frappe.db.commit()  # Commit changes to the database
         frappe.msgprint(message)
@@ -517,10 +644,10 @@ def submit_milk_collection(driver, village, collection_date, milk_entries=None):
 
     except Exception as e:
         # Log and return an error message
-        frappe.log_error(message=str(e), title="خطأ في تسليم جمع الحليب 🐄")
+        frappe.log_error(message=str(e), title="خطأ في تسليم تسجيل اللبن 🐄")
         return {
             "status": "error",
-            "message": f"حصل خطأ وإحنا بنسلم جمع الحليب 😢: {str(e)}"
+            "message": f"حصل خطأ وإحنا بنسلم تسجيل اللبن 😢: {str(e)}"
         }
         
         
@@ -532,7 +659,7 @@ def check_existing_milk_collection(driver, village, collection_date):
     try:
         # Validate inputs
         if not driver or not village or not collection_date:
-            frappe.throw("مطلوب تحديد السائق، القرية، والتاريخ عشان نفحص جمع الحليب 😅")
+            frappe.throw("مطلوب تحديد السائق، القرية، والتاريخ عشان نفحص تسجيل اللبن 😅")
 
         # Check for existing Milk Collection
         existing_doc = frappe.get_all(
@@ -550,7 +677,7 @@ def check_existing_milk_collection(driver, village, collection_date):
             if existing_doc[0]["docstatus"] == 1:
                 return {
                     "status": "submitted",
-                    "message": f"جمع الحليب '{existing_doc[0]['name']}' متسلم بالفعل ✅"
+                    "message": f"تسجيل اللبن '{existing_doc[0]['name']}' متسلم بالفعل ✅"
                 }
             elif existing_doc[0]["docstatus"] == 0:
                 doc = frappe.get_doc("Milk Collection", existing_doc[0]["name"])
@@ -566,11 +693,9 @@ def check_existing_milk_collection(driver, village, collection_date):
         return {"status": "none", "message": "ملقناش أي جمع حليب بالمعطيات اللي حددتها 😬"}
 
     except Exception as e:
-        frappe.log_error(message=str(e), title="خطأ في فحص جمع الحليب 🐄")
-        return {"status": "error", "message": f"حصل خطأ وإحنا بنفحص جمع الحليب 😢: {str(e)}"}
-
-    
-    
+        frappe.log_error(message=str(e), title="خطأ في فحص تسجيل اللبن 🐄")
+        return {"status": "error", "message": f"حصل خطأ وإحنا بنفحص تسجيل اللبن 😢: {str(e)}"}
+  
 
 @frappe.whitelist()
 def save_milk_collection(driver, village, collection_date, milk_entries):
@@ -579,7 +704,7 @@ def save_milk_collection(driver, village, collection_date, milk_entries):
     """
     try:
         # Validate inputs
-        if not driver or not village or not collection_date:
+        if not driver or not collection_date:
             frappe.throw("مطلوب تحديد السائق، القرية، والتاريخ عشان نحفظ المسودة 😅")
         if not milk_entries:
             frappe.throw("مطلوب إدخال بيانات الحليب عشان نحفظ 😬")
@@ -603,9 +728,25 @@ def save_milk_collection(driver, village, collection_date, milk_entries):
             doc = frappe.get_doc("Milk Collection", existing_doc)
             doc.milk_entries = []  # Clear existing entries
             for entry in milk_entries:
-                doc.append("milk_entries", entry)
+                # Fetch supplier's custom_pont_size_rate
+                supplier_name = entry.get("supplier")
+                if supplier_name:
+                    supplier = frappe.get_doc("Supplier", supplier_name)
+                    custom_pont_size_rate = supplier.get("custom_pont_size_rate", 0)
+                else:
+                    custom_pont_size_rate = 0
+
+                # Append entry with processed ponts
+                doc.append("milk_entries", {
+                    "supplier": supplier_name,
+                    "milk_type": entry.get("milk_type"),
+                    "morning_quantity": entry.get("morning_quantity", 0),
+                    "evening_quantity": entry.get("evening_quantity", 0),
+                    "morning_pont": entry.get("morning_pont", 0) if custom_pont_size_rate else 0,  # Default to 0 if rate is 0
+                    "evening_pont": entry.get("evening_pont", 0) if custom_pont_size_rate else 0,  # Default to 0 if rate is 0
+                })
             doc.save()
-            frappe.msgprint(f"✍️ تم تحديث مسودة جمع الحليب '{doc.name}' بنجاح!")
+            frappe.msgprint(f"✍️ تم تحديث مسودة تسجيل اللبن '{doc.name}' بنجاح!")
         else:
             # Create a new draft document if none exists
             doc = frappe.get_doc({
@@ -613,14 +754,24 @@ def save_milk_collection(driver, village, collection_date, milk_entries):
                 "driver": driver,
                 "village": village,
                 "collection_date": collection_date,
-                "milk_entries": milk_entries
+                "milk_entries": [
+                    {
+                        "supplier": entry.get("supplier"),
+                        "milk_type": entry.get("milk_type"),
+                        "morning_quantity": entry.get("morning_quantity", 0),
+                        "evening_quantity": entry.get("evening_quantity", 0),
+                        "morning_pont": entry.get("morning_pont", 0) if frappe.get_doc("Supplier", entry.get("supplier")).get("custom_pont_size_rate", 0) else 0,
+                        "evening_pont": entry.get("evening_pont", 0) if frappe.get_doc("Supplier", entry.get("supplier")).get("custom_pont_size_rate", 0) else 0,
+                    }
+                    for entry in milk_entries
+                ]
             })
             doc.insert()
-            frappe.msgprint(f"✍️ تم حفظ مسودة جديدة لجمع الحليب '{doc.name}' بنجاح!")
+            frappe.msgprint(f"✍️ تم حفظ مسودة جديدة لتسجيل اللبن '{doc.name}' بنجاح!")
 
         frappe.db.commit()
-        return {"status": "success", "message": f"مسودة جمع الحليب '{doc.name}' تم حفظها بنجاح!"}
+        return {"status": "success", "message": f"مسودة تسجيل اللبن '{doc.name}' تم حفظها بنجاح!"}
 
     except Exception as e:
-        frappe.log_error(message=str(e), title="خطأ في حفظ مسودة جمع الحليب 🐄")
+        frappe.log_error(message=str(e), title="خطأ في حفظ مسودة تسجيل اللبن 🐄")
         return {"status": "error", "message": f"حصل خطأ وإحنا بنحفظ المسودة 😢: {str(e)}"}
