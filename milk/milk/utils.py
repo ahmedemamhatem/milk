@@ -92,89 +92,93 @@ def get_company_from_milk_settings():
         frappe.log_error(str(e), "Error Fetching Company from Milk Setting")
         frappe.throw("حدث خطأ أثناء الحصول على إعدادات الشركة 😢")
         
-@frappe.whitelist()    
+@frappe.whitelist()
 def get_supplier_report_seven_days(selected_date, supplier=None):
     try:
-        # Parse the selected date
+        # Parse start date and generate the 7-day range
         start_date = datetime.strptime(selected_date, "%Y-%m-%d")
-        days_of_week = [start_date + timedelta(days=i) for i in range(7)]  # Generate all 7 days
+        days_of_week = [start_date + timedelta(days=i) for i in range(7)]
 
         # Arabic day names mapping
         arabic_days = ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"]
         arabic_numbers = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
-        # Prepare filters
+
+        # Filters for the query
         filters = {
             "date": ["between", [start_date.date(), (start_date + timedelta(days=6)).date()]],
         }
         if supplier:
-            filters["supplier"] = supplier  # Add supplier filter if provided
+            filters["supplier"] = supplier
 
-        # Fetch records for the 7-day period
+        # Fetch records for the given week
         records = frappe.get_all(
             "Milk Entries Log",
             filters=filters,
-            fields=["date", "day_name", "supplier", "morning", "evening", "quantity", "milk_type", "pont"]
+            fields=["date", "supplier", "milk_type", "morning", "evening", "quantity", "pont"]
         )
 
-        # Organize data by Supplier and Milk Type
+        # Group data by supplier and milk type
         grouped_data = {}
         for record in records:
             supplier_name = record["supplier"]
+            milk_type = record["milk_type"]
 
-            # Fetch supplier-specific rates and custom_pont_size_rate
+            # Fetch supplier-specific rates and other details
             supplier_doc = frappe.get_doc("Supplier", supplier_name)
             custom_pont_size_rate = supplier_doc.custom_pont_size_rate or 0
+            custom_villages = supplier_doc.custom_villages or "غير محدد"
             cow_price = supplier_doc.custom_cow_price or 0
             buffalo_price = supplier_doc.custom_buffalo_price or 0
-            rate = cow_price if record["milk_type"] == "Cow" else buffalo_price
+            rate = cow_price if milk_type == "Cow" else buffalo_price
             encrypted_rate = rate * 90
-            custom_villages = supplier_doc.custom_villages or "غير محدد"
 
             # Initialize supplier and milk type grouping
-            if supplier_name not in grouped_data:
-                grouped_data[supplier_name] = {
+            key = (supplier_name, milk_type)
+            if key not in grouped_data:
+                grouped_data[key] = {
                     "supplier_name": supplier_name,
-                    "milk_type": record["milk_type"],
                     "custom_villages": custom_villages,
+                    "milk_type": milk_type,
+                    "encrypted_rate": encrypted_rate,
                     "custom_pont_size_rate": custom_pont_size_rate,
-                    "encrypted_rate": encrypted_rate,  # Include encrypted rate if applicable
-                    "week_start": str(start_date.date()),
                     "days": {day.date(): {"day_name": f"{arabic_days[day.weekday()]} - {day.strftime('%m-%d').translate(arabic_numbers)}",
                                           "morning": {"qty": 0, "pont": 0},
                                           "evening": {"qty": 0, "pont": 0}} for day in days_of_week},
                     "total_morning": 0,
                     "total_evening": 0,
                     "total_quantity": 0,
-                    "total_amount": 0,
                 }
 
-            # Populate actual records
+            # Populate morning and evening data
             date_key = record["date"]
-            if date_key in grouped_data[supplier_name]["days"]:
-                # Assign quantities and ponts to morning and evening based on flags
+            if date_key in grouped_data[key]["days"]:
                 if record["morning"] == 1:
-                    grouped_data[supplier_name]["days"][date_key]["morning"] = {
+                    grouped_data[key]["days"][date_key]["morning"] = {
                         "qty": record["quantity"],
                         "pont": record["pont"],
                     }
                 if record["evening"] == 1:
-                    grouped_data[supplier_name]["days"][date_key]["evening"] = {
+                    grouped_data[key]["days"][date_key]["evening"] = {
                         "qty": record["quantity"],
                         "pont": record["pont"],
                     }
 
-                # Calculate total for the supplier
-                grouped_data[supplier_name]["total_morning"] += record["quantity"] if record["morning"] == 1 else 0
-                grouped_data[supplier_name]["total_evening"] += record["quantity"] if record["evening"] == 1 else 0
+                # Update totals
+                grouped_data[key]["total_morning"] += (
+                    record["quantity"] if record["morning"] == 1 else 0
+                )
+                grouped_data[key]["total_evening"] += (
+                    record["quantity"] if record["evening"] == 1 else 0
+                )
 
-        # Final calculations
-        for supplier_data in grouped_data.values():
-            supplier_data["total_quantity"] = supplier_data["total_morning"] + supplier_data["total_evening"]
+        # Finalize data
+        final_data = []
+        for (supplier_name, milk_type), data in grouped_data.items():
+            data["total_quantity"] = data["total_morning"] + data["total_evening"]
+            data["days"] = list(data["days"].values())  # Convert days dict to list
+            final_data.append(data)
 
-            # Convert days dictionary to a list for easier frontend rendering
-            supplier_data["days"] = list(supplier_data["days"].values())
-
-        return {"status": "success", "data": list(grouped_data.values())}
+        return {"status": "success", "data": final_data}
 
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "Supplier Report Error")
