@@ -11,7 +11,8 @@
   "morning_quantity",
   "morning_pont",
   "evening_quantity",
-  "evening_pont"
+  "evening_pont",
+  "village"
  ],
  "fields": [
   {
@@ -82,12 +83,20 @@
    "in_standard_filter": 1,
    "label": "Evening Pint",
    "non_negative": 1
+  },
+  {
+   "fetch_from": "supplier.custom_villages",
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village",
+   "options": "Village",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-08-19 10:25:50.476441",
+ "modified": "2025-08-20 09:26:39.108820",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Milk Entries",

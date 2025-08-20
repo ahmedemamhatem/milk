@@ -9,14 +9,17 @@
   "village",
   "supplier",
   "pont",
+  "milk_collection",
   "morning",
   "evening",
+  "paid",
   "column_break_xubm",
   "day_name",
   "driver",
   "milk_type",
   "quantity",
-  "milk_collection"
+  "rate",
+  "amount"
  ],
  "fields": [
   {
@@ -49,6 +52,7 @@
    "read_only": 1
   },
   {
+   "fetch_from": "supplier.custom_villages",
    "fieldname": "village",
    "fieldtype": "Link",
    "in_filter": 1,
@@ -118,12 +122,37 @@
    "label": "Pint",
    "non_negative": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Float",
+   "label": "Rate",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Float",
+   "in_filter": 1,
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Amount",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "paid",
+   "fieldtype": "Check",
+   "label": "paid",
+   "read_only": 1
   }
  ],
  "in_create": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-19 09:10:14.567723",
+ "modified": "2025-08-20 10:17:59.728991",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Milk Entries Log",

@@ -5,11 +5,35 @@ class MilkCollection(Document):
     def on_submit(self):
         """
         Create a Milk Entries Log for each supplier and each entry (morning and evening) upon submission,
-        even if the quantity is 0.
+        even if the quantity is 0. Calculate rate and amount dynamically.
         """
         try:
             for entry in self.milk_entries:
-                # Create a log for morning quantity (even if 0)
+                # Fetch supplier details
+                supplier_doc = frappe.get_doc("Supplier", entry.supplier)
+                custom_pont_size_rate = supplier_doc.custom_pont_size_rate or 0
+
+                # Calculate rate based on milk type
+                if entry.milk_type == "Cow":
+                    rate = (
+                        supplier_doc.custom_cow_price
+                        if supplier_doc.custom_cow_price_enabled else 0
+                    )
+                elif entry.milk_type == "Buffalo":
+                    rate = (
+                        supplier_doc.custom_buffalo_price
+                        if supplier_doc.custom_buffalo_price_enabled else 0
+                    )
+                else:
+                    rate = 0
+
+                # Calculate amount
+                def calculate_amount(quantity, pont):
+                    if custom_pont_size_rate == 0:
+                        return rate * quantity
+                    return rate * quantity * pont
+
+                # Create a log for morning quantity
                 frappe.get_doc({
                     "doctype": "Milk Entries Log",
                     "date": self.collection_date,
@@ -21,10 +45,12 @@ class MilkCollection(Document):
                     "morning": 1,
                     "supplier": entry.supplier,
                     "village": self.village,
-                    "pont": entry.morning_pont
+                    "pont": entry.morning_pont,
+                    "rate": rate,
+                    "amount": calculate_amount(entry.morning_quantity or 0, entry.morning_pont)
                 }).insert(ignore_permissions=True)
 
-                # Create a log for evening quantity (even if 0)
+                # Create a log for evening quantity
                 frappe.get_doc({
                     "doctype": "Milk Entries Log",
                     "date": self.collection_date,
@@ -36,7 +62,9 @@ class MilkCollection(Document):
                     "evening": 1,
                     "supplier": entry.supplier,
                     "village": self.village,
-                    "pont": entry.evening_pont
+                    "pont": entry.evening_pont,
+                    "rate": rate,
+                    "amount": calculate_amount(entry.evening_quantity or 0, entry.evening_pont)
                 }).insert(ignore_permissions=True)
 
             frappe.db.commit()

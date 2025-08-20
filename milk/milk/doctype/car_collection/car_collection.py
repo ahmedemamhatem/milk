@@ -8,12 +8,11 @@ class CarCollection(Document):
         Validation to ensure no duplicate entries for the same Driver, Date,
         and Morning/Evening combination, with Egyptian Arabic messages.
         """
-        # Check for existing records with the same Driver, Date, and Morning/Evening
         filters = {
             "driver": self.driver,
             "date": self.date,
             "milk_type": self.milk_type,
-            "docstatus": ["<", 2],  
+            "docstatus": ["<", 2],
         }
 
         if self.morning:
@@ -21,25 +20,20 @@ class CarCollection(Document):
         elif self.evening:
             filters["evening"] = 1
 
-        # Exclude the current record (for updates)
         if self.name:
             filters["name"] = ["!=", self.name]
 
-        existing_records = frappe.db.exists("Car Collection", filters)
-        if existing_records:
+        if frappe.db.exists("Car Collection", filters):
             frappe.throw(
                 f"في سجل موجود بالفعل للسائق '{self.driver}' بتاريخ '{self.date}' بنفس اختيار صباحاً/مساءً 😅"
             )
 
-        # Ensure only one of Morning or Evening is selected
         if self.morning and self.evening:
             frappe.throw("ماينفعش تحدد الصبح والمساء مع بعض 😬. اختار واحد بس.")
 
-        # Ensure at least one is selected
         if not self.morning and not self.evening:
             frappe.throw("لازم تحدد صباحاً أو مساءً ⏰")
 
-        # Auto-set the other to 0
         if self.morning:
             self.evening = 0
         elif self.evening:
@@ -49,7 +43,6 @@ class CarCollection(Document):
         """
         On submit, create a Stock Entry of type 'Material Receipt' for the collected milk.
         """
-        # Fetch the item based on milk type from Milk Setting
         milk_setting = frappe.get_single("Milk Setting")
         item_code = None
 
@@ -61,11 +54,11 @@ class CarCollection(Document):
         if not item_code:
             frappe.throw(f"الإعدادات مش مضبوطة 🐄. مفيش صنف محدد لنوع الحليب '{self.milk_type}'.")
 
-        # Create a Stock Entry
         stock_entry = frappe.get_doc({
             "doctype": "Stock Entry",
             "posting_date": nowdate(),
             "company": milk_setting.company,
+            "custom_car_collection": self.name,  # link to this collection
             "stock_entry_type": "Material Receipt",
             "items": [
                 {
@@ -77,4 +70,32 @@ class CarCollection(Document):
         })
         stock_entry.insert(ignore_permissions=True)
         stock_entry.submit()
-        
+
+    def on_cancel(self):
+        """
+        Cancel all Stock Entries linked to this Car Collection.
+        """
+        stock_entries = frappe.get_all("Stock Entry",
+                                       filters={"custom_car_collection": self.name, "docstatus": 1},
+                                       fields=["name"])
+        for se in stock_entries:
+            try:
+                frappe.get_doc("Stock Entry", se.name).cancel()
+            except Exception as e:
+                frappe.log_error(f"Error cancelling Stock Entry {se.name}: {str(e)}")
+
+    def before_delete(self):
+        """
+        Delete all Stock Entries linked to this Car Collection before deleting the doc.
+        """
+        stock_entries = frappe.get_all("Stock Entry",
+                                       filters={"custom_car_collection": self.name},
+                                       fields=["name"])
+        for se in stock_entries:
+            try:
+                doc = frappe.get_doc("Stock Entry", se.name)
+                if doc.docstatus == 1:
+                    doc.cancel()
+                doc.delete()
+            except Exception as e:
+                frappe.log_error(f"Error deleting Stock Entry {se.name}: {str(e)}")

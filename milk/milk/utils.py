@@ -91,9 +91,98 @@ def get_company_from_milk_settings():
     except Exception as e:
         frappe.log_error(str(e), "Error Fetching Company from Milk Setting")
         frappe.throw("حدث خطأ أثناء الحصول على إعدادات الشركة 😢")
-        
+
+
 @frappe.whitelist()
-def get_supplier_report_seven_days(selected_date, supplier=None):
+def get_grouped_supplier_report(selected_date, supplier=None, driver=None, village=None):
+    try:
+        # Parse start date and generate 7-day range
+        start_date = datetime.strptime(selected_date, "%Y-%m-%d")
+        end_date = start_date + timedelta(days=6)
+
+        # Filters for the query
+        filters = {
+            "date": ["between", [start_date.date(), end_date.date()]],
+        }
+        if supplier:
+            filters["supplier"] = supplier
+        if driver:
+            filters["driver"] = driver
+        if village:
+            filters["village"] = village
+
+        # Fetch records from Milk Entries Log
+        records = frappe.get_all(
+            "Milk Entries Log",
+            filters=filters,
+            fields=["date", "supplier", "milk_type", "quantity", "amount", "village"]
+        )
+
+        # Fetch all villages and their drivers
+        village_data = frappe.get_all(
+            "Village",
+            fields=["village_name", "driver_responsible"]
+        )
+        village_driver_map = {v["village_name"]: v["driver_responsible"] for v in village_data}
+
+        # Grouped data structure
+        grouped_data = {}
+
+        for record in records:
+            village_name = record.get("village", "Unknown Village")
+            driver_name = village_driver_map.get(village_name, "Unknown Driver")
+            supplier_name = record.get("supplier")
+            milk_type = record.get("milk_type")
+
+            # Initialize driver group
+            if driver_name not in grouped_data:
+                grouped_data[driver_name] = {"villages": {}, "total_qty": 0, "total_amount": 0}
+
+            # Initialize village group under driver
+            if village_name not in grouped_data[driver_name]["villages"]:
+                grouped_data[driver_name]["villages"][village_name] = {"suppliers": {}, "total_qty": 0, "total_amount": 0}
+
+            # Initialize supplier group under village
+            if supplier_name not in grouped_data[driver_name]["villages"][village_name]["suppliers"]:
+                grouped_data[driver_name]["villages"][village_name]["suppliers"][supplier_name] = {
+                    "milk_types": {}, "total_qty": 0, "total_amount": 0
+                }
+
+            # Initialize milk type under supplier
+            if milk_type not in grouped_data[driver_name]["villages"][village_name]["suppliers"][supplier_name]["milk_types"]:
+                grouped_data[driver_name]["villages"][village_name]["suppliers"][supplier_name]["milk_types"][milk_type] = {
+                    "qty": 0, "amount": 0
+                }
+
+            # Update quantities and amounts
+            milk_data = grouped_data[driver_name]["villages"][village_name]["suppliers"][supplier_name]["milk_types"][milk_type]
+            milk_data["qty"] += record["quantity"]
+            milk_data["amount"] += record["amount"]
+
+            # Update supplier totals
+            supplier_data = grouped_data[driver_name]["villages"][village_name]["suppliers"][supplier_name]
+            supplier_data["total_qty"] += record["quantity"]
+            supplier_data["total_amount"] += record["amount"]
+
+            # Update village totals
+            village_data = grouped_data[driver_name]["villages"][village_name]
+            village_data["total_qty"] += record["quantity"]
+            village_data["total_amount"] += record["amount"]
+
+            # Update driver totals
+            driver_data = grouped_data[driver_name]
+            driver_data["total_qty"] += record["quantity"]
+            driver_data["total_amount"] += record["amount"]
+
+        return {"status": "success", "data": grouped_data}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Grouped Supplier Report Error")
+        return {"status": "error", "message": str(e)}
+    
+         
+@frappe.whitelist()
+def get_supplier_report_seven_days(selected_date, supplier=None, driver=None, village=None):
     try:
         # Parse start date and generate the 7-day range
         start_date = datetime.strptime(selected_date, "%Y-%m-%d")
@@ -109,12 +198,16 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
         }
         if supplier:
             filters["supplier"] = supplier
+        if driver:
+            filters["driver"] = driver
+        if village:
+            filters["village"] = village
 
         # Fetch records for the given week
         records = frappe.get_all(
             "Milk Entries Log",
             filters=filters,
-            fields=["date", "supplier", "milk_type", "morning", "evening", "quantity", "pont"]
+            fields=["date", "supplier", "milk_type", "morning", "evening", "quantity", "amount", "pont", "driver", "village"]
         )
 
         # Group data by supplier and milk type
@@ -123,14 +216,14 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
             supplier_name = record["supplier"]
             milk_type = record["milk_type"]
 
-            # Fetch supplier-specific rates and other details
+            # Fetch supplier-specific details
             supplier_doc = frappe.get_doc("Supplier", supplier_name)
-            custom_pont_size_rate = supplier_doc.custom_pont_size_rate or 0
             custom_villages = supplier_doc.custom_villages or "غير محدد"
             cow_price = supplier_doc.custom_cow_price or 0
             buffalo_price = supplier_doc.custom_buffalo_price or 0
+            custom_pont_size_rate = supplier_doc.custom_pont_size_rate or 0
             rate = cow_price if milk_type == "Cow" else buffalo_price
-            encrypted_rate = rate * 90
+            encrypted_rate = rate * 90  # Encrypted rate calculation
 
             # Initialize supplier and milk type grouping
             key = (supplier_name, milk_type)
@@ -139,57 +232,40 @@ def get_supplier_report_seven_days(selected_date, supplier=None):
                     "supplier_name": supplier_name,
                     "custom_villages": custom_villages,
                     "milk_type": milk_type,
-                    "encrypted_rate": encrypted_rate,
                     "custom_pont_size_rate": custom_pont_size_rate,
-                    "days": {day.date(): {"day_name": f"{arabic_days[day.weekday()]} - {day.strftime('%m-%d').translate(arabic_numbers)}",
-                                          "morning": {"qty": 0, "pont": 0},
-                                          "evening": {"qty": 0, "pont": 0}} for day in days_of_week},
+                    "encrypted_rate": encrypted_rate,  # Include encrypted rate
+                    "days": {day.date(): {"day_name": f"{arabic_days[day.weekday()]} - {day.strftime('%d').translate(arabic_numbers)}",
+                                          "morning": {"qty": 0, "amount": 0, "pont": 0},
+                                          "evening": {"qty": 0, "amount": 0, "pont": 0}} for day in days_of_week},
                     "total_morning": 0,
                     "total_evening": 0,
                     "total_quantity": 0,
                     "total_amount": 0,  # Initialize total amount
+                    "driver": record.get("driver"),
+                    "village": record.get("village"),
                 }
 
             # Populate morning and evening data
             date_key = record["date"]
             if date_key in grouped_data[key]["days"]:
                 if record["morning"] == 1:
-                    grouped_data[key]["days"][date_key]["morning"] = {
-                        "qty": record["quantity"],
-                        "pont": record["pont"],
-                    }
+                    grouped_data[key]["days"][date_key]["morning"]["qty"] += record["quantity"]
+                    grouped_data[key]["days"][date_key]["morning"]["amount"] += record["amount"]
+                    grouped_data[key]["days"][date_key]["morning"]["pont"] = record["pont"]
                 if record["evening"] == 1:
-                    grouped_data[key]["days"][date_key]["evening"] = {
-                        "qty": record["quantity"],
-                        "pont": record["pont"],
-                    }
+                    grouped_data[key]["days"][date_key]["evening"]["qty"] += record["quantity"]
+                    grouped_data[key]["days"][date_key]["evening"]["amount"] += record["amount"]
+                    grouped_data[key]["days"][date_key]["evening"]["pont"] = record["pont"]
 
                 # Update totals
-                grouped_data[key]["total_morning"] += (
-                    record["quantity"] if record["morning"] == 1 else 0
-                )
-                grouped_data[key]["total_evening"] += (
-                    record["quantity"] if record["evening"] == 1 else 0
-                )
+                grouped_data[key]["total_morning"] += record["quantity"] if record["morning"] == 1 else 0
+                grouped_data[key]["total_evening"] += record["quantity"] if record["evening"] == 1 else 0
+                grouped_data[key]["total_amount"] += record["amount"]
 
         # Finalize data
         final_data = []
         for (supplier_name, milk_type), data in grouped_data.items():
             data["total_quantity"] = data["total_morning"] + data["total_evening"]
-
-            # Calculate total amount
-            if data["custom_pont_size_rate"] == 0:
-                # Amount = total_quantity * rate
-                data["total_amount"] = data["total_quantity"] * (data["encrypted_rate"] / 90)
-            else:
-                # Amount = Sum of (qty * rate * pont) for each day
-                total_amount = 0
-                for day in data["days"].values():
-                    morning = day["morning"]
-                    evening = day["evening"]
-                    total_amount += (morning["qty"] * (data["encrypted_rate"] / 90) * morning["pont"])
-                    total_amount += (evening["qty"] * (data["encrypted_rate"] / 90) * evening["pont"])
-                data["total_amount"] = total_amount
 
             # Convert days dict to list for frontend rendering
             data["days"] = list(data["days"].values())
