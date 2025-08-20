@@ -29,8 +29,76 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
       <button class="btn btn-primary" id="fetch-button" style="white-space:nowrap;">${__("جلب التقرير")}</button>
       <button class="btn btn-secondary" id="refresh-button" style="white-space:nowrap;">${__("تحديث")}</button>
       <button class="btn btn-success" id="print-button" style="white-space:nowrap;">${__("طباعة التقرير")}</button>
+      <button class="btn btn-warning" id="pay-button" style="white-space:nowrap;">${__("دفع للموردين")}</button>
     </div>
   `).appendTo(page.body);
+
+
+// --- PAY BUTTON ---
+// --- PAY BUTTON ---
+filter_container.find("#pay-button").on("click", function () {
+  if (results_container.children().length === 0) {
+    frappe.msgprint(__("لا توجد بيانات للدفع."));
+    return;
+  }
+
+  // Open popup to select mode of payment
+  const dialog = new frappe.ui.Dialog({
+    title: __("حدد وضع الدفع"),
+    fields: [
+      {
+        fieldname: "mode_of_payment",
+        label: __("طريقة الدفع"),
+        fieldtype: "Link",
+        options: "Mode of Payment",
+        reqd: 1,
+      },
+    ],
+    primary_action_label: __("إنشاء فواتير"),
+    primary_action(values) {
+      dialog.hide();
+
+      // Show confirmation dialog before proceeding
+      frappe.confirm(
+        __("هل أنت متأكد أنك تريد إنشاء الفواتير ودفعها؟"),
+        function () {
+          // Call the back-end method
+          frappe.call({
+            method: "milk.milk.utils.create_invoices_and_pay",
+            args: {
+              selected_date: filters.date.get_value(),
+              mode_of_payment: values.mode_of_payment,
+              supplier: filters.supplier.get_value() || null,
+              driver: filters.driver.get_value() || null,
+              village: filters.village.get_value() || null,
+              is_grouped: filters.group.get_value() || false,
+            },
+            callback: function (response) {
+              if (response.message.status === "success") {
+                frappe.msgprint(
+                  __("تم إنشاء الفواتير بنجاح. تم تحديث السجلات التالية: ") +
+                    response.message.updated_logs.join(", ")
+                );
+              } else {
+                frappe.msgprint({
+                  title: __("خطأ"),
+                  indicator: "red",
+                  message: response.message.message,
+                });
+              }
+            },
+          });
+        },
+        function () {
+          // If canceled, show cancellation message
+          frappe.msgprint(__("تم إلغاء الدفع."));
+        }
+      );
+    },
+  });
+
+  dialog.show();
+});
 
   const filters = {};
   filters.date = page.add_field({

@@ -1,5 +1,31 @@
 import frappe
+@frappe.whitelist()
+def handle_invoice_cancel_or_delete(doc, method):
+    """
+    On cancel or delete of a purchase invoice, update Milk Entries Log to remove the link and mark as unpaid.
+    """
+    try:
+        if doc.doctype == "Purchase Invoice":
+            # Fetch all logs linked to this invoice
+            logs = frappe.get_all(
+                "Milk Entries Log",
+                filters={"purchase_invoice": doc.name},
+                fields=["name"]
+            )
 
+            for log in logs:
+                # Update the logs to remove the invoice link and mark as unpaid
+                frappe.db.set_value("Milk Entries Log", log["name"], {
+                    "purchase_invoice": None,
+                    "paid": 0
+                })
+
+            frappe.db.commit()
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Error in handle_invoice_cancel_or_delete")
+        frappe.throw(f"Failed to update logs for invoice {doc.name}: {str(e)}")
+        
 
 def validate_supplier(doc, method):
     """

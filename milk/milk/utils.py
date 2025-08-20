@@ -9,8 +9,152 @@ from frappe.utils import now
 from datetime import datetime, timedelta
 from datetime import datetime, timedelta
 import frappe
+from frappe.utils import flt
 
+@frappe.whitelist()
+def create_invoices_and_pay(selected_date, mode_of_payment, supplier=None, driver=None, village=None, throw_on_paid=False):
+    """
+    Create purchase invoices, group by supplier, mark them as paid, link logs to the invoice,
+    and handle write-offs for discrepancies between paid and grand total amounts.
+    """
+    if not selected_date:
+        frappe.throw("Please provide a valid start date.")
 
+    try:
+        # Retrieve Milk Setting for item codes and company
+        milk_setting = frappe.get_single("Milk Setting")
+        if not milk_setting:
+            frappe.throw("Milk Setting document is missing. Please configure it first.")
+
+        # Fetch the Mode of Payment Account for the given company
+        mode_of_payment_account = None
+        mode_of_payment_data = frappe.get_doc("Mode of Payment", mode_of_payment)
+        for account in mode_of_payment_data.accounts:
+            if account.company == milk_setting.company:
+                mode_of_payment_account = account.default_account
+                break
+
+        if not mode_of_payment_account:
+            frappe.throw(f"Default Account is not set for Mode of Payment '{mode_of_payment}' in company '{milk_setting.company}'.")
+
+        # Fetch grouped supplier data using the integrated function
+        report_data = get_grouped_supplier_report(selected_date, supplier, driver, village)
+
+        if report_data["status"] != "success":
+            return {"status": "error", "message": report_data["message"]}
+
+        data = report_data["data"]
+
+        invoices = []
+        updated_logs = []
+
+        for driver_name, driver_data in data.items():
+            for village_name, village_data in driver_data["villages"].items():
+                for supplier_name, supplier_data in village_data["suppliers"].items():
+                    total_qty = 0
+                    total_amount = 0
+                    items = []
+                    logs_to_update = []
+
+                    # Prepare items for the invoice by grouping milk types for the supplier
+                    for milk_type, milk_data in supplier_data["milk_types"].items():
+                        qty = milk_data["qty"]
+                        amount = milk_data["amount"]
+
+                        # Skip milk types with zero quantity
+                        if qty <= 0:
+                            continue
+
+                        # Determine item code dynamically from Milk Setting
+                        item_code = None
+                        if milk_type == "Cow":
+                            item_code = milk_setting.cow_item
+                        elif milk_type == "Buffalo":
+                            item_code = milk_setting.buffalo_item
+
+                        if not item_code:
+                            frappe.throw(f"Item Code for milk type '{milk_type}' is not configured in Milk Setting.")
+
+                        # Fetch logs to update
+                        logs = frappe.get_all(
+                            "Milk Entries Log",
+                            filters={
+                                "supplier": supplier_name,
+                                "milk_type": milk_type,
+                                "paid": 0,  # Only unpaid logs
+                                "date": ["between", [selected_date, (datetime.strptime(selected_date, "%Y-%m-%d") + timedelta(days=6)).date()]],
+                            },
+                            fields=["name", "paid"]
+                        )
+
+                        for log in logs:
+                            if log["paid"]:
+                                if throw_on_paid:
+                                    frappe.throw(f"Log {log['name']} is already paid.")
+                                else:
+                                    continue
+
+                            logs_to_update.append(log["name"])
+
+                        # Add items to the invoice
+                        items.append({
+                            "item_code": item_code,
+                            "qty": qty,
+                            "rate": amount / qty if qty > 0 else 0,
+                        })
+
+                        # Update totals
+                        total_qty += qty
+                        total_amount += amount
+
+                    # Skip if no items
+                    if not items:
+                        continue
+
+                    # Calculate write-off amount
+                    grand_total = total_amount
+                    write_off_amount = round(grand_total - total_amount, 2)
+
+                    # Create a single purchase invoice for the supplier
+                    invoice = frappe.get_doc({
+                        "doctype": "Purchase Invoice",
+                        "supplier": supplier_name,
+                        "items": items,
+                        "mode_of_payment": mode_of_payment,
+                        "paid_amount": total_amount,
+                        "is_paid": 1,  # Mark as paid
+                        "cash_bank_account": mode_of_payment_account,  # Set the cash/bank account
+                        "write_off_amount": write_off_amount,  # Record the write-off amount
+                    })
+
+                    invoice.insert()
+                    invoice.submit()
+                    invoices.append(invoice.name)
+
+                    # Update Milk Entries Logs to link the invoice and mark as paid
+                    for log_name in logs_to_update:
+                        frappe.db.set_value("Milk Entries Log", log_name, {
+                            "purchase_invoice": invoice.name,
+                            "paid": 1
+                        })
+                        updated_logs.append(log_name)
+
+        if not invoices:
+            return {"status": "error", "message": "No invoices were created."}
+
+        frappe.db.commit()  # Commit all changes
+        return {
+            "status": "success",
+            "message": "Invoices created and logs updated successfully.",
+            "invoices": invoices,
+            "updated_logs": updated_logs,
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Error in create_invoices_and_pay")
+        return {"status": "error", "message": str(e)}
+    
+    
 @frappe.whitelist()
 def get_average_quantity(supplier, milk_type, days=10):
     """

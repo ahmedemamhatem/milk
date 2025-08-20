@@ -12,6 +12,10 @@ app_license = "mit"
 doc_events = {
     "Supplier": {
         "validate": "milk.milk.api.validate_supplier"
+    },
+    "Purchase Invoice": {
+        "on_cancel": "milk.milk.api.handle_invoice_cancel_or_delete",
+        "on_trash": "milk.milk.api.handle_invoice_cancel_or_delete"
     }
 }
 # Each item in the list will be shown as an app in the apps page
