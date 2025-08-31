@@ -17,12 +17,12 @@ class MilkCollection(Document):
                 if entry.milk_type == "Cow":
                     rate = (
                         supplier_doc.custom_cow_price
-                        if supplier_doc.custom_cow_price_enabled else 0
+                        if supplier_doc.custom_cow_price else 0
                     )
                 elif entry.milk_type == "Buffalo":
                     rate = (
                         supplier_doc.custom_buffalo_price
-                        if supplier_doc.custom_buffalo_price_enabled else 0
+                        if supplier_doc.custom_buffalo_price else 0
                     )
                 else:
                     rate = 0
