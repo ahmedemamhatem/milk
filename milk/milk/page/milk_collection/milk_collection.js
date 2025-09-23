@@ -444,18 +444,21 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
   actions_section.find(".submit-btn").click(() => save_or_submit("submit"));
   actions_section.find(".clear-btn").click(clear_table_and_filters);
 
-  // Print Draft: fetch active milk suppliers and print grouped pages
+  // Print Draft: grouped by driver (page), inside page grouped by village (no page breaks), 2 suppliers per line
   actions_section.find(".print-draft-btn").on("click", async () => {
     try {
       frappe.dom.freeze(__('جاري تجهيز المسودة للطباعة...'));
 
-      // Read current filters to include them in print header
-      const selectedDriver = driver.get_value();
-      const selectedVillage = village.get_value();
+      // We still read date for header
       const selectedDate = collection_date.get_value();
       const today = selectedDate || (frappe.datetime ? frappe.datetime.get_today() : new Date().toISOString().slice(0,10));
       const dayName = getArabicDayName(today);
 
+      // Optional filter by driver/village if user set them
+      const selectedDriver = driver.get_value();
+      const selectedVillage = village.get_value();
+
+      // Fetch suppliers with custom_milk_supplier == 1 and enabled
       const suppliers = await frappe.db.get_list('Supplier', {
         fields: [
           'name',
@@ -479,7 +482,7 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
         return;
       }
 
-      // Build rows per milk type and village; apply filters
+      // Build rows per milk type and village; apply optional UI filters
       const rows = [];
       suppliers.forEach(sup => {
         const villages = Array.isArray(sup.custom_villages)
@@ -510,7 +513,7 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
         return;
       }
 
-      // Sort: by driver, then village, supplier, milk type (village will show on top chips; not in table)
+      // Sort: by driver, then village, then supplier, then milk type
       rows.sort((a, b) => {
         if (a.driver !== b.driver) return a.driver.localeCompare(b.driver, 'ar');
         if (a.village !== b.village) return a.village.localeCompare(b.village, 'ar');
@@ -518,7 +521,7 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
         return a.milk_type.localeCompare(b.milk_type, 'ar');
       });
 
-      // Build printable HTML with 2 suppliers per line, page breaks only when driver changes
+      // Build printable HTML (no filter chips; only header and villages titles)
       let html = `
 <!doctype html>
 <html lang="ar" dir="rtl">
@@ -533,8 +536,7 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
   .hdr{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:8px }
   .hdr .title{ font-size:18px; font-weight:800 }
   .hdr .meta{ font-size:12px; color:var(--muted) }
-  .kv{ display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px }
-  .chip{ border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:12px; background:#fff }
+  .village-title{ margin:12px 0 6px; font-weight:800; border-bottom:2px solid var(--border); padding-bottom:4px; }
   table{ width:100%; border-collapse:collapse; }
   th, td{ border:1px solid var(--border); padding:8px; font-size:14px; text-align:center; }
   th{ background:#f8fafc; color:#374151; font-weight:800 }
@@ -549,62 +551,59 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
 <body>
 `;
 
-      // Render a page for one driver, with filters and villages displayed on top, not in table
+      // Render a page for one driver; inside, render sections per village (no page breaks)
       const renderDriverPage = (driver_name, rowsForDriver) => {
-        // Determine unique villages for this driver
-        const uniqueVillages = Array.from(new Set(rowsForDriver.map(r => r.village).filter(Boolean)));
-        const villagesText = uniqueVillages.length ? uniqueVillages.join('، ') : __('غير محدد');
-
-        // Pair rows for two columns per line
-        const lines = [];
-        for (let i = 0; i < rowsForDriver.length; i += 2) {
-          const a = rowsForDriver[i];
-          const b = rowsForDriver[i + 1] || null;
-          lines.push({ a, b });
-        }
-
-        const rowsHtml = lines.map((pair, idx) => {
-          const a = pair.a, b = pair.b;
-          return `
-          <tr>
-            <td>${idx + 1}</td>
-            <td>${a.supplier}</td>
-            <td>${a.milk_type}</td>
-            <td></td>
-            <td></td>
-            <td>${b ? (idx + 1) : ''}</td>
-            <td>${b ? b.supplier : ''}</td>
-            <td>${b ? b.milk_type : ''}</td>
-            <td></td>
-            <td></td>
-          </tr>`;
-        }).join('');
-
-        // Filters chips (what the user selected)
-        const chipVillageFilter = selectedVillage ? selectedVillage : __('الكل');
-        const chipDate = today;
-        const chipDay = dayName;
+        // Group by village
+        const byVillage = {};
+        rowsForDriver.forEach(r => {
+          if (!byVillage[r.village]) byVillage[r.village] = [];
+          byVillage[r.village].push(r);
+        });
 
         html += `
 <section class="page">
   <div class="hdr">
-    <div class="title">${__('مسودة تسجيل اللبن')}</div>
-    <div class="meta">${chipDay} - ${chipDate}</div>
+    <div class="title">${__('مسودة تسجيل اللبن')} — ${driver_name || __('غير محدد')}</div>
+    <div class="meta">${dayName} - ${today}</div>
   </div>
-  <div class="kv">
-    <div class="chip">${__('السائق (محدد)')}: ${selectedDriver || __('غير محدد')}</div>
-    <div class="chip">${__('القرية (محددة)')}: ${chipVillageFilter}</div>
-    <div class="chip">${__('التاريخ')}: ${chipDate}</div>
-  </div>
-  <div class="kv">
-    <div class="chip">${__('السائق')}: ${driver_name || __('غير محدد')}</div>
-    <div class="chip">${__('القرى')}: ${villagesText}</div>
-  </div>
+`;
+
+        // For each village group: title + table
+        Object.keys(byVillage).forEach(villageName => {
+          const group = byVillage[villageName];
+
+          // Pair into two columns per line
+          const lines = [];
+          for (let i = 0; i < group.length; i += 2) {
+            const a = group[i];
+            const b = group[i + 1] || null;
+            lines.push({ a, b });
+          }
+
+          const rowsHtml = lines.map((pair, idx) => {
+            const a = pair.a, b = pair.b;
+            return `
+            <tr>
+              <td>${idx + 1}</td>
+              <td>${a.supplier}</td>
+              <td>${a.milk_type}</td>
+              <td></td>
+              <td></td>
+              <td>${b ? (idx + 1) : ''}</td>
+              <td>${b ? b.supplier : ''}</td>
+              <td>${b ? b.milk_type : ''}</td>
+              <td></td>
+              <td></td>
+            </tr>`;
+          }).join('');
+
+          html += `
+  <div class="village-title">${__('القرية')}: ${villageName || __('غير محدد')}</div>
   <table>
     <thead>
       <tr class="subhdr">
-        <th colspan="5">${__(' ')}</th>
-        <th colspan="5">${__(' ')}</th>
+        <th colspan="5">${__('')}</th>
+        <th colspan="5">${__('')}</th>
       </tr>
       <tr>
         <th>#</th>
@@ -623,11 +622,15 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
       ${rowsHtml || `<tr><td colspan="10">${__('لا توجد بيانات')}</td></tr>`}
     </tbody>
   </table>
+`;
+        });
+
+        html += `
 </section>
 `;
       };
 
-      // Group by driver only (page break on driver change)
+      // Group rows by driver (page break on driver change)
       let currentDriver = null;
       let buffer = [];
 
@@ -639,8 +642,8 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
 
       rows.forEach(r => {
         if (currentDriver === null) currentDriver = r.driver;
-        const changeDriver = r.driver !== currentDriver;
-        if (changeDriver) {
+        const changed = r.driver !== currentDriver;
+        if (changed) {
           flushDriver();
           currentDriver = r.driver;
         }
@@ -652,6 +655,7 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
 </body>
 </html>`;
 
+      // Open and print
       const w = window.open('', '_blank');
       if (!w) {
         frappe.msgprint(__('فضلاً فعّل النوافذ المنبثقة للسماح بالطباعة.'));
