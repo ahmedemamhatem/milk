@@ -11,97 +11,160 @@ frappe.pages['stock-transfer'].on_page_load = function (wrapper) {
   $section.empty();
 
   const ui_html = `
-    <div class="fsi-root st-root">
+    <div class="st-root" dir="rtl">
       <style>
-        :root { --bg:#fff; --text:#0f172a; --muted:#475569; --primary:#2563eb; --primary-dark:#1e40af; --line:#e2e8f0; --field-bg:#f8fafc; --danger:#ef4444; --chip-bg:#f1f5f9; }
-
-        .fsi-root { background:var(--bg); color:var(--text); min-height:calc(100vh - 80px); margin:-15px; padding:10px 16px 24px; }
-        .fsi-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-        .fsi-title { font-size:22px; font-weight:800; }
-        .fsi-status { font-size:12px; color:var(--muted); }
-
-        .cards-row { display:grid; grid-template-columns:repeat(20,minmax(0,1fr)); column-gap:12px; row-gap:10px; align-items:stretch; }
-        .card { grid-column:span 4; background:var(--field-bg); border:1px solid var(--line); border-radius:12px; padding:8px 10px; min-height:74px; box-shadow:0 1px 0 rgba(15,23,42,.03); position:relative; }
-        .card .head { font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; margin-bottom:4px; }
-        .card .body .control-label { display:none !important; }
-        .card .body .control-input, .card .body input, .card .body .awesomplete>input {
-          background:#fff !important; border:1px solid #dbe2ea !important; border-radius:10px !important; min-height:34px; height:34px;
+        :root{
+          --st-radius: 12px;
+          --st-border: #d9dee7;
+          --st-border-hover: #b9c2d0;
+          --st-focus: #2563eb;
+          --st-muted: #6b7280;
+          --st-bg: #f8fafc;
+          --st-card: #ffffff;
+          --st-line: #e5e7eb;
+          --st-danger: #ef4444;
+          --st-text: #0f172a;
         }
-        .card.error { outline:2px solid var(--danger); }
 
-        .table-card { margin-top:12px; border:1px solid var(--line); border-radius:12px; overflow:visible; background:#fff; box-shadow:0 1px 0 rgba(15,23,42,.03); position:relative; }
-        .table-title { padding:10px 12px; font-size:12px; font-weight:900; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:8px; align-items:center; }
-
-        /* idx, item, qty, available, actions */
-        .st-grid { display:grid; grid-template-columns:40px minmax(260px,1fr) 140px 160px 80px; align-items:center; }
-        .fsi-head, .fsi-foot { background:#f8fafc; }
-        .fsi-head>div, .st-row>div, .fsi-foot-row>div { padding:10px 8px; border-bottom:1px solid var(--line); min-height:48px; display:flex; align-items:center; }
-        .st-body { max-height:52vh; overflow:auto; }
-        .st-body .st-row:nth-child(even) { background:#fcfdff; }
-        .th { font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; }
-        .center { justify-content:center; text-align:center; }
-        .right { justify-content:flex-end; text-align:right; }
-
-        .cell { width:100%; }
-        .cell .control-label { display:none !important; }
-        .cell .control-input, .cell input, .cell .awesomplete>input, .cell .input-with-feedback {
-          width:100%; background:#fff !important; color:var(--text) !important; border:1px solid #dbe2ea !important; border-radius:10px !important; min-height:32px; height:32px;
+        .st-root{
+          background: var(--st-bg);
+          color: var(--st-text);
+          min-height: calc(100vh - 80px);
+          margin: -15px;
+          padding: 14px 16px 22px;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          font-family: "Tajawal", "Cairo", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Arabic", "Noto Sans", sans-serif;
+          letter-spacing: .1px;
         }
-        .cell-error { outline:2px solid var(--danger); border-radius:8px; }
 
-        .actions-bar { padding:10px 12px; display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--line); background:#fff; }
-        .btn { border:none; border-radius:10px; padding:10px 14px; font-weight:800; cursor:pointer; }
-        .btn-add { background:#e2e8f0; color:#0f172a; }
-        .btn-submit { background:linear-gradient(180deg, var(--primary), var(--primary-dark)); color:#fff; }
-        .btn-outline { background:#fff; border:1px solid var(--line); }
-        .btn:disabled { opacity:.6; cursor:not-allowed; }
+        .fsi-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px;max-width:1280px;margin-inline:auto}
+        .fsi-title{font-size:24px;font-weight:800;color:#111827}
+        .fsi-status{font-size:12px;color:var(--st-muted)}
 
-        /* Awesomplete dropdown above table */
-        .st-root .cards-row,
-        .st-root .card,
-        .st-root .table-card,
-        .st-root .st-body,
-        .st-root .st-row,
-        .st-root .cell { overflow: visible !important; }
-        .st-root .st-row { position: relative; z-index: 2; }
-        .st-root .cell .awesomplete, .st-root .card .awesomplete { position: relative; z-index: 10010; width: 100%; }
-        .st-root .awesomplete > ul {
-          position: absolute !important;
-          top: calc(100% + 6px) !important;
-          left: 0 !important;
-          right: 0 !important;
-          min-width: 100%;
-          max-width: min(640px, 92vw);
-          background: #fff;
-          border: 1px solid var(--line);
-          border-radius: 10px;
-          margin: 0;
-          padding: 6px 0;
-          box-shadow: 0 8px 28px rgba(0,0,0,.12);
-          max-height: 320px;
-          overflow: auto;
-          z-index: 10050 !important;
+        .cards-row{
+          max-width:1280px;margin:0 auto 12px;
+          display:grid;grid-template-columns:repeat(20,minmax(0,1fr));gap:12px;
         }
-        .st-root .awesomplete > ul, .st-root .awesomplete > ul * { pointer-events: auto !important; }
-        .st-root .awesomplete > ul > li {
-          display:block; padding:8px 12px; color:var(--text); line-height:1.25;
-          white-space: normal; word-break: break-word; direction: inherit;
-        }
-        .st-root .awesomplete > ul > li[aria-selected="true"], .st-root .awesomplete > ul > li:hover { background: var(--field-bg); }
 
-        @media (max-width:1100px){ .cards-row{ grid-template-columns:repeat(10,1fr);} .card{ grid-column:span 10;} }
-        @media (max-width:680px){ .st-body{ max-height:45vh;} }
+        .card{
+          grid-column:span 4;
+          background:var(--st-card);
+          border:1px solid var(--st-border);
+          border-radius:var(--st-radius);
+          box-shadow:0 8px 24px rgba(2,6,23,.06);
+          padding:12px;
+          overflow:visible;
+        }
+        .card .head{font-size:12px;font-weight:800;color:var(--st-muted);text-transform:uppercase;letter-spacing:.25px;margin-bottom:8px}
+        .card .body .control-label{display:none!important}
+        .card .body .control-input,
+        .card .body input,
+        .card .body .awesomplete>input{
+          height:44px!important;min-height:44px!important;font-size:15px;
+          background:#fff!important;color:var(--st-text)!important;
+          border:1px solid var(--st-border)!important;border-radius:12px!important;
+          transition:border-color .15s, box-shadow .15s;
+        }
+        .card .body .control-input:hover,
+        .card .body .awesomplete>input:hover{border-color:var(--st-border-hover)!important}
+        .card .body .control-input:focus,
+        .card .body .awesomplete>input:focus{
+          border-color:var(--st-focus)!important;
+          box-shadow:0 0 0 3px rgba(37,99,235,.15)!important;
+          outline:none!important;
+        }
+        .card.error{outline:2px solid var(--st-danger); outline-offset:2px}
+
+        /* Table card */
+        .table-card{
+          max-width:1280px;margin:0 auto;
+          border:1px solid var(--st-border);border-radius:var(--st-radius);
+          background:#fff;box-shadow:0 8px 24px rgba(2,6,23,.06);
+          overflow:visible;
+        }
+        .table-title{
+          padding:12px 14px;border-bottom:1px solid var(--st-border);
+          font-size:12px;font-weight:800;color:var(--st-muted);text-transform:uppercase;letter-spacing:.25px;
+          display:flex;justify-content:space-between;align-items:center;gap:8px
+        }
+
+        /* Columns: idx, item, qty, available, actions */
+        .st-grid{display:grid;grid-template-columns:64px minmax(520px,1fr) 180px 220px 120px;align-items:center}
+        .fsi-head>div,.st-row>div{padding:10px 12px;border-bottom:1px solid var(--st-border);min-height:56px;display:flex;align-items:center;background:#fff}
+        .fsi-head{background:#f9fbff}
+        .th{font-size:12px;font-weight:800;color:var(--st-muted);text-transform:uppercase}
+        .center{text-align:center;justify-content:center}
+        .right{text-align:right;justify-content:flex-end}
+
+        .st-body{max-height:52vh;overflow:auto}
+        .st-body .st-row:nth-child(even){background:#fcfdff}
+
+        .cell{width:100%;overflow:visible}
+        .cell .control-label{display:none!important}
+        .cell .control-input,
+        .cell input,
+        .cell .awesomplete>input,
+        .cell .input-with-feedback{
+          width:100%;
+          height:42px!important;min-height:42px!important;font-size:15px;
+          background:#fff!important;color:var(--st-text)!important;
+          border:1px solid var(--st-border)!important;border-radius:12px!important;
+          transition:border-color .15s, box-shadow .15s;
+        }
+        .cell .control-input:hover{border-color:var(--st-border-hover)!important}
+        .cell .control-input:focus{
+          border-color:var(--st-focus)!important;
+          box-shadow:0 0 0 3px rgba(37,99,235,.15)!important;
+          outline:none!important;
+        }
+        .cell-error{border-color:var(--st-danger)!important;box-shadow:0 0 0 3px rgba(239,68,68,.12)!important}
+
+        /* Actions bar */
+        .actions-bar{padding:12px 14px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--st-border);background:#fff;border-bottom-left-radius:var(--st-radius);border-bottom-right-radius:var(--st-radius)}
+        .btn{border:none;border-radius:12px;padding:10px 14px;font-weight:800;cursor:pointer}
+        .btn-add{background:#e2e8f0;color:#0f172a}
+        .btn-submit{background:#2563eb;border:1px solid #2563eb;color:#fff}
+        .btn-submit:hover{background:#1e4fd7;border-color:#1e4fd7}
+        .btn:disabled{opacity:.6;cursor:not-allowed}
+
+        /* Awesomplete: make sure dropdown is visible and aligned */
+        .st-root .cards-row, .st-root .card, .st-root .table-card, .st-root .st-body, .st-root .st-row, .st-root .cell{overflow:visible!important}
+        .st-root .awesomplete{position:relative;width:100%}
+        .st-root .awesomplete > ul{
+          position:absolute!important;top:calc(100% + 6px)!important;inset-inline-start:0!important;
+          min-width:100%;max-height:50vh;overflow:auto;z-index:10050!important;
+          background:#fff;border:1px solid var(--st-border);border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.12)
+        }
+        .st-root .awesomplete > ul > li{display:block;padding:8px 12px;color:var(--st-text);line-height:1.25;white-space:normal;word-break:break-word}
+        .st-root .awesomplete > ul > li[aria-selected="true"], .st-root .awesomplete > ul > li:hover{background:#f8fafc}
+
+        @media (max-width:1280px){
+          .st-grid{grid-template-columns:44px minmax(260px,1fr) 150px 180px 90px}
+          .cards-row{grid-template-columns:repeat(10,1fr)}
+          .card{grid-column:span 10}
+        }
+        @media (max-width:680px){ .st-body{max-height:45vh} }
       </style>
 
       <div class="fsi-header">
-        <div class="fsi-title"> </div>
+        <div class="fsi-title"></div>
         <div class="fsi-status" data-bind="status">جاهز</div>
       </div>
 
       <div class="cards-row">
-        <div class="card" data-wrap-card="posting_date"><div class="head">تاريخ القيد</div><div class="body"><div data-field="posting_date"></div></div></div>
-        <div class="card" data-wrap-card="from_warehouse"><div class="head">من مخزن</div><div class="body"><div data-field="from_warehouse"></div></div></div>
-        <div class="card" data-wrap-card="to_warehouse"><div class="head">إلى مخزن</div><div class="body"><div data-field="to_warehouse"></div></div></div>
+        <div class="card" data-wrap-card="posting_date">
+          <div class="head">تاريخ القيد</div>
+          <div class="body"><div data-field="posting_date"></div></div>
+        </div>
+        <div class="card" data-wrap-card="from_warehouse">
+          <div class="head">من مخزن</div>
+          <div class="body"><div data-field="from_warehouse"></div></div>
+        </div>
+        <div class="card" data-wrap-card="to_warehouse">
+          <div class="head">إلى مخزن</div>
+          <div class="body"><div data-field="to_warehouse"></div></div>
+        </div>
       </div>
 
       <div class="table-card">
@@ -149,8 +212,8 @@ frappe.pages['stock-transfer'].on_page_load = function (wrapper) {
   const controls = {};
   function Control(df, sel) {
     const M = { Link: frappe.ui.form.ControlLink, Float: frappe.ui.form.ControlFloat, Date: frappe.ui.form.ControlDate };
-    const C = M[df.fieldtype] || frappe.ui.form.ControlData;
-    return new C({ df, parent: $ui.find(sel)[0], render_input: true });
+    theC = M[df.fieldtype] || frappe.ui.form.ControlData;
+    return new theC({ df, parent: $ui.find(sel)[0], render_input: true });
   }
   function mark_card_error(key, on){ const $c = $ui.find('[data-wrap-card="'+key+'"]'); on ? $c.addClass('error') : $c.removeClass('error'); }
 
@@ -205,7 +268,7 @@ frappe.pages['stock-transfer'].on_page_load = function (wrapper) {
           <div><div class="cell" data-cell="item_code"></div></div>
           <div class="center"><div class="cell" data-cell="qty"></div></div>
           <div class="right"><span data-cell="available">--</span></div>
-          <div class="center"><button class="btn btn-outline btn-sm" data-action="remove" title="حذف">✕</button></div>
+          <div class="center"><button class="btn btn-add" data-action="remove" title="حذف">✕</button></div>
         </div>
       `);
       $body.append($row);
@@ -255,7 +318,6 @@ frappe.pages['stock-transfer'].on_page_load = function (wrapper) {
       // Remove
       $row.find('[data-action="remove"]').on('click', () => remove_row(r.id));
 
-      // Inicial
       update_row_numbers(r);
     });
   }
@@ -331,19 +393,15 @@ frappe.pages['stock-transfer'].on_page_load = function (wrapper) {
 
       const name = res && res.message;
       if (name) {
-        frappe.msgprint({
-          title: 'تم بنجاح',
-          message: 'تم إنشاء قيد تحويل: ' + frappe.utils.escape_html(name),
-          indicator: 'green'
-        });
+        frappe.msgprint({ title:'تم بنجاح', message:'تم إنشاء قيد تحويل: ' + frappe.utils.escape_html(name), indicator:'green' });
         reset_page();
       } else {
-        frappe.show_alert({ message: 'مفيش مستند اتعمل.', indicator: 'orange' });
+        frappe.show_alert({ message:'مفيش مستند اتعمل.', indicator:'orange' });
       }
     } catch (e) {
       console.error(e);
       const msg = (e && e.message) ? String(e.message) : 'حصل خطأ';
-      frappe.msgprint({ title: 'خطأ', message: msg, indicator: 'red' });
+      frappe.msgprint({ title:'خطأ', message: msg, indicator:'red' });
     } finally {
       frappe.dom.unfreeze();
       $btn_submit.prop('disabled', false);
