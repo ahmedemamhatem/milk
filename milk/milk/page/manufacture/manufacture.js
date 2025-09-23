@@ -192,7 +192,7 @@ frappe.pages['manufacture'].on_page_load = function(wrapper) {
               <div data-field="posting_date"></div>
             </div>
             <div class="field from-col" data-wrap-card="from_warehouse">
-              <div class="label">من مخزن (مخزن الخامات)</div>
+              <div class="label">من مخزن (مخزن صاله الانتاج)</div>
               <div data-field="from_warehouse"></div>
             </div>
             <div class="field to-col" data-wrap-card="to_warehouse">
@@ -283,7 +283,7 @@ frappe.pages['manufacture'].on_page_load = function(wrapper) {
     change: () => state.posting_date = controls.posting_date.get_value()
   }, '[data-field="posting_date"]'); controls.posting_date.set_value(state.posting_date);
 
-  controls.from_warehouse = Control({ fieldtype:"Link", fieldname:"from_warehouse", label:"من مخزن (مخزن الخامات)", options:"Warehouse",
+  controls.from_warehouse = Control({ fieldtype:"Link", fieldname:"from_warehouse", label:"من مخزن (مخزن صاله الانتاج)", options:"Warehouse",
     get_query: () => ({ filters: { is_group: 0, disabled: 0 } }),
     change: async () => { state.from_warehouse = controls.from_warehouse.get_value(); await refresh_availability_all(); }
   }, '[data-field="from_warehouse"]');
