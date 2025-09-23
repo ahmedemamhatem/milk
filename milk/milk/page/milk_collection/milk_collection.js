@@ -232,36 +232,19 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
       method: "milk.milk.utils.get_average_quantity",
       args: { supplier, days: 10 },
       callback: function (response) {
-        // Default values if no response or empty response
         const average = response.message || { morning: 0, evening: 0 };
-
-        // Calculate valid ranges for morning and evening
         const morning_min = average.morning - 2;
         const morning_max = average.morning + 2;
         const evening_min = average.evening - 2;
         const evening_max = average.evening + 2;
-
         let errors = [];
-
-        // Validate morning quantity
         if (morning_quantity < morning_min || morning_quantity > morning_max) {
-          errors.push(
-            `كمية الصباح (${morning_quantity}) خارج النطاق المسموح به (المتوسط: ${average.morning} ± 2).`
-          );
+          errors.push(`كمية الصباح (${morning_quantity}) خارج النطاق المسموح به (المتوسط: ${average.morning} ± 2).`);
         }
-
-        // Validate evening quantity
         if (evening_quantity < evening_min || evening_quantity > evening_max) {
-          errors.push(
-            `كمية المساء (${evening_quantity}) خارج النطاق المسموح به (المتوسط: ${average.evening} ± 2).`
-          );
+          errors.push(`كمية المساء (${evening_quantity}) خارج النطاق المسموح به (المتوسط: ${average.evening} ± 2).`);
         }
-
-        // Pass validation result back via the callback
-        callback({
-          valid: errors.length === 0,
-          messages: errors,
-        });
+        callback({ valid: errors.length === 0, messages: errors });
       },
     });
   }
@@ -312,17 +295,16 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
       const isMorningPontReadonly = $row.find(".morning-pont").prop("readonly");
       const isEveningPontReadonly = $row.find(".evening-pont").prop("readonly");
 
-      // Validate pont fields
       const morningPontValidation = validate_pont_field(morning_pont, milk_type, isMorningPontReadonly);
       if (morningPontValidation === "invalid_cow") {
         frappe.msgprint(`خطأ في الصف ${index + 1}: بنط الصباح (بقر) يجب أن يكون بين 3 و 5.`);
         invalid_rows = true;
-        return false; // break
+        return false;
       }
       if (morningPontValidation === "invalid_buffalo") {
         frappe.msgprint(`خطأ في الصف ${index + 1}: بنط الصباح (جاموس) يجب أن يكون بين 6 و 9.`);
         invalid_rows = true;
-        return false; // break
+        return false;
       }
 
       const eveningPontValidation = validate_pont_field(evening_pont, milk_type, isEveningPontReadonly);
@@ -337,38 +319,29 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
         return false;
       }
 
-      // Push validation promise for quantities
       const promise = new Promise((resolve) => {
         frappe.call({
           method: "milk.milk.utils.get_average_quantity",
           args: { supplier, milk_type, days: 10 },
           callback: function (response) {
             const average = response.message || { morning: 0, evening: 0 };
-
             const morning_min = average.morning - 2;
             const morning_max = average.morning + 2;
             const evening_min = average.evening - 2;
             const evening_max = average.evening + 2;
 
             let errors = [];
-
-            // Morning validation
             if (morning_quantity > 0) {
               if (morning_quantity < morning_min || morning_quantity > morning_max) {
-                errors.push(
-                  `كمية الصباح (${morning_quantity}) خارج النطاق المسموح به (المتوسط: ${average.morning} ± 2).`
-                );
+                errors.push(`كمية الصباح (${morning_quantity}) خارج النطاق المسموح به (المتوسط: ${average.morning} ± 2).`);
               }
             } else if (morning_quantity === 0) {
               errors.push(`كمية الصباح = 0`);
             }
 
-            // Evening validation
             if (evening_quantity > 0) {
               if (evening_quantity < evening_min || evening_quantity > evening_max) {
-                errors.push(
-                  `كمية المساء (${evening_quantity}) خارج النطاق المسموح به (المتوسط: ${average.evening} ± 2).`
-                );
+                errors.push(`كمية المساء (${evening_quantity}) خارج النطاق المسموح به (المتوسط: ${average.evening} ± 2).`);
               }
             } else if (evening_quantity === 0) {
               errors.push(`كمية المساء = 0`);
@@ -399,7 +372,6 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
       return;
     }
 
-    // Wait for all async validations
     await Promise.all(validationPromises);
 
     if (validation_issues.length > 0) {
@@ -477,7 +449,13 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
     try {
       frappe.dom.freeze(__('جاري تجهيز المسودة للطباعة...'));
 
-      // Fetch suppliers with custom_milk_supplier == 1 and enabled
+      // Read current filters to include them in print header
+      const selectedDriver = driver.get_value();
+      const selectedVillage = village.get_value();
+      const selectedDate = collection_date.get_value();
+      const today = selectedDate || (frappe.datetime ? frappe.datetime.get_today() : new Date().toISOString().slice(0,10));
+      const dayName = getArabicDayName(today);
+
       const suppliers = await frappe.db.get_list('Supplier', {
         fields: [
           'name',
@@ -501,10 +479,9 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
         return;
       }
 
-      // Build rows per milk type and village
+      // Build rows per milk type and village; apply filters
       const rows = [];
       suppliers.forEach(sup => {
-        // Normalize villages to array of strings
         const villages = Array.isArray(sup.custom_villages)
           ? sup.custom_villages
           : (typeof sup.custom_villages === 'string' && sup.custom_villages
@@ -514,36 +491,26 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
         const driver_name = sup.custom_driver_in_charge || __('غير محدد');
         const sup_name = sup.supplier_name || sup.name;
 
-        // Buffalo row
-        if (Number(sup.custom_buffalo) === 1) {
-          villages.forEach(v => {
-            rows.push({
-              driver: driver_name,
-              village: v || __('غير محدد'),
-              supplier: sup_name,
-              milk_type: 'جاموسي'
-            });
+        if (selectedDriver && driver_name !== selectedDriver) return;
+
+        const villagesFiltered = selectedVillage ? villages.filter(v => v === selectedVillage) : villages;
+
+        const pushRow = (mt) => {
+          villagesFiltered.forEach(v => {
+            rows.push({ driver: driver_name, village: v || __('غير محدد'), supplier: sup_name, milk_type: mt });
           });
-        }
-        // Cow row
-        if (Number(sup.custom_cow) === 1) {
-          villages.forEach(v => {
-            rows.push({
-              driver: driver_name,
-              village: v || __('غير محدد'),
-              supplier: sup_name,
-              milk_type: 'بقري'
-            });
-          });
-        }
+        };
+
+        if (Number(sup.custom_buffalo) === 1) pushRow('جاموسي');
+        if (Number(sup.custom_cow) === 1) pushRow('بقري');
       });
 
       if (!rows.length) {
-        frappe.msgprint(__('لا توجد صفوف للطباعة (تحقق من إعدادات نوع اللبن بالموردين).'));
+        frappe.msgprint(__('لا توجد صفوف للطباعة بعد تطبيق الفلاتر.'));
         return;
       }
 
-      // Sort so that grouping by driver then village is consecutive
+      // Sort: by driver, then village, supplier, milk type (village will show on top chips; not in table)
       rows.sort((a, b) => {
         if (a.driver !== b.driver) return a.driver.localeCompare(b.driver, 'ar');
         if (a.village !== b.village) return a.village.localeCompare(b.village, 'ar');
@@ -551,11 +518,7 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
         return a.milk_type.localeCompare(b.milk_type, 'ar');
       });
 
-      // Date and day name for header
-      const today = frappe.datetime ? frappe.datetime.get_today() : new Date().toISOString().slice(0,10);
-      const dayName = getArabicDayName(today);
-
-      // Build printable HTML
+      // Build printable HTML with 2 suppliers per line, page breaks only when driver changes
       let html = `
 <!doctype html>
 <html lang="ar" dir="rtl">
@@ -570,12 +533,13 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
   .hdr{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:8px }
   .hdr .title{ font-size:18px; font-weight:800 }
   .hdr .meta{ font-size:12px; color:var(--muted) }
-  .kv{ display:flex; gap:12px; flex-wrap:wrap; margin:8px 0 12px }
-  .chip{ border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:13px }
+  .kv{ display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px }
+  .chip{ border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:12px; background:#fff }
   table{ width:100%; border-collapse:collapse; }
   th, td{ border:1px solid var(--border); padding:8px; font-size:14px; text-align:center; }
   th{ background:#f8fafc; color:#374151; font-weight:800 }
   td{ background:#fff }
+  .subhdr{ background:#eef2ff; font-weight:700; }
   @media print{
     .page{ padding:10mm }
     th,td{ padding:4mm 3mm; font-size:12px }
@@ -585,31 +549,69 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
 <body>
 `;
 
-      // Function to render a section for one driver+village
-      const flushPage = (driver_name, village_name, rowsForGroup) => {
-        const rowsHtml = rowsForGroup.map((r, i) => `
+      // Render a page for one driver, with filters and villages displayed on top, not in table
+      const renderDriverPage = (driver_name, rowsForDriver) => {
+        // Determine unique villages for this driver
+        const uniqueVillages = Array.from(new Set(rowsForDriver.map(r => r.village).filter(Boolean)));
+        const villagesText = uniqueVillages.length ? uniqueVillages.join('، ') : __('غير محدد');
+
+        // Pair rows for two columns per line
+        const lines = [];
+        for (let i = 0; i < rowsForDriver.length; i += 2) {
+          const a = rowsForDriver[i];
+          const b = rowsForDriver[i + 1] || null;
+          lines.push({ a, b });
+        }
+
+        const rowsHtml = lines.map((pair, idx) => {
+          const a = pair.a, b = pair.b;
+          return `
           <tr>
-            <td>${i + 1}</td>
-            <td>${r.supplier}</td>
-            <td>${r.milk_type}</td>
+            <td>${idx + 1}</td>
+            <td>${a.supplier}</td>
+            <td>${a.milk_type}</td>
             <td></td>
             <td></td>
-          </tr>
-        `).join('') || `<tr><td colspan="5">${__('لا توجد بيانات')}</td></tr>`;
+            <td>${b ? (idx + 1) : ''}</td>
+            <td>${b ? b.supplier : ''}</td>
+            <td>${b ? b.milk_type : ''}</td>
+            <td></td>
+            <td></td>
+          </tr>`;
+        }).join('');
+
+        // Filters chips (what the user selected)
+        const chipVillageFilter = selectedVillage ? selectedVillage : __('الكل');
+        const chipDate = today;
+        const chipDay = dayName;
 
         html += `
 <section class="page">
   <div class="hdr">
     <div class="title">${__('مسودة تسجيل اللبن')}</div>
-    <div class="meta">${dayName} - ${today}</div>
+    <div class="meta">${chipDay} - ${chipDate}</div>
+  </div>
+  <div class="kv">
+    <div class="chip">${__('السائق (محدد)')}: ${selectedDriver || __('غير محدد')}</div>
+    <div class="chip">${__('القرية (محددة)')}: ${chipVillageFilter}</div>
+    <div class="chip">${__('التاريخ')}: ${chipDate}</div>
   </div>
   <div class="kv">
     <div class="chip">${__('السائق')}: ${driver_name || __('غير محدد')}</div>
-    <div class="chip">${__('القرية')}: ${village_name || __('غير محدد')}</div>
+    <div class="chip">${__('القرى')}: ${villagesText}</div>
   </div>
   <table>
     <thead>
+      <tr class="subhdr">
+        <th colspan="5">${__(' ')}</th>
+        <th colspan="5">${__(' ')}</th>
+      </tr>
       <tr>
+        <th>#</th>
+        <th>${__('المورد')}</th>
+        <th>${__('نوع اللبن')}</th>
+        <th>${__('كمية الصباح')}</th>
+        <th>${__('كمية المساء')}</th>
         <th>#</th>
         <th>${__('المورد')}</th>
         <th>${__('نوع اللبن')}</th>
@@ -618,41 +620,38 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml}
+      ${rowsHtml || `<tr><td colspan="10">${__('لا توجد بيانات')}</td></tr>`}
     </tbody>
   </table>
 </section>
 `;
       };
 
-      // Iterate grouped by driver -> village, create a page per village
+      // Group by driver only (page break on driver change)
       let currentDriver = null;
-      let currentVillage = null;
       let buffer = [];
 
+      const flushDriver = () => {
+        if (!buffer.length) return;
+        renderDriverPage(currentDriver, buffer);
+        buffer = [];
+      };
+
       rows.forEach(r => {
-        if (currentDriver === null) {
+        if (currentDriver === null) currentDriver = r.driver;
+        const changeDriver = r.driver !== currentDriver;
+        if (changeDriver) {
+          flushDriver();
           currentDriver = r.driver;
-          currentVillage = r.village;
-        }
-        const changed = (r.driver !== currentDriver) || (r.village !== currentVillage);
-        if (changed) {
-          flushPage(currentDriver, currentVillage, buffer);
-          buffer = [];
-          currentDriver = r.driver;
-          currentVillage = r.village;
         }
         buffer.push(r);
       });
-      if (buffer.length) {
-        flushPage(currentDriver, currentVillage, buffer);
-      }
+      flushDriver();
 
       html += `
 </body>
 </html>`;
 
-      // Open window and print
       const w = window.open('', '_blank');
       if (!w) {
         frappe.msgprint(__('فضلاً فعّل النوافذ المنبثقة للسماح بالطباعة.'));
