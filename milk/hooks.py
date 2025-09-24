@@ -21,7 +21,8 @@ doc_events = {
 
 scheduler_events = {
     "daily": [
-        "milk.daily_valuation.run_previous_month_milk_valuation"
+        "milk.daily_valuation.run_previous_month_milk_valuation",
+        "milk.milk.utils.disable_inactive_milk_suppliers"
     ]
 }
 # Each item in the list will be shown as an app in the apps page

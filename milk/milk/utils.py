@@ -1,21 +1,51 @@
 import frappe
 import json
-from datetime import datetime
-import frappe
-from frappe.utils import getdate, add_days, nowdate
-import frappe
-from datetime import datetime
-from frappe.utils import now
-from datetime import datetime, timedelta
-from datetime import datetime, timedelta
-import frappe
-from frappe.utils import flt
-import frappe
-from frappe.utils import getdate, add_days
-import frappe
-from frappe.utils import getdate, add_days, now_datetime
 import random
 import string
+from frappe.utils import getdate, add_days, nowdate, now_datetime, today, flt
+from datetime import datetime, timedelta
+
+
+@frappe.whitelist()
+def disable_inactive_milk_suppliers():
+    """
+    Disable suppliers with custom_milk_supplier == 1
+    if they have no milk entries or only zero-quantity entries
+    for the last 12 consecutive days.
+    """
+    # Get all milk suppliers
+    suppliers = frappe.get_all(
+        "Supplier",
+        filters={"custom_milk_supplier": 1, "disabled": 0},
+        fields=["name"]
+    )
+
+    start_date = add_days(today(), -12)
+    end_date = today()
+
+    for s in suppliers:
+        # Fetch logs for this supplier in last 12 days
+        logs = frappe.get_all(
+            "Milk Entries Log",
+            filters={
+                "supplier": s.name,
+                "date": ["between", [start_date, end_date]],
+            },
+            fields=["quantity"]
+        )
+
+        if not logs:
+            # No logs at all → disable supplier
+            frappe.db.set_value("Supplier", s.name, "disabled", 1)
+            frappe.db.commit()
+            frappe.logger().info(f"Disabled supplier {s.name} (no logs in last 7 days)")
+            continue
+
+        # Check if all quantities are 0
+        if all((flt(log.quantity) == 0 for log in logs)):
+            frappe.db.set_value("Supplier", s.name, "disabled", 1)
+            frappe.db.commit()
+
 
 @frappe.whitelist()
 def get_suppliers_with_villages(driver=None, village=None):

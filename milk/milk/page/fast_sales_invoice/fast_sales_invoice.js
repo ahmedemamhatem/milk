@@ -3,7 +3,7 @@ frappe.provide("milk.fast_sales_invoice");
 frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
-		title: 'فاتورة مبيعات ',
+		title: 'فاتورة مبيعات',
 		single_column: true
 	});
 
@@ -13,260 +13,122 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 	const ui_html = `
 		<div class="fsi-root">
 			<style>
-				:root {
-  --bg:#ffffff;
-  --text:#0f172a;
-  --muted:#475569;
-  --primary:#2563eb;
-  --primary-dark:#1e40af;
-  --line:#e2e8f0;
-  --field-bg:#f8fafc;
-  --danger:#ef4444;
-  --chip-bg:#f1f5f9;
-  --focus:#3b82f6;
-  --success:#16a34a;
-  --warning:#f59e0b;
-  --shadow:0 1px 0 rgba(15,23,42,.03), 0 6px 20px rgba(2,6,23,.05);
-}
 
-/* Optional: auto dark mode */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg:#0b1220;
-    --text:#e5e7eb;
-    --muted:#94a3b8;
-    --primary:#60a5fa;
-    --primary-dark:#3b82f6;
-    --line:#1f2937;
-    --field-bg:#0f172a;
-    --chip-bg:#0b1626;
-    --shadow:0 1px 0 rgba(255,255,255,.03), 0 6px 20px rgba(0,0,0,.35);
-  }
+			.fsi-root {
+  font-weight: 700; /* bold everywhere in this page */
 }
+  .fsi-title,
+.card .head,
+.summary .chip,
+.table-title,
+.fsi-head .th,
+.fsi-foot-row,
+.fsi-row > div,
+.result-header,
+.result-row {
+  font-weight: 700;
+}
+  
+/* Clean Frappe-like styling with minimal layout only */
 
-.fsi-root {
-  background:var(--bg);
-  color:var(--text);
-  min-height:calc(100vh - 80px);
-  margin:-15px;
-  padding:10px 16px 24px;
-}
+/* Page spacing */
+.fsi-root { margin:-15px; padding:10px 16px 24px; background:#fff; }
+.fsi-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.fsi-title { font-weight:600; }
+.fsi-status { font-size:12px; color:var(--text-muted, #6b7280); }
 
-.fsi-header { 
-  display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;
-}
-.fsi-title { font-size:22px; font-weight:800; letter-spacing:.2px; }
-.fsi-status { font-size:12px; color:var(--muted); }
-
-/* Cards */
-.cards-row {
-  display:grid; grid-template-columns:repeat(20,minmax(0,1fr)); column-gap:12px; row-gap:10px; align-items:stretch;
-}
-.card {
-  grid-column:span 4;
-  background:var(--field-bg);
-  border:1px solid var(--line);
-  border-radius:12px;
-  padding:8px 10px;
-  min-height:74px;
-  box-shadow:var(--shadow);
-  transition:transform .08s ease, box-shadow .12s ease, border-color .12s ease;
-}
-.card:hover { transform:translateY(-1px); box-shadow:0 2px 0 rgba(15,23,42,.06), 0 10px 30px rgba(2,6,23,.08); }
-.card .head { font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; margin-bottom:6px; }
+/* Cards layout (inputs use Frappe defaults) */
+.cards-row { display:grid; grid-template-columns:repeat(20,minmax(0,1fr)); gap:12px; overflow:visible; }
+.card { grid-column:span 4; border:1px solid var(--border-color, #e5e7eb); border-radius:8px; background:#fff; overflow:visible; }
+.card .head { font-size:12px; font-weight:600; color:var(--text-muted, #6b7280); padding:8px 10px 0; }
+.card .body { padding:6px 10px 10px; position:relative; overflow:visible; }
 .card .body .control-label { display:none !important; }
-.card .body .control-input,
-.card .body input,
-.card .body .awesomplete>input {
-  background:#fff !important;
-  color:var(--text) !important;
-  border:1px solid #dbe2ea !important;
-  border-radius:10px !important;
-  min-height:34px;
-  padding-inline:10px;
-  transition:border-color .12s ease, box-shadow .12s ease;
-}
-.card .body .control-input:focus,
-.card .body input:focus,
-.card .body .awesomplete>input:focus {
-  outline:none;
-  border-color:var(--focus) !important;
-  box-shadow:0 0 0 3px color-mix(in oklab, var(--focus) 18%, transparent);
-}
-.card.error { outline:2px solid var(--danger); }
 
-/* Summary chips */
-.summary { margin-top:8px; display:flex; gap:10px; flex-wrap:wrap; }
-.chip {
-  background:var(--chip-bg);
-  border:1px solid var(--line);
-  border-radius:999px;
-  padding:6px 10px;
-  font-size:12px; font-weight:700;
-  color:var(--muted);
-  display:inline-flex; gap:6px; align-items:center;
-  box-shadow:var(--shadow);
-}
-.chip .v { color:var(--text); min-width:56px; text-align:right; display:inline-block; }
+/* Summary row */
+.summary { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
+.summary .chip { border:1px solid var(--border-color, #e5e7eb); border-radius:6px; padding:6px 8px; font-size:12px; color:var(--text-muted, #6b7280); }
 
-/* Table card */
-.table-card {
-  margin-top:12px;
-  border:1px solid var(--line);
-  border-radius:12px;
-  overflow:hidden;
-  background:#fff;
-  box-shadow:var(--shadow);
-}
-.table-title {
-  padding:10px 12px;
-  font-size:12px; font-weight:900; color:var(--muted);
-  text-transform:uppercase; letter-spacing:.3px;
-  border-bottom:1px solid var(--line);
-  display:flex; justify-content:space-between; gap:8px; align-items:center;
-}
+/* Table wrapper (no internal scroll) */
+.table-card { margin-top:12px; border:1px solid var(--border-color, #e5e7eb); border-radius:8px; background:#fff; overflow:visible; }
+.table-title { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid var(--border-color, #e5e7eb); color:var(--text-muted, #6b7280); font-size:12px; font-weight:600; }
 .title-actions { display:flex; gap:8px; }
 
-/* Grid columns remain identical in count/width */
+/* Grid columns (removed total/outstanding):
+   #, customer, balance, qty, paid, actions */
 .fsi-grid {
   display:grid;
-  grid-template-columns:34px minmax(220px,1fr) 140px 110px 130px 130px 130px 130px 64px;
+  grid-template-columns:34px minmax(220px,1fr) 160px 130px 160px 64px;
   align-items:center;
 }
-.fsi-head, .fsi-foot { background:#f8fafc; position:sticky; z-index:2; }
-.fsi-head { top:0; }
-.fsi-foot { bottom:0; }
+.fsi-head, .fsi-foot { background:#fafafa; position:static; z-index:auto; }
 .fsi-head>div, .fsi-row>div, .fsi-foot-row>div {
-  padding:10px 8px;
-  border-bottom:1px solid var(--line);
-  min-height:48px;
-  display:flex; align-items:center;
+  padding:8px 8px;
+  border-bottom:1px solid var(--border-color, #e5e7eb);
+  min-height:44px; display:flex; align-items:center;
 }
-.th { font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; }
+.th { font-size:12px; font-weight:600; color:var(--text-muted, #6b7280); }
 .center { justify-content:center; text-align:center; }
 .right { justify-content:flex-end; text-align:right; }
 
-.fsi-body { 
-  max-height:52vh; overflow:auto; scroll-behavior:smooth; 
-}
-.fsi-body .fsi-row:nth-child(even) { background:color-mix(in oklab, #fcfdff 85%, transparent); }
-.fsi-body .fsi-row:hover { background:color-mix(in oklab, var(--primary) 6%, transparent); }
+/* Body grows naturally; page scrolls */
+.fsi-body { max-height:none; overflow:visible; }
+.fsi-body .fsi-row:nth-child(even) { background:#fbfbfb; }
+.fsi-row { position:relative; overflow:visible; z-index:0; }
 
-/* Cells */
-.cell { width:100%; }
+/* Cells -- inputs use Frappe defaults */
+.cell { width:100%; position:relative; overflow:visible; z-index:0; }
 .cell .control-label { display:none !important; }
-.cell .control-input,
-.cell input,
-.cell .awesomplete>input,
-.cell .input-with-feedback {
-  width:100%;
-  background:#fff !important; color:var(--text) !important;
-  border:1px solid #dbe2ea !important; border-radius:10px !important;
-  min-height:32px;
-  padding-inline:10px;
-  transition:border-color .12s ease, box-shadow .12s ease, background-color .12s ease;
-}
-.cell .control-input:focus,
-.cell input:focus,
-.cell .awesomplete>input:focus,
-.cell .input-with-feedback:focus {
-  border-color:var(--focus) !important;
-  box-shadow:0 0 0 3px color-mix(in oklab, var(--focus) 18%, transparent);
-  outline:none;
-}
-.cell-error {
-  outline:2px solid var(--danger);
-  border-radius:8px;
-  background:color-mix(in oklab, var(--danger) 3%, transparent);
-}
-.row-error { background:color-mix(in oklab, var(--danger) 8%, transparent); }
+.cell .control-input, .cell input, .cell .awesomplete>input, .cell .input-with-feedback { width:100%; }
 
-/* Actions */
-.actions-bar {
-  padding:10px 12px;
-  display:flex; justify-content:flex-end; gap:8px;
-  border-top:1px solid var(--line);
-  background:#fff; position:sticky; bottom:0; z-index:2;
-}
-.btn {
-  border:none; border-radius:10px; padding:10px 14px; font-weight:800; cursor:pointer;
-  transition:transform .08s ease, box-shadow .12s ease, opacity .12s ease, background .12s ease;
-}
-.btn:hover { transform:translateY(-1px); }
-.btn:active { transform:translateY(0); }
-.btn:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
-.btn-add { background:#e2e8f0; color:#0f172a; }
-.btn-add:hover { background:#dbe2ea; }
-.btn-submit {
-  background:linear-gradient(180deg, var(--primary), var(--primary-dark));
-  color:#fff; box-shadow:0 8px 20px rgba(37,99,235,.20);
-}
-.btn-submit:hover { box-shadow:0 10px 26px rgba(37,99,235,.28); }
-.btn-outline { background:#fff; border:1px solid var(--line); }
-.btn:disabled { opacity:.6; cursor:not-allowed; }
+/* Actions bar (bottom) */
+.actions-bar { padding:8px 10px; display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; border-top:1px solid var(--border-color, #e5e7eb); background:#fff; }
 
-/* Modal */
-.fsi-modal-backdrop {
-  position:fixed; inset:0; background:rgba(0,0,0,.35);
-  display:none; align-items:center; justify-content:center; z-index:99999;
-  backdrop-filter:saturate(110%) blur(2px);
-}
-.fsi-modal {
-  background:#fff; width:min(880px,92vw); border-radius:14px;
-  box-shadow:0 20px 60px rgba(0,0,0,.25); overflow:hidden;
-}
-.fsi-modal-header {
-  padding:12px 16px; border-bottom:1px solid var(--line);
-  display:flex; justify-content:space-between; align-items:center;
-}
-.fsi-modal-title { font-weight:900; }
-.fsi-modal-body { padding:12px 16px; max-height:60vh; overflow:auto; }
-.result-list { border:1px solid var(--line); border-radius:10px; overflow:hidden; }
-.result-row {
-  display:grid; grid-template-columns:1fr 110px 140px; gap:8px; padding:10px 12px; border-bottom:1px solid var(--line);
-}
+/* Modal -- rely on Frappe defaults; ensure stacking */
+.fsi-modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:99999; }
+.fsi-modal { background:#fff; width:min(880px,92vw); border-radius:8px; overflow:hidden; }
+.fsi-modal-header { padding:10px; border-bottom:1px solid var(--border-color, #e5e7eb); display:flex; justify-content:space-between; align-items:center; }
+.fsi-modal-title { font-weight:600; }
+.fsi-modal-body { padding:10px; max-height:60vh; overflow:auto; }
+.result-list { border:1px solid var(--border-color, #e5e7eb); border-radius:6px; overflow:hidden; }
+.result-row { display:grid; grid-template-columns:1fr 110px 140px; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border-color, #e5e7eb); }
 .result-row:last-child { border-bottom:0; }
-.result-header { background:#f8fafc; font-size:12px; font-weight:800; color:var(--muted); }
-.fsi-modal-footer { padding:10px 16px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:8px; }
+.result-header { background:#fafafa; color:var(--text-muted, #6b7280); font-size:12px; font-weight:600; }
+.fsi-modal-footer { padding:8px 10px; border-top:1px solid var(--border-color, #e5e7eb); display:flex; justify-content:flex-end; gap:8px; }
 
-/* Autocomplete above modals as before */
-.awesomplete, .awesomplete>ul { z-index:99999 !important; overflow:visible !important; }
+/* Awesomplete (Link dropdown) -- robust, scoped, non-intrusive */
+.awesomplete { position: relative !important; z-index:1; }
+.awesomplete > ul {
+  position: absolute !important;
+  inset-inline-start: 0 !important; /* RTL/LTR */
+  top: calc(100% + 4px) !important;
+  min-width: 100% !important;
+  max-width: min(520px, 92vw);
+  max-height: 320px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  margin: 0;
+  padding: 4px 0;
+  z-index: 10; /* above input within same container */
+  direction: rtl;
+  box-shadow: 0 8px 16px rgba(0,0,0,.08);
+}
+.awesomplete > ul > li { padding: 6px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; cursor: pointer; }
+.awesomplete > ul > li[aria-selected="true"], .awesomplete > ul > li:hover { background:#f5f5f5; }
 
-/* Density tweaks */
-.fsi-head>div, .fsi-row>div, .fsi-foot-row>div { min-height:44px; }
-.cell .control-input, .cell input { min-height:30px; }
-.card .body .control-input, .card .body input { min-height:34px; }
+/* Prevent outer containers from clipping the dropdown */
+.fsi-root, .layout-main-section, .page-content { overflow: visible !important; }
 
-/* Accessibility helpers for errors (non-structural hint) */
-.cell-error::after {
-  content:'!'; font-weight:900; color:var(--danger);
-  margin-inline-start:6px; display:inline-block;
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  * { transition:none !important; animation:none !important; }
-}
-
-/* Responsive: keep your existing breakpoints, add small refinements */
-@media (max-width:1100px){
-  .cards-row{ grid-template-columns:repeat(10,1fr);}
-  .card{ grid-column:span 10;}
-}
-@media (max-width:800px){
-  .fsi-grid { grid-template-columns:34px minmax(160px,1fr) 120px 100px 120px 120px 120px 120px 60px; }
-}
-@media (max-width:680px){
-  .fsi-body{ max-height:45vh;}
-  .chip { font-weight:600; }
-  .table-title { padding:8px 10px; }
-  .actions-bar { padding:8px 10px; }
-}
+/* Responsive tweaks */
+@media (max-width:1100px){ .cards-row{ grid-template-columns:repeat(10,1fr);} .card{ grid-column:span 10;} }
+@media (max-width:800px){ .fsi-grid { grid-template-columns:34px minmax(160px,1fr) 140px 120px 160px 60px; } }
+@media (max-width:680px){ .fsi-body{ max-height:none; } }
 			</style>
 
 			<div class="fsi-header">
 				<div class="fsi-title"></div>
-				<div class="fsi-status" data-bind="status">جاهز</div>
+				<div class="fsi-status" data-bind="status"></div>
 			</div>
 
 			<div class="cards-row">
@@ -280,16 +142,15 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 			<div class="summary">
 				<div class="chip">عدد الصفوف <span class="v" data-bind="rows_count">0</span></div>
 				<div class="chip">إجمالي الكمية <span class="v" data-bind="sum_qty">0</span></div>
-				<div class="chip">إجمالي المبلغ <span class="v" data-bind="sum_amount">0.00</span></div>
 				<div class="chip">إجمالي المدفوع <span class="v" data-bind="sum_paid">0.00</span></div>
-				<div class="chip">إجمالي المستحق <span class="v" data-bind="sum_outstanding">0.00</span></div>
+				<div class="chip">إجمالي أرصدة العملاء <span class="v" data-bind="t_balances">--</span></div>
 			</div>
 
 			<div class="table-card">
 				<div class="table-title">
 					<span>العملاء</span>
 					<div class="title-actions">
-						<button class="btn btn-outline" data-action="print_blank">طباعة نموذج فاضي</button>
+						<button class="btn btn-default btn-xs" data-action="print_blank">طباعة نموذج فاضي</button>
 					</div>
 				</div>
 				<div class="fsi-head fsi-grid">
@@ -297,45 +158,40 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 					<div class="th">العميل</div>
 					<div class="th right">رصيد العميل</div>
 					<div class="th center">الكمية</div>
-					<div class="th center">السعر</div>
 					<div class="th center">المبلغ المدفوع</div>
-					<div class="th right">إجمالي الصف</div>
-					<div class="th right">المستحق</div>
 					<div class="th center">إجراءات</div>
 				</div>
 				<div class="fsi-body" data-body="rows"></div>
 				<div class="fsi-foot">
 					<div class="fsi-foot-row fsi-grid">
 						<div></div>
-						<div class="right" style="font-weight:800;">الإجماليات</div>
+						<div class="right" style="font-weight:600;">الإجماليات</div>
 						<div class="right"><span data-bind="t_balances">--</span></div>
 						<div class="center"><span data-bind="t_qty">0.00</span></div>
-						<div></div>
 						<div class="center"><span data-bind="t_paid">0.00</span></div>
-						<div class="right"><span data-bind="t_amount">0.00</span></div>
-						<div class="right"><span data-bind="t_outstanding">0.00</span></div>
 						<div></div>
 					</div>
 				</div>
 				<div class="actions-bar">
-					<button class="btn btn-add" data-action="add_row">إضافة صف</button>
-					<button class="btn btn-submit" data-action="submit">ترحيل</button>
+					<button class="btn btn-default btn-xs" data-action="add_row">إضافة صف</button>
+					<button class="btn btn-default btn-xs" data-action="clear_all">تنظيف</button>
+					<button class="btn btn-primary btn-xs" data-action="submit">ترحيل</button>
 				</div>
 			</div>
 
 			<div class="fsi-modal-backdrop" data-modal="backdrop">
 				<div class="fsi-modal">
-					<div class="fsi-modal-header"><div class="fsi-modal-title">الفواتير اللي اتعملت</div><button class="btn" data-modal="close">✕</button></div>
+					<div class="fsi-modal-header"><div class="fsi-modal-title">الفواتير اللي اتعملت</div><button class="btn btn-default btn-xs" data-modal="close">✕</button></div>
 					<div class="fsi-modal-body">
 						<div class="result-list">
 							<div class="result-row result-header"><div>رقم الفاتورة</div><div class="right">المدفوع</div><div class="right">المستحق</div></div>
 							<div data-modal="rows"></div>
-							<div class="result-row" style="background:#f8fafc; font-weight:800;">
+							<div class="result-row" style="background:#fafafa; font-weight:600;">
 								<div>الإجمالي</div><div class="right" data-modal="sum_paid">0.00</div><div class="right" data-modal="sum_outstanding">0.00</div>
 							</div>
 						</div>
 					</div>
-					<div class="fsi-modal-footer"><button class="btn btn-submit" data-modal="ok">إغلاق</button></div>
+					<div class="fsi-modal-footer"><button class="btn btn-primary btn-xs" data-modal="ok">إغلاق</button></div>
 				</div>
 			</div>
 		</div>
@@ -350,6 +206,13 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 		if (!isFinite(n)) n = 0;
 		return n.toLocaleString(undefined, { minimumFractionDigits: precision, maximumFractionDigits: precision });
 	}
+	function enableDropdownEscape($input) {
+		if (!$input || !$input.on) return;
+		const open = () => $body.addClass('fsi-dropdown-open');
+		const close = () => $body.removeClass('fsi-dropdown-open');
+		$input.on('focus', open);
+		$input.on('blur', () => setTimeout(close, 150));
+	}
 
 	// State
 	const state = {
@@ -362,21 +225,16 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 	};
 
 	// Binds
-	const $status = $ui.find('[data-bind="status"]');
 	const $rows_count = $ui.find('[data-bind="rows_count"]');
 	const $sum_qty = $ui.find('[data-bind="sum_qty"]');
-	const $sum_amount = $ui.find('[data-bind="sum_amount"]');
 	const $sum_paid = $ui.find('[data-bind="sum_paid"]');
-	const $sum_outstanding = $ui.find('[data-bind="sum_outstanding"]');
-
 	const $t_qty = $ui.find('[data-bind="t_qty"]');
-	const $t_amount = $ui.find('[data-bind="t_amount"]');
 	const $t_paid = $ui.find('[data-bind="t_paid"]');
-	const $t_outstanding = $ui.find('[data-bind="t_outstanding"]');
 	const $t_balances = $ui.find('[data-bind="t_balances"]');
 
 	const $body = $ui.find('[data-body="rows"]');
 	const $btn_add = $ui.find('[data-action="add_row"]');
+	const $btn_clear = $ui.find('[data-action="clear_all"]');
 	const $btn_submit = $ui.find('[data-action="submit"]');
 	const $btn_print = $ui.find('[data-action="print_blank"]');
 
@@ -399,7 +257,6 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 		const C = M[df.fieldtype] || frappe.ui.form.ControlData;
 		return new C({ df, parent: $ui.find(sel)[0], render_input: true });
 	}
-	function mark_card_error(key, on) { const $c = $ui.find('[data-wrap-card="'+key+'"]'); on ? $c.addClass('error') : $c.removeClass('error'); }
 
 	controls.posting_date = Control({ fieldtype:"Date", fieldname:"posting_date", label:"تاريخ القيد", default: state.posting_date,
 		change: () => state.posting_date = controls.posting_date.get_value()
@@ -421,7 +278,6 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 			state.item_code = controls.item_code.get_value();
 			recompute_sums();
 			render_rows();
-			render_mark_errors();
 		}
 	}, '[data-field="item_code"]');
 
@@ -432,8 +288,12 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 
 	controls.mode_of_payment = Control({ fieldtype:"Link", fieldname:"mode_of_payment", label:"طريقة الدفع", options:"Mode of Payment",
 		get_query: () => ({ filters: { enabled: 1 } }),
-		change: () => { state.mode_of_payment = controls.mode_of_payment.get_value(); render_mark_errors(); }
+		change: () => { state.mode_of_payment = controls.mode_of_payment.get_value(); }
 	}, '[data-field="mode_of_payment"]');
+
+	// Enable dropdown escape for top-level Links
+	[controls.item_code, controls.set_warehouse, controls.mode_of_payment, controls.customer_group]
+		.forEach(c => { if (c && c.$input) enableDropdownEscape(c.$input); });
 
 	// Rows
 	let row_auto_id = 1;
@@ -441,26 +301,18 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 	function add_row(row) { state.rows.push(row || new_row()); render_rows(); }
 	function remove_row(id) { state.rows = state.rows.filter(x => x.id !== id); render_rows(); }
 
-	function row_total(r) { return (flt(r.qty) || 0) * (flt(r.rate) || 0); }
-	function row_outstanding(r) { const t = row_total(r), p = flt(r.paid_amount) || 0; return Math.max(t - p, 0); }
-
 	function recompute_sums() {
-		let sum_qty = 0, sum_amount = 0, sum_paid = 0, sum_out = 0, known_bal = 0, has_unknown = false;
+		let sum_qty = 0, sum_paid = 0, known_bal = 0, has_unknown = false;
 		state.rows.forEach(r => {
 			sum_qty += flt(r.qty) || 0;
-			const t = row_total(r), p = flt(r.paid_amount) || 0, o = Math.max(t - p, 0);
-			sum_amount += t; sum_paid += p; sum_out += o;
+			sum_paid += flt(r.paid_amount) || 0;
 			if (r.balance == null) has_unknown = true; else known_bal += flt(r.balance);
 		});
 		$rows_count.text(state.rows.length);
 		$sum_qty.text(safe_text_number(sum_qty, 2));
-		$sum_amount.text(safe_text_number(sum_amount, 2));
 		$sum_paid.text(safe_text_number(sum_paid, 2));
-		$sum_outstanding.text(safe_text_number(sum_out, 2));
 		$t_qty.text(safe_text_number(sum_qty, 2));
-		$t_amount.text(safe_text_number(sum_amount, 2));
 		$t_paid.text(safe_text_number(sum_paid, 2));
-		$t_outstanding.text(safe_text_number(sum_out, 2));
 		$t_balances.text(has_unknown ? 'جاري التحميل…' : safe_text_number(known_bal, 2));
 	}
 
@@ -473,11 +325,8 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 					<div><div class="cell" data-cell="customer"></div></div>
 					<div class="right"><span data-cell="balance">--</span></div>
 					<div class="center"><div class="cell" data-cell="qty"></div></div>
-					<div class="center"><div class="cell" data-cell="rate"></div></div>
 					<div class="center"><div class="cell" data-cell="paid_amount"></div></div>
-					<div class="right"><span data-cell="total">0.00</span></div>
-					<div class="right"><span data-cell="outstanding">0.00</span></div>
-					<div class="center"><button class="btn btn-sm" data-action="remove" title="حذف">✕</button></div>
+					<div class="center"><button class="btn btn-default btn-xs" data-action="remove" title="حذف">✕</button></div>
 				</div>
 			`);
 			$body.append($row);
@@ -490,13 +339,18 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 			});
 			if (r.customer) c_customer.set_value(r.customer);
 			if (c_customer.$input) {
-				c_customer.$input.on('focus', () => { if (c_customer.autocomplete && c_customer.autocomplete.evaluate) { c_customer.autocomplete.minChars = 0; c_customer.autocomplete.evaluate(); } });
+				enableDropdownEscape(c_customer.$input);
+				c_customer.$input.on('focus', () => {
+					if (c_customer.autocomplete && c_customer.autocomplete.evaluate) {
+						c_customer.autocomplete.minChars = 0;
+						c_customer.autocomplete.evaluate();
+					}
+				});
 				c_customer.$input.on('change input', async () => {
 					r.customer = c_customer.get_value();
 					r.balance = null;
 					update_balance_cell($row, r);
 					if (r.customer) await fetch_and_set_balance(r, $row);
-					render_mark_errors();
 				});
 			}
 
@@ -505,39 +359,23 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 			c_qty.set_value(r.qty);
 			c_qty.$input && c_qty.$input.on('change keyup', () => {
 				r.qty = flt(c_qty.get_value()) || 0;
-				update_row($row, r);
-				toggle_zero_error($row.find('[data-cell="qty"] .control-input'), r.qty);
-			});
-
-			// سعر
-			const c_rate = new frappe.ui.form.ControlCurrency({ df:{ fieldtype:"Currency", fieldname:"rate", label:"السعر", reqd:1 }, parent:$row.find('[data-cell="rate"]')[0], render_input:true });
-			c_rate.set_value(r.rate);
-			c_rate.$input && c_rate.$input.on('change keyup', () => {
-				r.rate = flt(c_rate.get_value()) || 0;
-				update_row($row, r);
-				toggle_zero_error($row.find('[data-cell="rate"] .control-input'), r.rate);
+				recompute_sums();
 			});
 
 			// مدفوع
 			const c_paid = new frappe.ui.form.ControlCurrency({ df:{ fieldtype:"Currency", fieldname:"paid_amount", label:"المبلغ المدفوع" }, parent:$row.find('[data-cell="paid_amount"]')[0], render_input:true });
 			c_paid.set_value(r.paid_amount);
-			c_paid.$input && c_paid.$input.on('change keyup', () => { r.paid_amount = flt(c_paid.get_value()) || 0; update_row($row, r); });
+			c_paid.$input && c_paid.$input.on('change keyup', () => {
+				r.paid_amount = flt(c_paid.get_value()) || 0;
+				recompute_sums(); // auto sum paid when changed
+			});
 
 			$row.find('[data-action="remove"]').on('click', () => remove_row(r.id));
 
-			update_row($row, r);
 			update_balance_cell($row, r);
 			if (r.customer && r.balance == null) fetch_and_set_balance(r, $row);
 		});
 		recompute_sums();
-		render_mark_errors();
-	}
-
-	function toggle_zero_error($el, val) { if (!(val > 0)) $el.addClass('cell-error'); else $el.removeClass('cell-error'); }
-
-	function update_row($row, r) {
-		$row.find('[data-cell="total"]').text(safe_text_number(row_total(r), 2));
-		$row.find('[data-cell="outstanding"]').text(safe_text_number(row_outstanding(r), 2));
 	}
 
 	function update_balance_cell($row, r) {
@@ -545,28 +383,6 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 		if (!r.customer) { $b.text('--'); return; }
 		if (r.balance == null) { $b.text('--'); return; }
 		$b.text(safe_text_number(flt(r.balance), 2));
-	}
-
-	function render_mark_errors() {
-		$ui.find('.card.error').removeClass('error');
-		$body.find('.fsi-row').removeClass('row-error');
-		$body.find('.cell-error').removeClass('cell-error');
-
-		if (!state.posting_date) mark_card_error('posting_date', true);
-		if (!state.item_code) mark_card_error('item_code', true);
-		if (!state.set_warehouse) mark_card_error('set_warehouse', true);
-
-		state.rows.forEach(r => {
-			const $row = $body.find('.fsi-row[data-id="'+r.id+'"]');
-			let has_error = false;
-			if (!r.customer) { $row.find('[data-cell="customer"] .control-input').addClass('cell-error'); has_error = true; }
-			if (!(flt(r.qty) > 0)) { $row.find('[data-cell="qty"] .control-input').addClass('cell-error'); has_error = true; }
-			if (!(flt(r.rate) > 0)) { $row.find('[data-cell="rate"] .control-input').addClass('cell-error'); has_error = true; }
-			const total = row_total(r);
-			if (flt(r.paid_amount) > total + 1e-9) { $row.find('[data-cell="paid_amount"] .control-input').addClass('cell-error'); has_error = true; }
-			if ((flt(r.paid_amount) || 0) > 0 && !state.mode_of_payment) { mark_card_error('mode_of_payment', true); has_error = true; }
-			if (has_error) $row.addClass('row-error');
-		});
 	}
 
 	function validate_all() {
@@ -577,16 +393,35 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 		for (const r of state.rows) {
 			if (!r.customer) return frappe.throw('العميل مطلوب في كل الصفوف');
 			if (!(flt(r.qty) > 0)) return frappe.throw('لازم الكمية تكون أكبر من صفر');
-			if (!(flt(r.rate) > 0)) return frappe.throw('لازم السعر يكون أكبر من صفر');
-			const total = row_total(r);
-			if (flt(r.paid_amount) > total + 1e-9) return frappe.throw('المبلغ المدفوع أكبر من الإجمالي في صف');
 			if ((flt(r.paid_amount) || 0) > 0 && !state.mode_of_payment) return frappe.throw('طريقة الدفع مطلوبة لأن في صفوف عليها مبلغ مدفوع');
 		}
 	}
 
+	// Helpers: clear/reset
+	function reset_state() {
+		state.posting_date = frappe.datetime.get_today();
+		state.customer_group = null;
+		state.item_code = null;
+		state.set_warehouse = frappe.defaults.get_default("warehouse") || null;
+		state.mode_of_payment = null;
+		state.rows = [];
+		// reset controls
+		controls.posting_date && controls.posting_date.set_value(state.posting_date);
+		controls.customer_group && controls.customer_group.set_value("");
+		controls.item_code && controls.item_code.set_value("");
+		controls.set_warehouse && controls.set_warehouse.set_value(state.set_warehouse || "");
+		controls.mode_of_payment && controls.mode_of_payment.set_value("");
+	}
+
+	function clear_all() {
+		reset_state();
+		$body.empty();
+		add_row();
+		recompute_sums();
+	}
+
 	// Submit
 	async function submit_all() {
-		render_mark_errors();
 		try { validate_all(); } catch (e) { return; }
 		try {
 			$btn_submit.prop('disabled', true);
@@ -598,7 +433,8 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 					item_code: state.item_code,
 					set_warehouse: state.set_warehouse,
 					mode_of_payment: state.mode_of_payment || null,
-					rows: state.rows.map(x => ({ customer: x.customer, qty: flt(x.qty) || 0, rate: flt(x.rate) || 0, paid_amount: flt(x.paid_amount) || 0 }))
+					// backend handles pricing
+					rows: state.rows.map(x => ({ customer: x.customer, qty: flt(x.qty) || 0, paid_amount: flt(x.paid_amount) || 0 }))
 				}
 			});
 			const out = r.message || {};
@@ -635,8 +471,6 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 		open_modal();
 	}
 
-	function clear_all() { state.rows = []; render_rows(); $status.text('جاهز'); }
-
 	// Balances
 	async function fetch_and_set_balance(row, $row) {
 		try {
@@ -663,7 +497,7 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 			});
 			if (replace_rows) state.rows = [];
 			if (!customers || !customers.length) { render_rows(); frappe.show_alert({ message:'مافيش عملاء نشطين في المجموعة دي', indicator:'orange' }); return; }
-			customers.forEach(c => state.rows.push({ id:(row_auto_id++), customer:c.name, qty:1, rate:0, paid_amount:0, balance:null }));
+			customers.forEach(c => state.rows.push({ id:(row_auto_id++), customer:c.name, qty:1, paid_amount:0, balance:null }));
 			render_rows();
 			const balances = await fetch_balances_batch(customers.map(c => c.name));
 			state.rows.forEach(r => { if (r.customer && balances[r.customer] != null) r.balance = flt(balances[r.customer]); });
@@ -698,13 +532,13 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 		const esc = (s) => (s || '').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 		const css = `
 			*{box-sizing:border-box}
-			body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0f172a;margin:24px}
-			h1{font-size:20px;margin:0 0 8px 0}
-			.meta{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px}
-			.meta .kv{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:12px}
+			body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111827;margin:24px}
+			h1{font-size:18px;margin:0 0 8px 0}
+			.meta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+			.meta .kv{background:#fafafa;border:1px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-size:12px}
 			table{width:100%;border-collapse:collapse;table-layout:fixed}
-			th,td{border:1px solid #e2e8f0;padding:8px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
-			th{background:#f8fafc;text-transform:uppercase;letter-spacing:.3px;font-size:11px}
+			th,td{border:1px solid #e5e7eb;padding:6px 8px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+			th{background:#fafafa}
 			td.num{text-align:right}
 			col.idx{width:34px}
 			col.cust{width:46%}
@@ -718,10 +552,10 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 			'<tr>'
 				+ '<td>'+(i+1)+'</td>'
 				+ '<td>'+esc(c.name)+'</td>'
-				+ '<td></td>'      // كمية فاضي
-				+ '<td></td>'      // مدفوع فاضي
-				+ '<td class="num">'+esc(c.balance || '')+'</td>' // رصيد قديم
-				+ '<td></td>'      // ملاحظة فاضي
+				+ '<td></td>'
+				+ '<td></td>'
+				+ '<td class="num">'+esc(c.balance || '')+'</td>'
+				+ '<td></td>'
 			+ '</tr>'
 		).join('');
 
@@ -731,13 +565,14 @@ frappe.pages['fast-sales-invoice'].on_page_load = function (wrapper) {
 			+ '<table><colgroup><col class="idx"><col class="cust"><col class="qty"><col class="paid"><col class="old"><col class="note"></colgroup>'
 			+ '<thead><tr><th>#</th><th>العميل</th><th>الكمية</th><th>المدفوع</th><th>الرصيد القديم</th><th>ملاحظة</th></tr></thead>'
 			+ '<tbody>'+rows_html+'</tbody></table>'
-			+ '<div class="no-print" style="margin-top:12px;"><button onclick="window.print()">طباعة</button></div>'
+			+ '<div class="no-print" style="margin-top:10px;"><button onclick="window.print()">طباعة</button></div>'
 			+ '</body></html>';
 		win.document.open(); win.document.write(html); win.document.close();
 	}
 
 	// Events
 	$btn_add.on('click', () => add_row());
+	$btn_clear.on('click', () => clear_all());
 	$btn_submit.on('click', submit_all);
 	$modal.close.on('click', () => { close_modal(); clear_all(); });
 	$modal.ok.on('click', () => { close_modal(); clear_all(); });
