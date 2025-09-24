@@ -29,44 +29,83 @@ def handle_invoice_cancel_or_delete(doc, method):
 
 def validate_supplier(doc, method):
     """
-    Recalculate amounts for all unpaid Milk Entries Logs related to this supplier.
+    - If supplier is custom_milk_supplier: ensure custom_sort is unique within
+      (custom_villages, custom_driver_in_charge). If there's a conflict, throw an error
+      and include the next available number as a suggestion (do not set it automatically).
+    - Recalculate amounts for all unpaid Milk Entries Log records for this supplier.
     Triggered on validation of the Supplier doctype.
     """
     try:
-        # Fetch unpaid milk entry logs for this supplier
+        # ---------------------------
+        # Uniqueness validation
+        # ---------------------------
+        if getattr(doc, "custom_milk_supplier", 0):
+            villages = getattr(doc, "custom_villages", None)
+            driver = getattr(doc, "custom_driver_in_charge", None)
+            current_sort = getattr(doc, "custom_sort", None)
+
+            # Only validate when a sort number is provided
+            if current_sort not in (None, "", 0):
+                # Get all used sort numbers in the same (village, driver)
+                peers = frappe.get_all(
+                    "Supplier",
+                    filters={
+                        "name": ["!=", doc.name],
+                        "custom_milk_supplier": 1,
+                        "custom_villages": villages or "",
+                        "custom_driver_in_charge": driver or "",
+                    },
+                    fields=["custom_sort"]
+                )
+                used_sorts = {
+                    r.get("custom_sort")
+                    for r in peers
+                    if r.get("custom_sort") not in (None, "", 0)
+                }
+
+                if current_sort in used_sorts:
+                    # Compute next available number (starting at current_sort)
+                    n = int(current_sort)
+                    while n in used_sorts:
+                        n += 1
+                    suggested = n
+
+                    frappe.throw(
+                        f"رقم الترتيب {current_sort} مستخدم قبل كده لنفس القرية ({villages}) ونفس السواق ({driver}). "
+                        f"من فضلك اختار رقم ترتيب مختلف. الرقم المتاح المقترح: {suggested}.",
+                        title="تعارض في رقم الترتيب"
+                    )
+
+        # -----------------------------------------
+        # Recalculate unpaid Milk Entries Log rates
+        # -----------------------------------------
         logs = frappe.get_all(
             "Milk Entries Log",
             filters={"supplier": doc.name, "paid": 0},
             fields=["name", "milk_type", "quantity", "pont"]
         )
 
-        # Get supplier-specific settings
         custom_pont_size_rate = doc.custom_pont_size_rate or 0
 
-        # Process each Milk Entries Log
         for log in logs:
-            # Determine rate based on milk type
-            if log.get("milk_type") == "Cow":
-                rate = doc.custom_cow_price if doc.custom_cow else 0
-            elif log.get("milk_type") == "Buffalo":
-                rate = doc.custom_buffalo_price if doc.custom_buffalo else 0
+            milk_type = log.get("milk_type")
+            if milk_type == "Cow":
+                rate = doc.custom_cow_price if getattr(doc, "custom_cow", 0) else 0
+            elif milk_type == "Buffalo":
+                rate = doc.custom_buffalo_price if getattr(doc, "custom_buffalo", 0) else 0
             else:
                 rate = 0
 
-            # Calculate the amount
             quantity = log.get("quantity") or 0
             pont = log.get("pont") or 0
-            if custom_pont_size_rate == 0:
-                amount = rate * quantity
-            else:
-                amount = rate * quantity * pont
 
-            # Update the Milk Entries Log
+            amount = rate * quantity if custom_pont_size_rate == 0 else rate * quantity * pont
+
             frappe.db.set_value("Milk Entries Log", log.get("name"), {
                 "rate": rate,
                 "amount": amount
             })
 
     except Exception as e:
-        frappe.log_error(message=str(e), title="Supplier Validation Error")
-        frappe.throw(f"An error occurred while recalculating Milk Entries Log amounts: {str(e)}")
+        frappe.log_error(message=frappe.get_traceback(), title="Supplier Validation Error")
+        frappe.throw(f"حصل خطأ أثناء التحقق أو إعادة الحساب: {frappe.safe_decode(str(e))}")
