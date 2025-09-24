@@ -20,12 +20,15 @@ def run_previous_month_milk_valuation(commit=True, use_stock_revaluation=True):
     # Aggregate by milk_type within date range
     rows = frappe.db.sql(
         """
-        SELECT milk_type,
-               COALESCE(SUM(quantity), 0)    AS total_qty,
-               COALESCE(SUM(amount), 0)      AS total_amount
+        SELECT
+            milk_type,
+            COALESCE(SUM(quantity), 0) AS total_qty,
+            COALESCE(SUM(amount), 0)   AS total_amount
         FROM `tabMilk Entries Log`
         WHERE date BETWEEN %s AND %s
         GROUP BY milk_type
+        HAVING COALESCE(SUM(quantity), 0) > 0
+        AND COALESCE(SUM(amount), 0) > 0
         """,
         (from_date, to_date),
         as_dict=True,

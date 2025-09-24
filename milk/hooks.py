@@ -16,6 +16,9 @@ doc_events = {
     "Purchase Invoice": {
         "on_cancel": "milk.milk.api.handle_invoice_cancel_or_delete",
         "on_trash": "milk.milk.api.handle_invoice_cancel_or_delete"
+    },
+    "Journal Entry": {
+        "on_cancel": "milk.journal_entry.on_cancel_journal_entry"
     }
 }
 
