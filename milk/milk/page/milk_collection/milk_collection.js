@@ -13,12 +13,10 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
     "جاموس": "Buffalo",
   };
 
-  // Translate milk type from English to Arabic or vice versa
   function translateMilkType(type, toArabic = true) {
     return toArabic ? milkTypeTranslations[type] || type : milkTypeTranslations[type] || type;
   }
 
-  // Helper to get Arabic day names
   function getArabicDayName(dateStr) {
     const daysInArabic = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
     const date = new Date(dateStr);
@@ -28,134 +26,25 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
   // Styles
   const styles = `
     <style>
-      body {
-        margin: 0;
-        padding: 0;
-        background: linear-gradient(to bottom right, #f0f9ff, #ecfdf5);
-        font-family: 'Inter', sans-serif;
-      }
-
-      .filters-section {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        margin-bottom: 20px;
-      }
-
-      .filter-item label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
-        color: #2563eb;
-      }
-
-      .filter-item input, .filter-item select {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
-      }
-
-      .get-suppliers-btn {
-        background: linear-gradient(to right, #2563eb, #1d4ed8);
-        color: white;
-        font-size: 14px;
-        font-weight: bold;
-        padding: 4px 12px;
-        height: 34px;
-        line-height: 1;
-        border-radius: 4px;
-        cursor: pointer;
-        border: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        transition: transform 0.2s ease;
-      }
-
-      .get-suppliers-btn:hover {
-        transform: scale(1.05);
-      }
-
-      .table-section {
-        overflow-x: auto;
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      }
-
-      .table-section table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-
-      .table-section th {
-        background: #2563eb;
-        color: white;
-        padding: 12px;
-        text-align: center;
-        font-weight: bold;
-      }
-
-      .table-section td {
-        padding: 10px;
-        text-align: center;
-        border-bottom: 1px solid #e5e7eb;
-      }
-
-      .table-section tr:hover {
-        background: #f3f4f6;
-      }
-
-      .table-section input[readonly] {
-        background-color: #f3f3f3;
-        cursor: not-allowed;
-      }
-
-      .actions-section {
-        display: flex;
-        justify-content: center;
-        gap: 12px;
-        margin-top: 20px;
-        flex-wrap: wrap;
-      }
-
-      .btn-primary {
-        background: linear-gradient(to right, #2563eb, #1d4ed8);
-        color: white;
-        padding: 12px 16px;
-        font-size: 15px;
-        font-weight: bold;
-        border-radius: 8px;
-        cursor: pointer;
-        border: none;
-        transition: transform 0.2s ease;
-      }
-
-      .btn-primary:disabled {
-        background: #d1d5db;
-        cursor: not-allowed;
-      }
-
-      .btn-secondary {
-        background: #e5e7eb;
-        color: #1f2937;
-        padding: 12px 16px;
-        font-size: 15px;
-        font-weight: bold;
-        border-radius: 8px;
-        cursor: pointer;
-        border: none;
-        transition: background-color 0.2s ease;
-      }
-
-      .btn-secondary:hover {
-        background: #d1d5db;
-      }
+      body { margin: 0; padding: 0; background: linear-gradient(to bottom right, #f0f9ff, #ecfdf5); font-family: 'Inter', sans-serif; }
+      .filters-section { display: flex; flex-wrap: wrap; gap: 20px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; }
+      .filter-item { min-width: 220px; }
+      .filter-item label { display: block; margin-bottom: 5px; font-weight: bold; color: #2563eb; }
+      .filter-item input, .filter-item select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; }
+      .get-suppliers-btn { background: linear-gradient(to right, #2563eb, #1d4ed8); color: #fff; font-size: 14px; font-weight: bold; padding: 4px 12px; height: 34px; line-height: 1; border-radius: 4px; cursor: pointer; border: none; display: inline-flex; align-items: center; justify-content: center; transition: transform 0.2s ease; }
+      .get-suppliers-btn:hover { transform: scale(1.05); }
+      .table-section { overflow-x: auto; background: white; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+      .table-section table { width: 100%; border-collapse: collapse; }
+      .table-section th { background: #2563eb; color: white; padding: 12px; text-align: center; font-weight: bold; }
+      .table-section td { padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; }
+      .table-section tr:hover { background: #f3f4f6; }
+      .table-section input[readonly] { background-color: #f3f3f3; cursor: not-allowed; }
+      .actions-section { display: flex; justify-content: center; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+      .btn-primary { background: linear-gradient(to right, #2563eb, #1d4ed8); color: white; padding: 12px 16px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; border: none; transition: 0.2s ease; }
+      .btn-primary:disabled { background: #d1d5db; cursor: not-allowed; }
+      .btn-secondary { background: #e5e7eb; color: #1f2937; padding: 12px 16px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; border: none; transition: background-color 0.2s ease; }
+      .btn-secondary:hover { background: #d1d5db; }
+      .hidden { display: none !important; }
     </style>
   `;
   $(wrapper).append(styles);
@@ -181,6 +70,19 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
     render_input: true,
   });
 
+  // Use Pont filter (Yes/No, default No)
+  const use_pont = frappe.ui.form.make_control({
+    parent: $('<div class="filter-item"></div>').appendTo(filter_section),
+    df: {
+      fieldname: 'use_pont',
+      label: __('استخدام البنط'),
+      fieldtype: 'Select',
+      options: 'No\nYes',
+      default: 'No'
+    },
+    render_input: true,
+  });
+
   const get_suppliers_button = $('<button class="get-suppliers-btn">' + __('عرض الموردين') + '</button>').appendTo(filter_section);
 
   const table_section = $(`
@@ -192,9 +94,9 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
             <th>${__('المورد')}</th>
             <th>${__('نوع اللبن')}</th>
             <th>${__('كمية الصباح')}</th>
-            <th>${__('بنط الصباح')}</th>
+            <th class="pont-col">${__('بنط الصباح')}</th>
             <th>${__('كمية المساء')}</th>
-            <th>${__('بنط المساء')}</th>
+            <th class="pont-col">${__('بنط المساء')}</th>
           </tr>
         </thead>
         <tbody>
@@ -215,41 +117,23 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
   // Print Draft button
   actions_section.find(".clear-btn").after(`<button class="btn-secondary print-draft-btn">${__('طباعة مسودة')}</button>`);
 
-  // Function to validate pont fields
+  // Toggle pont columns visibility in on-page table
+  function togglePontVisibility() {
+    const show = (use_pont.get_value() || 'No') === 'Yes';
+    const table = table_section.find('table');
+    table.find('th.pont-col, td.pont-col').toggleClass('hidden', !show);
+  }
+
+  // Validation
   function validate_pont_field(pontValue, milkType, isReadonly) {
-    if (isReadonly) {
-      return "readonly"; // Skip validation for readonly fields
-    }
+    if (isReadonly) return "readonly";
     if (pontValue === 0) return "zero";
     if (milkType === "Cow" && (pontValue < 3 || pontValue > 5)) return "invalid_cow";
     if (milkType === "Buffalo" && (pontValue < 6 || pontValue > 9)) return "invalid_buffalo";
     return "valid";
   }
 
-  // Function to validate quantities against averages
-  function validate_quantity_against_average(supplier, morning_quantity, evening_quantity, callback) {
-    frappe.call({
-      method: "milk.milk.utils.get_average_quantity",
-      args: { supplier, days: 10 },
-      callback: function (response) {
-        const average = response.message || { morning: 0, evening: 0 };
-        const morning_min = average.morning - 2;
-        const morning_max = average.morning + 2;
-        const evening_min = average.evening - 2;
-        const evening_max = average.evening + 2;
-        let errors = [];
-        if (morning_quantity < morning_min || morning_quantity > morning_max) {
-          errors.push(`كمية الصباح (${morning_quantity}) خارج النطاق المسموح به (المتوسط: ${average.morning} ± 2).`);
-        }
-        if (evening_quantity < evening_min || evening_quantity > evening_max) {
-          errors.push(`كمية المساء (${evening_quantity}) خارج النطاق المسموح به (المتوسط: ${average.evening} ± 2).`);
-        }
-        callback({ valid: errors.length === 0, messages: errors });
-      },
-    });
-  }
-
-  // Populate table with data
+  // Populate table
   function populate_table_with_data(data, isSubmitted = false) {
     const tbody = table_section.find("tbody");
     tbody.empty();
@@ -257,7 +141,7 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
     let rowCount = 1;
     data.forEach((entry) => {
       const isPontEditable = entry.custom_pont_size_rate === 1;
-      const milkTypes = entry.milk_type.split(",").map((type) => translateMilkType(type, true));
+      const milkTypes = (entry.milk_type || '').split(",").map((type) => translateMilkType(type, true));
       milkTypes.forEach((milk_type) => {
         const row = $(`
           <tr>
@@ -265,58 +149,67 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
             <td>${entry.supplier || __('غير معروف')}</td>
             <td>${milk_type}</td>
             <td><input type="number" class="morning-quantity" value="${entry.morning_quantity || 0}" ${isSubmitted ? "readonly" : ""}></td>
-            <td><input type="number" class="morning-pont" value="${entry.morning_pont || 0}" ${!isPontEditable ? "readonly" : ""}></td>
+            <td class="pont-col"><input type="number" class="morning-pont" value="${entry.morning_pont || 0}" ${!isPontEditable ? "readonly" : ""}></td>
             <td><input type="number" class="evening-quantity" value="${entry.evening_quantity || 0}" ${isSubmitted ? "readonly" : ""}></td>
-            <td><input type="number" class="evening-pont" value="${entry.evening_pont || 0}" ${!isPontEditable ? "readonly" : ""}></td>
+            <td class="pont-col"><input type="number" class="evening-pont" value="${entry.evening_pont || 0}" ${!isPontEditable ? "readonly" : ""}></td>
           </tr>
         `);
         tbody.append(row);
       });
     });
+
+    togglePontVisibility();
   }
 
-  // Save or submit data
+  // Save or submit
   async function save_or_submit(action) {
     const milk_entries = [];
     let validation_issues = [];
     let invalid_rows = false;
-
     const validationPromises = [];
+
+    const usePont = (use_pont.get_value() || 'No') === 'Yes';
 
     table_section.find("tbody tr").each(function (index, row) {
       const $row = $(row);
       const supplier = $row.find("td:nth-child(2)").text().trim();
       const milk_type = translateMilkType($row.find("td:nth-child(3)").text().trim(), false);
       const morning_quantity = parseFloat($row.find(".morning-quantity").val()) || 0;
-      const morning_pont = parseFloat($row.find(".morning-pont").val()) || 0;
       const evening_quantity = parseFloat($row.find(".evening-quantity").val()) || 0;
-      const evening_pont = parseFloat($row.find(".evening-pont").val()) || 0;
 
-      const isMorningPontReadonly = $row.find(".morning-pont").prop("readonly");
-      const isEveningPontReadonly = $row.find(".evening-pont").prop("readonly");
+      let morning_pont = 0;
+      let evening_pont = 0;
 
-      const morningPontValidation = validate_pont_field(morning_pont, milk_type, isMorningPontReadonly);
-      if (morningPontValidation === "invalid_cow") {
-        frappe.msgprint(`خطأ في الصف ${index + 1}: بنط الصباح (بقر) يجب أن يكون بين 3 و 5.`);
-        invalid_rows = true;
-        return false;
-      }
-      if (morningPontValidation === "invalid_buffalo") {
-        frappe.msgprint(`خطأ في الصف ${index + 1}: بنط الصباح (جاموس) يجب أن يكون بين 6 و 9.`);
-        invalid_rows = true;
-        return false;
-      }
+      if (usePont) {
+        morning_pont = parseFloat($row.find(".morning-pont").val()) || 0;
+        evening_pont = parseFloat($row.find(".evening-pont").val()) || 0;
 
-      const eveningPontValidation = validate_pont_field(evening_pont, milk_type, isEveningPontReadonly);
-      if (eveningPontValidation === "invalid_cow") {
-        frappe.msgprint(`خطأ في الصف ${index + 1}: بنط المساء (بقر) يجب أن يكون بين 3 و 5.`);
-        invalid_rows = true;
-        return false;
-      }
-      if (eveningPontValidation === "invalid_buffalo") {
-        frappe.msgprint(`خطأ في الصف ${index + 1}: بنط المساء (جاموس) يجب أن يكون بين 6 و 9.`);
-        invalid_rows = true;
-        return false;
+        const isMorningPontReadonly = $row.find(".morning-pont").prop("readonly");
+        const isEveningPontReadonly = $row.find(".evening-pont").prop("readonly");
+
+        const morningPontValidation = validate_pont_field(morning_pont, milk_type, isMorningPontReadonly);
+        if (morningPontValidation === "invalid_cow") {
+          frappe.msgprint(`خطأ في الصف ${index + 1}: بنط الصباح (بقر) يجب أن يكون بين 3 و 5.`);
+          invalid_rows = true;
+          return false;
+        }
+        if (morningPontValidation === "invalid_buffalo") {
+          frappe.msgprint(`خطأ في الصف ${index + 1}: بنط الصباح (جاموس) يجب أن يكون بين 6 و 9.`);
+          invalid_rows = true;
+          return false;
+        }
+
+        const eveningPontValidation = validate_pont_field(evening_pont, milk_type, isEveningPontReadonly);
+        if (eveningPontValidation === "invalid_cow") {
+          frappe.msgprint(`خطأ في الصف ${index + 1}: بنط المساء (بقر) يجب أن يكون بين 3 و 5.`);
+          invalid_rows = true;
+          return false;
+        }
+        if (eveningPontValidation === "invalid_buffalo") {
+          frappe.msgprint(`خطأ في الصف ${index + 1}: بنط المساء (جاموس) يجب أن يكون بين 6 و 9.`);
+          invalid_rows = true;
+          return false;
+        }
       }
 
       const promise = new Promise((resolve) => {
@@ -333,7 +226,7 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
             let errors = [];
             if (morning_quantity > 0) {
               if (morning_quantity < morning_min || morning_quantity > morning_max) {
-                errors.push(`كمية الصباح (${morning_quantity}) خارج النطاق المسموح به (المتوسط: ${average.morning} ± 2).`);
+                errors.push(`كمية الصباح (${morning_quantity}) خارج النطاق (المتوسط: ${average.morning} ± 2).`);
               }
             } else if (morning_quantity === 0) {
               errors.push(`كمية الصباح = 0`);
@@ -341,24 +234,15 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
 
             if (evening_quantity > 0) {
               if (evening_quantity < evening_min || evening_quantity > evening_max) {
-                errors.push(`كمية المساء (${evening_quantity}) خارج النطاق المسموح به (المتوسط: ${average.evening} ± 2).`);
+                errors.push(`كمية المساء (${evening_quantity}) خارج النطاق (المتوسط: ${average.evening} ± 2).`);
               }
             } else if (evening_quantity === 0) {
               errors.push(`كمية المساء = 0`);
             }
 
-            if (errors.length > 0) {
-              validation_issues.push(`صف ${index + 1}: ${errors.join(" | ")}`);
-            }
+            if (errors.length > 0) validation_issues.push(`صف ${index + 1}: ${errors.join(" | ")}`);
 
-            milk_entries.push({
-              supplier,
-              milk_type,
-              morning_quantity,
-              morning_pont,
-              evening_quantity,
-              evening_pont,
-            });
+            milk_entries.push({ supplier, milk_type, morning_quantity, morning_pont, evening_quantity, evening_pont });
             resolve();
           },
         });
@@ -386,7 +270,6 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
     }
   }
 
-  // Proceed with saving or submitting data
   function proceed_with_save_or_submit(action, milk_entries) {
     frappe.call({
       method: action === "save" ? "milk.milk.utils.save_milk_collection" : "milk.milk.utils.submit_milk_collection",
@@ -403,7 +286,6 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
     });
   }
 
-  // Clear table and filters
   function clear_table_and_filters() {
     table_section.find("tbody").html(`<tr><td colspan="7">لا توجد بيانات</td></tr>`);
     frappe.msgprint("تم مسح البيانات.");
@@ -439,26 +321,73 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
     });
   });
 
-  // Attach event handlers for buttons
+  // Button handlers
   actions_section.find(".save-btn").click(() => save_or_submit("save"));
   actions_section.find(".submit-btn").click(() => save_or_submit("submit"));
   actions_section.find(".clear-btn").click(clear_table_and_filters);
 
-  // Print Draft: grouped by driver (page), inside page grouped by village (no page breaks), 2 suppliers per line
+  // UTIL: parse Supplier.custom_villages to simple list of village names
+  function parseVillagesList(cv) {
+    const out = [];
+    if (!cv) return out;
+
+    if (Array.isArray(cv)) {
+      cv.forEach(item => {
+        if (!item) return;
+        if (typeof item === 'string') {
+          const v = item.trim();
+          if (v) out.push(v);
+        } else if (typeof item === 'object') {
+          const v = (item.village || item.village_name || item.value || item.name || '').toString().trim();
+          if (v) out.push(v);
+        }
+      });
+      return out;
+    }
+
+    if (typeof cv === 'string') {
+      const s = cv.trim();
+      if (!s) return out;
+      try {
+        const arr = JSON.parse(s);
+        if (Array.isArray(arr)) {
+          arr.forEach(item => {
+            if (!item) return;
+            if (typeof item === 'string') {
+              const v = item.trim();
+              if (v) out.push(v);
+            } else if (typeof item === 'object') {
+              const v = (item.village || item.village_name || item.value || item.name || '').toString().trim();
+              if (v) out.push(v);
+            }
+          });
+          return out;
+        }
+      } catch (e) {
+        s.split(',').map(x => x.trim()).filter(Boolean).forEach(v => out.push(v));
+        return out;
+      }
+      s.split(',').map(x => x.trim()).filter(Boolean).forEach(v => out.push(v));
+      return out;
+    }
+
+    return out;
+  }
+
+  // PRINT DRAFT: two-column layout (right continues after left), group by village, supplier-level custom_sort, respect Use Pont
   actions_section.find(".print-draft-btn").on("click", async () => {
     try {
       frappe.dom.freeze(__('جاري تجهيز المسودة للطباعة...'));
 
-      // We still read date for header
       const selectedDate = collection_date.get_value();
       const today = selectedDate || (frappe.datetime ? frappe.datetime.get_today() : new Date().toISOString().slice(0,10));
       const dayName = getArabicDayName(today);
 
-      // Optional filter by driver/village if user set them
       const selectedDriver = driver.get_value();
       const selectedVillage = village.get_value();
+      const showPont = (use_pont.get_value() || 'No') === 'Yes';
 
-      // Fetch suppliers with custom_milk_supplier == 1 and enabled
+      // Fetch suppliers including supplier-level custom_sort and custom_villages
       const suppliers = await frappe.db.get_list('Supplier', {
         fields: [
           'name',
@@ -468,12 +397,10 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
           'custom_driver_in_charge',
           'custom_villages',
           'custom_buffalo',
-          'custom_cow'
+          'custom_cow',
+          'custom_sort'
         ],
-        filters: {
-          disabled: 0,
-          custom_milk_supplier: 1
-        },
+        filters: { disabled: 0, custom_milk_supplier: 1 },
         limit: 5000
       });
 
@@ -482,30 +409,35 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
         return;
       }
 
-      // Build rows per milk type and village; apply optional UI filters
+      // Build rows
       const rows = [];
       suppliers.forEach(sup => {
-        const villages = Array.isArray(sup.custom_villages)
-          ? sup.custom_villages
-          : (typeof sup.custom_villages === 'string' && sup.custom_villages
-              ? sup.custom_villages.split(',').map(v => v.trim()).filter(Boolean)
-              : []);
-
-        const driver_name = sup.custom_driver_in_charge || __('غير محدد');
-        const sup_name = sup.supplier_name || sup.name;
-
+        const driver_name = (sup.custom_driver_in_charge || '').toString().trim() || __('غير محدد');
         if (selectedDriver && driver_name !== selectedDriver) return;
 
-        const villagesFiltered = selectedVillage ? villages.filter(v => v === selectedVillage) : villages;
+        const villages = parseVillagesList(sup.custom_villages);
+        if (!villages.length) return;
 
-        const pushRow = (mt) => {
-          villagesFiltered.forEach(v => {
-            rows.push({ driver: driver_name, village: v || __('غير محدد'), supplier: sup_name, milk_type: mt });
+        const villagesToUse = selectedVillage ? villages.filter(v => v === selectedVillage) : villages;
+        if (!villagesToUse.length) return;
+
+        const sup_name = sup.supplier_name || sup.name;
+        const sort_key = Number.isFinite(Number(sup.custom_sort)) ? Number(sup.custom_sort) : 999999;
+
+        const add = (label) => {
+          villagesToUse.forEach(vname => {
+            rows.push({
+              driver: driver_name,
+              village: vname,
+              supplier: sup_name,
+              milk_type: label,
+              sort_key
+            });
           });
         };
 
-        if (Number(sup.custom_buffalo) === 1) pushRow('جاموسي');
-        if (Number(sup.custom_cow) === 1) pushRow('بقري');
+        if (Number(sup.custom_cow) === 1) add('بقري');
+        if (Number(sup.custom_buffalo) === 1) add('جاموسي');
       });
 
       if (!rows.length) {
@@ -513,15 +445,16 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
         return;
       }
 
-      // Sort: by driver, then village, then supplier, then milk type
+      // Global sort: driver -> village -> custom_sort -> supplier -> milk_type
       rows.sort((a, b) => {
         if (a.driver !== b.driver) return a.driver.localeCompare(b.driver, 'ar');
         if (a.village !== b.village) return a.village.localeCompare(b.village, 'ar');
+        if (a.sort_key !== b.sort_key) return a.sort_key - b.sort_key;
         if (a.supplier !== b.supplier) return a.supplier.localeCompare(b.supplier, 'ar');
         return a.milk_type.localeCompare(b.milk_type, 'ar');
       });
 
-      // Build printable HTML (no filter chips; only header and villages titles)
+      // HTML with two columns per row
       let html = `
 <!doctype html>
 <html lang="ar" dir="rtl">
@@ -531,17 +464,24 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
 <style>
   :root{ --border:#d9dee7; --muted:#6b7280; --text:#0f172a; }
   html,body{ margin:0; padding:0; font-family:"Tajawal","Cairo",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans Arabic","Noto Sans",sans-serif; color:var(--text) }
-  .page{ padding:16px 18px; page-break-after:always }
+  .page{ padding:12mm 10mm; page-break-after:always }
   .page:last-child{ page-break-after:auto }
   .hdr{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:8px }
   .hdr .title{ font-size:18px; font-weight:800 }
   .hdr .meta{ font-size:12px; color:var(--muted) }
   .village-title{ margin:12px 0 6px; font-weight:800; border-bottom:2px solid var(--border); padding-bottom:4px; }
-  table{ width:100%; border-collapse:collapse; }
-  th, td{ border:1px solid var(--border); padding:8px; font-size:14px; text-align:center; }
+  table{ width:100%; border-collapse:collapse; margin-bottom:8px; table-layout: fixed; }
+  th, td{ border:1px solid var(--border); padding:6px; font-size:13px; text-align:center; }
   th{ background:#f8fafc; color:#374151; font-weight:800 }
   td{ background:#fff }
-  .subhdr{ background:#eef2ff; font-weight:700; }
+  .pont-col { display: ${showPont ? '' : 'none'}; }
+  /* Set column widths for better balance */
+  th, td { word-wrap: break-word; }
+  .col-idx { width: 5%; }
+  .col-supplier { width: 25%; }
+  .col-mtype { width: 10%; }
+  .col-qty { width: 15%; }
+  .col-pont { width: 10%; }
   @media print{
     .page{ padding:10mm }
     th,td{ padding:4mm 3mm; font-size:12px }
@@ -551,13 +491,11 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
 <body>
 `;
 
-      // Render a page for one driver; inside, render sections per village (no page breaks)
       const renderDriverPage = (driver_name, rowsForDriver) => {
         // Group by village
         const byVillage = {};
         rowsForDriver.forEach(r => {
-          if (!byVillage[r.village]) byVillage[r.village] = [];
-          byVillage[r.village].push(r);
+          (byVillage[r.village] = byVillage[r.village] || []).push(r);
         });
 
         html += `
@@ -568,54 +506,61 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
   </div>
 `;
 
-        // For each village group: title + table
-        Object.keys(byVillage).forEach(villageName => {
+        const villageNames = Object.keys(byVillage).sort((a, b) => a.localeCompare(b, 'ar'));
+
+        villageNames.forEach(villageName => {
           const group = byVillage[villageName];
 
-          // Pair into two columns per line
-          const lines = [];
-          for (let i = 0; i < group.length; i += 2) {
-            const a = group[i];
-            const b = group[i + 1] || null;
-            lines.push({ a, b });
-          }
+          // Sort inside village: custom_sort -> supplier -> milk_type
+          group.sort((a, b) => {
+            if (a.sort_key !== b.sort_key) return a.sort_key - b.sort_key;
+            if (a.supplier !== b.supplier) return a.supplier.localeCompare(b.supplier, 'ar');
+            return a.milk_type.localeCompare(b.milk_type, 'ar');
+          });
 
-          const rowsHtml = lines.map((pair, idx) => {
-            const a = pair.a, b = pair.b;
-            return `
+          // Two columns with continuous indices
+          const N = group.length;
+          const half = Math.ceil(N / 2);
+          const left = group.slice(0, half);
+          const right = group.slice(half);
+          const maxRows = Math.max(left.length, right.length);
+
+          let rowsHtml = '';
+          for (let i = 0; i < maxRows; i++) {
+            const a = left[i] || null;
+            const b = right[i] || null;
+            const aIdx = a ? (i + 1) : '';
+            const bIdx = b ? (half + i + 1) : '';
+            rowsHtml += `
             <tr>
-              <td>${idx + 1}</td>
-              <td>${a.supplier}</td>
-              <td>${a.milk_type}</td>
-              <td></td>
-              <td></td>
-              <td>${b ? (idx + 1) : ''}</td>
-              <td>${b ? b.supplier : ''}</td>
-              <td>${b ? b.milk_type : ''}</td>
-              <td></td>
-              <td></td>
+              <td class="col-idx">${aIdx}</td>
+              <td class="col-supplier">${a ? a.supplier : ''}</td>
+              <td class="col-mtype">${a ? a.milk_type : ''}</td>
+              <td class="col-qty"></td>
+              <td class="col-pont pont-col"></td>
+              <td class="col-idx">${bIdx}</td>
+              <td class="col-supplier">${b ? b.supplier : ''}</td>
+              <td class="col-mtype">${b ? b.milk_type : ''}</td>
+              <td class="col-qty"></td>
+              <td class="col-pont pont-col"></td>
             </tr>`;
-          }).join('');
+          }
 
           html += `
   <div class="village-title">${__('القرية')}: ${villageName || __('غير محدد')}</div>
   <table>
     <thead>
-      <tr class="subhdr">
-        <th colspan="5">${__('')}</th>
-        <th colspan="5">${__('')}</th>
-      </tr>
       <tr>
-        <th>#</th>
-        <th>${__('المورد')}</th>
-        <th>${__('نوع اللبن')}</th>
-        <th>${__('كمية الصباح')}</th>
-        <th>${__('كمية المساء')}</th>
-        <th>#</th>
-        <th>${__('المورد')}</th>
-        <th>${__('نوع اللبن')}</th>
-        <th>${__('كمية الصباح')}</th>
-        <th>${__('كمية المساء')}</th>
+        <th class="col-idx">#</th>
+        <th class="col-supplier">${__('المورد')}</th>
+        <th class="col-mtype">${__('نوع اللبن')}</th>
+        <th class="col-qty">${__('كمية الصباح')}</th>
+        <th class="col-pont pont-col">${__('بنط الصباح')}</th>
+        <th class="col-idx">#</th>
+        <th class="col-supplier">${__('المورد')}</th>
+        <th class="col-mtype">${__('نوع اللبن')}</th>
+        <th class="col-qty">${__('كمية الصباح')}</th>
+        <th class="col-pont pont-col">${__('بنط الصباح')}</th>
       </tr>
     </thead>
     <tbody>
@@ -630,10 +575,9 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
 `;
       };
 
-      // Group rows by driver (page break on driver change)
+      // Group rows by driver for page breaks
       let currentDriver = null;
       let buffer = [];
-
       const flushDriver = () => {
         if (!buffer.length) return;
         renderDriverPage(currentDriver, buffer);
@@ -642,8 +586,7 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
 
       rows.forEach(r => {
         if (currentDriver === null) currentDriver = r.driver;
-        const changed = r.driver !== currentDriver;
-        if (changed) {
+        if (r.driver !== currentDriver) {
           flushDriver();
           currentDriver = r.driver;
         }
@@ -673,4 +616,8 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
       frappe.dom.unfreeze();
     }
   });
+
+  // React to Use Pont toggle and apply immediately (default No)
+  $(use_pont.$input).on('change', togglePontVisibility);
+  togglePontVisibility();
 };

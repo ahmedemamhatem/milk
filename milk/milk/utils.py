@@ -12,6 +12,67 @@ import frappe
 from frappe.utils import flt
 
 @frappe.whitelist()
+def get_suppliers_with_villages(driver=None, village=None):
+    # Returns suppliers with villages and custom_sort from child table
+    # Assumptions:
+    # - custom_milk_supplier: Check field on Supplier
+    # - custom_driver_in_charge: Link field on Supplier to Driver
+    # - custom_cow, custom_buffalo: Int fields (1/0)
+    # - Child table doctype: "Supplier Village" (example) linked to Supplier via parent
+    #   Fields: parent (Supplier), village (Link to Village), custom_sort (Int)
+    # Adjust child table doctype and fieldnames if yours differ.
+    suppliers = frappe.get_all(
+        "Supplier",
+        filters={"disabled": 0, "custom_milk_supplier": 1},
+        fields=["name", "supplier_name", "custom_driver_in_charge", "custom_cow", "custom_buffalo"],
+        limit=5000
+    )
+
+    # Fetch child rows for all suppliers in one query
+    supplier_names = [s["name"] for s in suppliers] or ["___none___"]
+    # Replace "Supplier Village" and its fields with your actual child doctype/fields
+    child_rows = frappe.get_all(
+        "Supplier Village",
+        filters={"parent": ["in", supplier_names]},
+        fields=["parent", "village", "custom_sort", "idx"],
+        order_by="parent asc, custom_sort asc, idx asc"
+    )
+
+    # Map parent -> villages list
+    by_parent = {}
+    for row in child_rows:
+        if village and row.get("village") != village:
+            continue
+        by_parent.setdefault(row["parent"], []).append({
+            "village": row.get("village"),
+            "custom_sort": row.get("custom_sort") if row.get("custom_sort") is not None else row.get("idx", 999999)
+        })
+
+    result = []
+    for s in suppliers:
+        if driver and (s.get("custom_driver_in_charge") or "") != driver:
+            continue
+
+        villages = by_parent.get(s["name"], [])
+        # If a village filter was provided and no villages matched, skip
+        if village and not villages:
+            continue
+
+        result.append({
+            "supplier": s["name"],
+            "supplier_name": s.get("supplier_name") or s["name"],
+            "driver": s.get("custom_driver_in_charge") or "",
+            "milk_types": {
+                "cow": int(s.get("custom_cow") or 0),
+                "buffalo": int(s.get("custom_buffalo") or 0),
+            },
+            "villages": villages
+        })
+
+    return result
+
+
+@frappe.whitelist()
 def create_invoices_and_pay(selected_date, mode_of_payment, supplier=None, driver=None, village=None, throw_on_paid=False):
     """
     Create purchase invoices, group by supplier, mark them as paid, link logs to the invoice,
