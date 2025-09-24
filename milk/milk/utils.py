@@ -10,6 +10,12 @@ from datetime import datetime, timedelta
 from datetime import datetime, timedelta
 import frappe
 from frappe.utils import flt
+import frappe
+from frappe.utils import getdate, add_days
+import frappe
+from frappe.utils import getdate, add_days, now_datetime
+import random
+import string
 
 @frappe.whitelist()
 def get_suppliers_with_villages(driver=None, village=None):
@@ -72,147 +78,227 @@ def get_suppliers_with_villages(driver=None, village=None):
     return result
 
 
+
 @frappe.whitelist()
-def create_invoices_and_pay(selected_date, mode_of_payment, supplier=None, driver=None, village=None, throw_on_paid=False):
+def _random_ref_no(prefix="MILK"):
+    # 12-char random alphanumeric ref no
+    rand = ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
+    return f"{prefix}-{rand}"
+
+@frappe.whitelist()
+def create_accrual_and_payment_journal_entries(selected_date, mode_of_payment, supplier=None, driver=None, village=None, throw_on_paid=False):
     """
-    Create purchase invoices, group by supplier, mark them as paid, link logs to the invoice,
-    and handle write-offs for discrepancies between paid and grand total amounts.
+    Creates two Journal Entries:
+      1) Accrual JE: Dr Stock Adjustment (single line), Cr Payable (per supplier, with party info).
+      2) Payment JE: Dr Payable (per supplier, with party info), Cr Mode of Payment account (single line).
+         Includes reference_no and reference_date for Bank Entry requirement.
+
+    Updates Milk Entries Log:
+      - invoice_entry = accrual JE name
+      - payment_entry = payment JE name
+      - paid = 1
     """
+
     if not selected_date:
         frappe.throw("Please provide a valid start date.")
 
     try:
-        # Retrieve Milk Setting for item codes and company
+        posting_date = getdate(selected_date)
+
+        # Settings
         milk_setting = frappe.get_single("Milk Setting")
         if not milk_setting:
             frappe.throw("Milk Setting document is missing. Please configure it first.")
+        company = milk_setting.company
 
-        # Fetch the Mode of Payment Account for the given company
-        mode_of_payment_account = None
-        mode_of_payment_data = frappe.get_doc("Mode of Payment", mode_of_payment)
-        for account in mode_of_payment_data.accounts:
-            if account.company == milk_setting.company:
-                mode_of_payment_account = account.default_account
+        # Company accounts
+        company_doc = frappe.get_doc("Company", company)
+
+        # Stock Adjustment Account
+        stock_adjustment_account = getattr(company_doc, "stock_adjustment_account", None)
+        if not stock_adjustment_account:
+            frappe.throw(f"Stock Adjustment Account is not set in Company '{company}'.")
+
+        # Default Payable Account
+        payable_account = (
+            getattr(company_doc, "default_payable_account", None)
+            or getattr(company_doc, "creditors_account", None)
+            or getattr(company_doc, "accounts_payable", None)
+        )
+        if not payable_account:
+            frappe.throw(f"Default Payable Account is not set in Company '{company}'.")
+
+        # Mode of Payment account
+        mop_account = None
+        mop_doc = frappe.get_doc("Mode of Payment", mode_of_payment)
+        for acc in mop_doc.accounts:
+            if acc.company == company:
+                mop_account = acc.default_account
                 break
+        if not mop_account:
+            frappe.throw(f"Default Account is not set for Mode of Payment '{mode_of_payment}' in company '{company}'.")
 
-        if not mode_of_payment_account:
-            frappe.throw(f"Default Account is not set for Mode of Payment '{mode_of_payment}' in company '{milk_setting.company}'.")
-
-        # Fetch grouped supplier data using the integrated function
-        report_data = get_grouped_supplier_report(selected_date, supplier, driver, village)
-
+        # Get grouped supplier report from your existing function
+        report_data = get_grouped_supplier_report_pay(selected_date, supplier, driver, village)
         if report_data["status"] != "success":
             return {"status": "error", "message": report_data["message"]}
 
         data = report_data["data"]
 
-        invoices = []
-        updated_logs = []
+        # Aggregate totals and collect unpaid logs by supplier within date window
+        supplier_totals = {}     # {supplier: amount}
+        logs_by_supplier = {}    # {supplier: [log_names]}
+
+        start_date = getdate(selected_date)
+        end_date = add_days(start_date, 6)
 
         for driver_name, driver_data in data.items():
-            for village_name, village_data in driver_data["villages"].items():
-                for supplier_name, supplier_data in village_data["suppliers"].items():
-                    total_qty = 0
-                    total_amount = 0
-                    items = []
-                    logs_to_update = []
+            for village_name, village_data in driver_data.get("villages", {}).items():
+                for supplier_name, supplier_data in village_data.get("suppliers", {}).items():
+                    supplier_total = 0.0
+                    supplier_logs = []
 
-                    # Prepare items for the invoice by grouping milk types for the supplier
-                    for milk_type, milk_data in supplier_data["milk_types"].items():
-                        qty = milk_data["qty"]
-                        amount = milk_data["amount"]
-
-                        # Skip milk types with zero quantity
-                        if qty <= 0:
+                    for milk_type, milk_data in supplier_data.get("milk_types", {}).items():
+                        qty = float(milk_data.get("qty") or 0)
+                        amount = float(milk_data.get("amount") or 0)
+                        if qty <= 0 or amount == 0:
                             continue
 
-                        # Determine item code dynamically from Milk Setting
-                        item_code = None
-                        if milk_type == "Cow":
-                            item_code = milk_setting.cow_item
-                        elif milk_type == "Buffalo":
-                            item_code = milk_setting.buffalo_item
-
-                        if not item_code:
-                            frappe.throw(f"Item Code for milk type '{milk_type}' is not configured in Milk Setting.")
-
-                        # Fetch logs to update
                         logs = frappe.get_all(
                             "Milk Entries Log",
                             filters={
                                 "supplier": supplier_name,
                                 "milk_type": milk_type,
-                                "paid": 0,  # Only unpaid logs
-                                "date": ["between", [selected_date, (datetime.strptime(selected_date, "%Y-%m-%d") + timedelta(days=6)).date()]],
+                                "paid": 0,
+                                "invoice_entry": ["is", "not set"],
+                                "payment_entry": ["is", "not set"],
+                                "date": ["between", [start_date, end_date]],
                             },
-                            fields=["name", "paid"]
+                            fields=["name", "paid", "invoice_entry", "payment_entry"]
                         )
 
                         for log in logs:
+                            # Skip logs already linked (optional safeguard)
+                            if log.get("invoice_entry") or log.get("payment_entry") or log.get("paid") ==1:
+                                if throw_on_paid:
+                                    frappe.throw(f"Log {log['name']} is already linked to a journal entry.")
+                                continue
+
                             if log["paid"]:
                                 if throw_on_paid:
                                     frappe.throw(f"Log {log['name']} is already paid.")
                                 else:
                                     continue
+                            supplier_logs.append(log["name"])
 
-                            logs_to_update.append(log["name"])
+                        supplier_total += amount
 
-                        # Add items to the invoice
-                        items.append({
-                            "item_code": item_code,
-                            "qty": qty,
-                            "rate": amount / qty if qty > 0 else 0,
-                        })
+                    if supplier_total > 0:
+                        supplier_totals[supplier_name] = round(supplier_totals.get(supplier_name, 0.0) + supplier_total, 2)
+                        if supplier_logs:
+                            logs_by_supplier.setdefault(supplier_name, []).extend(supplier_logs)
 
-                        # Update totals
-                        total_qty += qty
-                        total_amount += amount
+        if not supplier_totals:
+            return {"status": "error", "message": "No amounts to book. No journal entries created."}
 
-                    # Skip if no items
-                    if not items:
-                        continue
+        grand_total = round(sum(supplier_totals.values()), 2)
 
-                    # Calculate write-off amount
-                    grand_total = total_amount
-                    write_off_amount = round(grand_total - total_amount, 2)
+        # JE1: Accrual (Dr Stock Adjustment, Cr Payable per supplier)
+        je1_accounts = []
 
-                    # Create a single purchase invoice for the supplier
-                    invoice = frappe.get_doc({
-                        "doctype": "Purchase Invoice",
-                        "supplier": supplier_name,
-                        "items": items,
-                        "mode_of_payment": mode_of_payment,
-                        "paid_amount": total_amount,
-                        "is_paid": 1,  # Mark as paid
-                        "cash_bank_account": mode_of_payment_account,  # Set the cash/bank account
-                        "write_off_amount": write_off_amount,  # Record the write-off amount
-                    })
+        # Debit: single line
+        je1_accounts.append({
+            "account": stock_adjustment_account,
+            "debit_in_account_currency": grand_total,
+            "credit_in_account_currency": 0,
+        })
 
-                    invoice.insert()
-                    invoice.submit()
-                    invoices.append(invoice.name)
+        # Credit: per supplier lines with party
+        for sup, amt in supplier_totals.items():
+            if amt <= 0:
+                continue
+            je1_accounts.append({
+                "account": payable_account,
+                "debit_in_account_currency": 0,
+                "credit_in_account_currency": amt,
+                "party_type": "Supplier",
+                "party": sup,
+            })
 
-                    # Update Milk Entries Logs to link the invoice and mark as paid
-                    for log_name in logs_to_update:
-                        frappe.db.set_value("Milk Entries Log", log_name, {
-                            "purchase_invoice": invoice.name,
-                            "paid": 1
-                        })
-                        updated_logs.append(log_name)
+        je1 = frappe.get_doc({
+            "doctype": "Journal Entry",
+            "voucher_type": "Journal Entry",
+            "company": company,
+            "posting_date": posting_date,
+            "accounts": je1_accounts,
+            "user_remark": f"Milk accrual for {start_date} to {end_date}",
+        })
+        je1.insert()
+        je1.submit()
 
-        if not invoices:
-            return {"status": "error", "message": "No invoices were created."}
+        # JE2: Payment (Dr Payable per supplier, Cr Mode of Payment), with ref no/date
+        je2_accounts = []
 
-        frappe.db.commit()  # Commit all changes
+        # Debit: per supplier lines with party
+        for sup, amt in supplier_totals.items():
+            if amt <= 0:
+                continue
+            je2_accounts.append({
+                "account": payable_account,
+                "debit_in_account_currency": amt,
+                "credit_in_account_currency": 0,
+                "party_type": "Supplier",
+                "party": sup,
+            })
+
+        # Credit: single line to MOP account with reference fields
+        reference_no = _random_ref_no()
+        je2_accounts.append({
+            "account": mop_account,
+            "debit_in_account_currency": 0,
+            "credit_in_account_currency": grand_total,
+            "reference_no": reference_no,
+            "reference_date": posting_date,
+        })
+
+        je2 = frappe.get_doc({
+            "doctype": "Journal Entry",
+            "voucher_type": "Bank Entry",  # or "Cash Entry"
+            "company": company,
+            "posting_date": posting_date,
+            "accounts": je2_accounts,
+            "cheque_no": reference_no,        # optional, aligns with bank entries UI
+            "cheque_date": posting_date,      # optional
+            "user_remark": f"Milk payout for {start_date} to {end_date} via {mode_of_payment}",
+        })
+        je2.insert()
+        je2.submit()
+
+        # Update logs with JE links and mark paid
+        updated_logs = []
+        for sup, log_names in logs_by_supplier.items():
+            for log_name in log_names:
+                frappe.db.set_value("Milk Entries Log", log_name, {
+                    "invoice_entry": je1.name,
+                    "payment_entry": je2.name,
+                    "paid": 1
+                })
+                updated_logs.append(log_name)
+
+        frappe.db.commit()
+
         return {
             "status": "success",
-            "message": "Invoices created and logs updated successfully.",
-            "invoices": invoices,
+            "message": "Created accrual and payment Journal Entries with reference info; logs updated.",
+            "journal_entry_accrual": je1.name,
+            "journal_entry_payment": je2.name,
+            "reference_no": reference_no,
+            "suppliers": [{"supplier": s, "amount": a} for s, a in supplier_totals.items()],
             "updated_logs": updated_logs,
         }
 
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "Error in create_invoices_and_pay")
+        frappe.log_error(frappe.get_traceback(), "Error in create_accrual_and_payment_journal_entries")
         return {"status": "error", "message": str(e)}
     
     
@@ -308,6 +394,98 @@ def get_grouped_supplier_report(selected_date, supplier=None, driver=None, villa
         # Filters for the query
         filters = {
             "date": ["between", [start_date.date(), end_date.date()]],
+            
+        }
+        if supplier:
+            filters["supplier"] = supplier
+        if driver:
+            filters["driver"] = driver
+        if village:
+            filters["village"] = village
+
+        # Fetch records from Milk Entries Log
+        records = frappe.get_all(
+            "Milk Entries Log",
+            filters=filters,
+            fields=["date", "supplier", "milk_type", "quantity", "amount", "village"]
+        )
+
+        # Fetch all villages and their drivers
+        village_data = frappe.get_all(
+            "Village",
+            fields=["village_name", "driver_responsible"]
+        )
+        village_driver_map = {v["village_name"]: v["driver_responsible"] for v in village_data}
+
+        # Grouped data structure
+        grouped_data = {}
+
+        for record in records:
+            village_name = record.get("village", "Unknown Village")
+            driver_name = village_driver_map.get(village_name, "Unknown Driver")
+            supplier_name = record.get("supplier")
+            milk_type = record.get("milk_type")
+
+            # Initialize driver group
+            if driver_name not in grouped_data:
+                grouped_data[driver_name] = {"villages": {}, "total_qty": 0, "total_amount": 0}
+
+            # Initialize village group under driver
+            if village_name not in grouped_data[driver_name]["villages"]:
+                grouped_data[driver_name]["villages"][village_name] = {"suppliers": {}, "total_qty": 0, "total_amount": 0}
+
+            # Initialize supplier group under village
+            if supplier_name not in grouped_data[driver_name]["villages"][village_name]["suppliers"]:
+                grouped_data[driver_name]["villages"][village_name]["suppliers"][supplier_name] = {
+                    "milk_types": {}, "total_qty": 0, "total_amount": 0
+                }
+
+            # Initialize milk type under supplier
+            if milk_type not in grouped_data[driver_name]["villages"][village_name]["suppliers"][supplier_name]["milk_types"]:
+                grouped_data[driver_name]["villages"][village_name]["suppliers"][supplier_name]["milk_types"][milk_type] = {
+                    "qty": 0, "amount": 0
+                }
+
+            # Update quantities and amounts
+            milk_data = grouped_data[driver_name]["villages"][village_name]["suppliers"][supplier_name]["milk_types"][milk_type]
+            milk_data["qty"] += record["quantity"]
+            milk_data["amount"] += record["amount"]
+
+            # Update supplier totals
+            supplier_data = grouped_data[driver_name]["villages"][village_name]["suppliers"][supplier_name]
+            supplier_data["total_qty"] += record["quantity"]
+            supplier_data["total_amount"] += record["amount"]
+
+            # Update village totals
+            village_data = grouped_data[driver_name]["villages"][village_name]
+            village_data["total_qty"] += record["quantity"]
+            village_data["total_amount"] += record["amount"]
+
+            # Update driver totals
+            driver_data = grouped_data[driver_name]
+            driver_data["total_qty"] += record["quantity"]
+            driver_data["total_amount"] += record["amount"]
+
+        return {"status": "success", "data": grouped_data}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Grouped Supplier Report Error")
+        return {"status": "error", "message": str(e)}
+    
+@frappe.whitelist()
+def get_grouped_supplier_report_pay(selected_date, supplier=None, driver=None, village=None):
+    try:
+        # Parse start date and generate 7-day range
+        start_date = datetime.strptime(selected_date, "%Y-%m-%d")
+        end_date = start_date + timedelta(days=6)
+
+        # Filters for the query
+        filters = {
+            "date": ["between", [start_date.date(), end_date.date()]],
+            "paid": 0,
+            "invoice_entry": ["is", "not set"],
+            "payment_entry": ["is", "not set"],
+            
         }
         if supplier:
             filters["supplier"] = supplier

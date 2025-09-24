@@ -18,6 +18,12 @@ doc_events = {
         "on_trash": "milk.milk.api.handle_invoice_cancel_or_delete"
     }
 }
+
+scheduler_events = {
+    "daily": [
+        "milk.daily_valuation.run_previous_month_milk_valuation"
+    ]
+}
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
 # 	{

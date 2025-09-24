@@ -20,7 +20,9 @@
   "milk_type",
   "quantity",
   "rate",
-  "amount"
+  "amount",
+  "invoice_entry",
+  "payment_entry"
  ],
  "fields": [
   {
@@ -154,12 +156,26 @@
    "fieldtype": "Data",
    "label": "Purchase Invoice",
    "read_only": 1
+  },
+  {
+   "fieldname": "invoice_entry",
+   "fieldtype": "Link",
+   "label": "Invoice Entry",
+   "options": "Journal Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_entry",
+   "fieldtype": "Link",
+   "label": "Payment Entry",
+   "options": "Journal Entry",
+   "read_only": 1
   }
  ],
  "in_create": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-20 13:54:12.796100",
+ "modified": "2025-09-24 16:25:59.735581",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Milk Entries Log",
