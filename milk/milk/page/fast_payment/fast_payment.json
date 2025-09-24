@@ -1,0 +1,22 @@
+{
+ "content": null,
+ "creation": "2025-09-24 12:07:15.232338",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-09-24 12:07:15.232338",
+ "modified_by": "Administrator",
+ "module": "Milk",
+ "name": "fast-payment",
+ "owner": "Administrator",
+ "page_name": "fast-payment",
+ "roles": [
+  {
+   "role": "All"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}
