@@ -994,7 +994,7 @@ def get_suppliers(driver, collection_date, villages=None):
         suppliers = frappe.get_all(
             "Supplier",
             filters=filters,
-            fields=["name", "custom_cow", "custom_buffalo", "custom_cow_price", "custom_buffalo_price", "custom_pont_size_rate"]
+            fields=["name", "custom_cow", "custom_villages", "custom_buffalo", "custom_cow_price", "custom_buffalo_price", "custom_pont_size_rate"]
         )
 
         if not suppliers:
@@ -1008,6 +1008,7 @@ def get_suppliers(driver, collection_date, villages=None):
         processed_suppliers = []
         for supplier in suppliers:
             supplier_name = supplier.get("name") or "غير معروف"
+            custom_villages = supplier.get("custom_villages") or "غير معروف"
             milk_types = []
             if supplier.get("custom_cow"):
                 milk_types.append("Cow")
@@ -1018,6 +1019,7 @@ def get_suppliers(driver, collection_date, villages=None):
 
             processed_suppliers.append({
                 "supplier": supplier_name,
+                "custom_villages": custom_villages,
                 "milk_type": ",".join(milk_types),
                 "custom_pont_size_rate": pont_size_rate,
                 "morning_quantity": 0,

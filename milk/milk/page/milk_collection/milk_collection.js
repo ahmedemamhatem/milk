@@ -134,32 +134,154 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
   }
 
   // Populate table
-  function populate_table_with_data(data, isSubmitted = false) {
-    const tbody = table_section.find("tbody");
-    tbody.empty();
+// Populate table with sorting by Supplier.custom_sort (asc), then supplier name (asc)
+// Insert a village header row before each supplier group, based on custom_villages from get_suppliers (or entry.village if available)
+async function populate_table_with_data(data, isSubmitted = false) {
+  const tbody = table_section.find("tbody");
+  tbody.empty();
 
-    let rowCount = 1;
-    data.forEach((entry) => {
-      const isPontEditable = entry.custom_pont_size_rate === 1;
-      const milkTypes = (entry.milk_type || '').split(",").map((type) => translateMilkType(type, true));
-      milkTypes.forEach((milk_type) => {
-        const row = $(`
-          <tr>
-            <td>${rowCount++}</td>
-            <td>${entry.supplier || __('غير معروف')}</td>
-            <td>${milk_type}</td>
-            <td><input type="number" class="morning-quantity" value="${entry.morning_quantity || 0}" ${isSubmitted ? "readonly" : ""}></td>
-            <td class="pont-col"><input type="number" class="morning-pont" value="${entry.morning_pont || 0}" ${!isPontEditable ? "readonly" : ""}></td>
-            <td><input type="number" class="evening-quantity" value="${entry.evening_quantity || 0}" ${isSubmitted ? "readonly" : ""}></td>
-            <td class="pont-col"><input type="number" class="evening-pont" value="${entry.evening_pont || 0}" ${!isPontEditable ? "readonly" : ""}></td>
-          </tr>
-        `);
-        tbody.append(row);
+  // Utility to extract the village name to display for an entry
+  const getVillageForEntry = (entry) => {
+    // Prefer explicit village if provided by backend
+    const explicit = (entry.village || entry.village_name || '').toString().trim();
+    if (explicit) return explicit;
+
+    // Else derive from custom_villages
+    const villages = parseVillagesList(entry.custom_villages);
+    if (villages && villages.length) return villages[0];
+
+    return ''; // unknown
+  };
+
+  // Normalize entries
+  const normalized = [];
+  const suppliersToFetch = new Set();
+
+  const pushEntry = (entry) => {
+    const supplier = (entry.supplier_name || entry.supplier || '').toString().trim();
+    const milkTypesStr = (entry.milk_type || entry.milk_type_label || '').toString().trim();
+    const milkTypes = milkTypesStr ? milkTypesStr.split(',').map(s => translateMilkType(s.trim(), true)) : [];
+
+    const rec = {
+      supplier,
+      village: getVillageForEntry(entry),
+      custom_sort: Number.isFinite(Number(entry.custom_sort)) ? Number(entry.custom_sort) : null,
+      morning_quantity: Number(entry.morning_quantity) || 0,
+      evening_quantity: Number(entry.evening_quantity) || 0,
+      morning_pont: Number(entry.morning_pont) || 0,
+      evening_pont: Number(entry.evening_pont) || 0,
+      custom_pont_size_rate: Number(entry.custom_pont_size_rate) || 0,
+      milkTypes
+    };
+
+    if (rec.custom_sort == null && supplier) suppliersToFetch.add(supplier);
+    normalized.push(rec);
+  };
+
+  data.forEach(pushEntry);
+
+  // Batch fetch custom_sort for suppliers missing it
+  if (suppliersToFetch.size > 0) {
+    try {
+      const names = Array.from(suppliersToFetch);
+      const supplierDocs = await frappe.db.get_list('Supplier', {
+        fields: ['name', 'supplier_name', 'custom_sort', 'custom_villages'],
+        filters: [['name', 'in', names]],
+        limit: names.length
       });
-    });
-
-    togglePontVisibility();
+      const sortMap = {};
+      const villageMap = {};
+      supplierDocs.forEach(doc => {
+        const sortVal = Number.isFinite(Number(doc.custom_sort)) ? Number(doc.custom_sort) : null;
+        sortMap[doc.name] = sortVal;
+        if (doc.supplier_name) sortMap[doc.supplier_name] = sortVal;
+        const villages = parseVillagesList(doc.custom_villages);
+        const vName = villages && villages.length ? villages[0] : '';
+        villageMap[doc.name] = vName;
+        if (doc.supplier_name) villageMap[doc.supplier_name] = vName;
+      });
+      normalized.forEach(rec => {
+        if (rec.custom_sort == null && rec.supplier && sortMap.hasOwnProperty(rec.supplier)) {
+          rec.custom_sort = sortMap[rec.supplier];
+        }
+        if (!rec.village && rec.supplier && villageMap.hasOwnProperty(rec.supplier)) {
+          rec.village = villageMap[rec.supplier];
+        }
+      });
+    } catch (e) {
+      console.warn('Failed to fetch custom_sort/custom_villages:', e);
+    }
   }
+
+  // Defaults
+  normalized.forEach(rec => {
+    if (!Number.isFinite(rec.custom_sort)) rec.custom_sort = 999999;
+  });
+
+  // Sort by village (to group headers), then custom_sort, then supplier
+  normalized.sort((a, b) => {
+    const va = (a.village || '').toString();
+    const vb = (b.village || '').toString();
+    if (va !== vb) return va.localeCompare(vb, 'ar');
+    if (a.custom_sort !== b.custom_sort) return a.custom_sort - b.custom_sort;
+    return (a.supplier || '').localeCompare((b.supplier || ''), 'ar');
+  });
+
+  // Render with village headers
+  let rowCount = 1;
+  let lastVillage = null;
+
+  const renderVillageHeader = (villageName) => {
+    const safeName = villageName || __('غير محدد');
+    const $hdr = $(`
+      <tr class="village-header-row">
+        <td colspan="7" style="
+          text-align:right;
+          font-weight:700;
+          background:#f1f5f9;
+          color:#0f172a;
+          border-top:2px solid #cbd5e1;
+          border-bottom:2px solid #cbd5e1;
+          padding:10px;">
+          ${__('القرية')}: ${safeName}
+        </td>
+      </tr>
+    `);
+    tbody.append($hdr);
+  };
+
+  normalized.forEach(rec => {
+    const isPontEditable = rec.custom_pont_size_rate === 1;
+    const milkTypes = rec.milkTypes.length ? rec.milkTypes : [''];
+
+    // Insert village header if changed
+    if (rec.village !== lastVillage) {
+      renderVillageHeader(rec.village);
+      lastVillage = rec.village;
+    }
+
+    milkTypes.forEach((milk_type) => {
+      const row = $(`
+        <tr>
+          <td>${rowCount++}</td>
+          <td>${rec.supplier || __('غير معروف')}</td>
+          <td>${milk_type}</td>
+          <td><input type="number" class="morning-quantity" value="${rec.morning_quantity}" ${isSubmitted ? "readonly" : ""}></td>
+          <td class="pont-col"><input type="number" class="morning-pont" value="${rec.morning_pont}" ${!isPontEditable ? "readonly" : ""}></td>
+          <td><input type="number" class="evening-quantity" value="${rec.evening_quantity}" ${isSubmitted ? "readonly" : ""}></td>
+          <td class="pont-col"><input type="number" class="evening-pont" value="${rec.evening_pont}" ${!isPontEditable ? "readonly" : ""}></td>
+        </tr>
+      `);
+      tbody.append(row);
+    });
+  });
+
+  if (rowCount === 1) {
+    tbody.html(`<tr><td colspan="7" style="text-align:center;">${__('لا توجد بيانات')}</td></tr>`);
+  }
+
+  togglePontVisibility();
+}
 
   // Save or submit
   async function save_or_submit(action) {
@@ -375,247 +497,292 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
   }
 
   // PRINT DRAFT: two-column layout (right continues after left), group by village, supplier-level custom_sort, respect Use Pont
-  actions_section.find(".print-draft-btn").on("click", async () => {
-    try {
-      frappe.dom.freeze(__('جاري تجهيز المسودة للطباعة...'));
+// PRINT DRAFT: force fit all content into one A4 page (scales down), full borders, headerless,
+// two-column layout, two empty fields (morning/evening) per side, grouped by village
+actions_section.find(".print-draft-btn").on("click", async () => {
+  try {
+    frappe.dom.freeze(__('جاري تجهيز المسودة للطباعة...'));
 
-      const selectedDate = collection_date.get_value();
-      const today = selectedDate || (frappe.datetime ? frappe.datetime.get_today() : new Date().toISOString().slice(0,10));
-      const dayName = getArabicDayName(today);
+    const selectedDate = collection_date.get_value();
+    const today = selectedDate || (frappe.datetime ? frappe.datetime.get_today() : new Date().toISOString().slice(0,10));
+    const dayName = getArabicDayName(today);
 
-      const selectedDriver = driver.get_value();
-      const selectedVillage = village.get_value();
-      const showPont = (use_pont.get_value() || 'No') === 'Yes';
+    const selectedDriver = driver.get_value();
+    const selectedVillage = village.get_value();
 
-      // Fetch suppliers including supplier-level custom_sort and custom_villages
-      const suppliers = await frappe.db.get_list('Supplier', {
-        fields: [
-          'name',
-          'supplier_name',
-          'disabled',
-          'custom_milk_supplier',
-          'custom_driver_in_charge',
-          'custom_villages',
-          'custom_buffalo',
-          'custom_cow',
-          'custom_sort'
-        ],
-        filters: { disabled: 0, custom_milk_supplier: 1 },
-        limit: 5000
-      });
+    // Fetch suppliers including supplier-level custom_sort and custom_villages
+    const suppliers = await frappe.db.get_list('Supplier', {
+      fields: [
+        'name',
+        'supplier_name',
+        'disabled',
+        'custom_milk_supplier',
+        'custom_driver_in_charge',
+        'custom_villages',
+        'custom_buffalo',
+        'custom_cow',
+        'custom_sort'
+      ],
+      filters: { disabled: 0, custom_milk_supplier: 1 },
+      limit: 5000
+    });
 
-      if (!suppliers || suppliers.length === 0) {
-        frappe.msgprint(__('لا يوجد موردون نشطون بعلم المورد لبن.'));
-        return;
-      }
+    if (!suppliers || suppliers.length === 0) {
+      frappe.msgprint(__('لا يوجد موردون نشطون بعلم المورد لبن.'));
+      return;
+    }
 
-      // Build rows
-      const rows = [];
-      suppliers.forEach(sup => {
-        const driver_name = (sup.custom_driver_in_charge || '').toString().trim() || __('غير محدد');
-        if (selectedDriver && driver_name !== selectedDriver) return;
+    // Build rows
+    const rows = [];
+    suppliers.forEach(sup => {
+      const driver_name = (sup.custom_driver_in_charge || '').toString().trim() || __('غير محدد');
+      if (selectedDriver && driver_name !== selectedDriver) return;
 
-        const villages = parseVillagesList(sup.custom_villages);
-        if (!villages.length) return;
+      const villages = parseVillagesList(sup.custom_villages);
+      if (!villages.length) return;
 
-        const villagesToUse = selectedVillage ? villages.filter(v => v === selectedVillage) : villages;
-        if (!villagesToUse.length) return;
+      const villagesToUse = selectedVillage ? villages.filter(v => v === selectedVillage) : villages;
+      if (!villagesToUse.length) return;
 
-        const sup_name = sup.supplier_name || sup.name;
-        const sort_key = Number.isFinite(Number(sup.custom_sort)) ? Number(sup.custom_sort) : 999999;
+      const sup_name = sup.supplier_name || sup.name;
+      const sort_key = Number.isFinite(Number(sup.custom_sort)) ? Number(sup.custom_sort) : 999999;
 
-        const add = (label) => {
-          villagesToUse.forEach(vname => {
-            rows.push({
-              driver: driver_name,
-              village: vname,
-              supplier: sup_name,
-              milk_type: label,
-              sort_key
-            });
+      const add = (label) => {
+        villagesToUse.forEach(vname => {
+          rows.push({
+            driver: driver_name,
+            village: vname,
+            supplier: sup_name,
+            milk_type: label,
+            sort_key
           });
-        };
+        });
+      };
 
-        if (Number(sup.custom_cow) === 1) add('بقري');
-        if (Number(sup.custom_buffalo) === 1) add('جاموسي');
-      });
+      if (Number(sup.custom_cow) === 1) add('بقري');
+      if (Number(sup.custom_buffalo) === 1) add('جاموسي');
+    });
 
-      if (!rows.length) {
-        frappe.msgprint(__('لا توجد صفوف للطباعة بعد تطبيق الفلاتر.'));
-        return;
-      }
+    if (!rows.length) {
+      frappe.msgprint(__('لا توجد صفوف للطباعة بعد تطبيق الفلاتر.'));
+      return;
+    }
 
-      // Global sort: driver -> village -> custom_sort -> supplier -> milk_type
-      rows.sort((a, b) => {
-        if (a.driver !== b.driver) return a.driver.localeCompare(b.driver, 'ar');
-        if (a.village !== b.village) return a.village.localeCompare(b.village, 'ar');
+    // Sort: driver -> village -> custom_sort -> supplier -> milk_type
+    rows.sort((a, b) => {
+      if (a.driver !== b.driver) return a.driver.localeCompare(b.driver, 'ar');
+      if (a.village !== b.village) return a.village.localeCompare(b.village, 'ar');
+      if (a.sort_key !== b.sort_key) return a.sort_key - b.sort_key;
+      if (a.supplier !== b.supplier) return a.supplier.localeCompare(b.supplier, 'ar');
+      return a.milk_type.localeCompare(b.milk_type, 'ar');
+    });
+
+    // Heuristics to scale content to one page:
+    // If many rows, we apply a scale factor in print to fit on 1 page.
+    // You can tune these values to your data volume.
+    const MAX_ROWS_BEFORE_SCALE = 70;  // total entries per driver page (after split into two columns, equals rows displayed)
+    const SCALE_FACTOR = 0.85;         // print-time scaling when too many rows
+
+    // HTML with single A4 page and auto-fit scaling
+    let html = `
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${__('مسودة تجميع الموردين')}</title>
+<style>
+  :root{
+    --border:#0f172a;
+    --muted:#627084;
+    --text:#0f172a;
+  }
+
+  @page{
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  html, body{
+    margin:0; padding:0;
+    color:var(--text);
+    background:#fff;
+    font-family:"Tajawal","Cairo",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans Arabic","Noto Sans",sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* One-page canvas */
+  .canvas{
+    width: 194mm; /* 210 - 2*8mm margins */
+    margin: 0 auto;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .fitwrap{
+    transform-origin: top center;
+  }
+
+  /* Header - very compact */
+  .hdr{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    margin:0 0 3mm 0; border-bottom:1.2px solid var(--border); padding-bottom:2mm;
+  }
+  .hdr .title{ font-size:14px; font-weight:800; }
+  .hdr .meta{ font-size:10px; color:var(--muted); }
+
+  /* Village block - compact, avoid big gaps */
+  .village{ margin: 3mm 0 3mm 0; page-break-inside: avoid; }
+  .village-title{ font-weight:800; margin:0 0 1.5mm 0; font-size:11px; }
+
+  /* Grid container with full borders */
+  .grid{
+    width:100%;
+    border:1.2px solid var(--border);
+    border-radius:0;
+    overflow:hidden;
+    box-sizing: border-box;
+  }
+
+  /* Two empty fields per side (Morning, Evening) — ultra-compact widths */
+  /* Left: # | Supplier | Type | Morning | Evening | Right: # | Supplier | Type | Morning | Evening */
+  .row{
+    display:grid;
+    grid-template-columns:
+      8mm 45mm 12mm 16mm 16mm
+      8mm 45mm 12mm 16mm 16mm;
+    align-items: stretch;
+    border-top:1px solid var(--border);
+    min-height: 6.8mm;
+  }
+  .row:first-child{ border-top:none; }
+
+  .cell{
+    padding:1.4mm 1.2mm;
+    font-size:9.8px;
+    border-inline-start:1px solid var(--border);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    text-align:center;
+    box-sizing: border-box;
+  }
+  .cell:first-child{ border-inline-start:none; }
+  .start{ text-align:start; }
+
+  /* Scaling applied in print if needed; controlled via a class injected by script */
+  @media print{
+    .scale-100{ transform: scale(1); }
+    .scale-85{ transform: scale(0.85); }
+    .scale-80{ transform: scale(0.80); }
+    .scale-75{ transform: scale(0.75); }
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div id="fitwrap" class="fitwrap scale-100">
+    <div class="hdr">
+      <div class="title">${__('مسودة تسجيل اللبن')} — ${rows[0]?.driver || __('غير محدد')}</div>
+      <div class="meta">${dayName} • ${today}</div>
+    </div>
+`;
+
+    // Group rows by village within the single page (no page breaks)
+    const byVillageMap = {};
+    rows.forEach(r => {
+      (byVillageMap[r.village] = byVillageMap[r.village] || []).push(r);
+    });
+    const villageNames = Object.keys(byVillageMap).sort((a, b) => a.localeCompare(b, 'ar'));
+
+    // Count total displayed rows: maximum of left/right columns per village summed
+    let totalDisplayedRows = 0;
+
+    villageNames.forEach(villageName => {
+      const group = byVillageMap[villageName];
+
+      group.sort((a, b) => {
         if (a.sort_key !== b.sort_key) return a.sort_key - b.sort_key;
         if (a.supplier !== b.supplier) return a.supplier.localeCompare(b.supplier, 'ar');
         return a.milk_type.localeCompare(b.milk_type, 'ar');
       });
 
-      // HTML with two columns per row
-      let html = `
-<!doctype html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="utf-8">
-<title>${__('مسودة تجميع الموردين')}</title>
-<style>
-  :root{ --border:#d9dee7; --muted:#6b7280; --text:#0f172a; }
-  html,body{ margin:0; padding:0; font-family:"Tajawal","Cairo",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans Arabic","Noto Sans",sans-serif; color:var(--text) }
-  .page{ padding:12mm 10mm; page-break-after:always }
-  .page:last-child{ page-break-after:auto }
-  .hdr{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:8px }
-  .hdr .title{ font-size:18px; font-weight:800 }
-  .hdr .meta{ font-size:12px; color:var(--muted) }
-  .village-title{ margin:12px 0 6px; font-weight:800; border-bottom:2px solid var(--border); padding-bottom:4px; }
-  table{ width:100%; border-collapse:collapse; margin-bottom:8px; table-layout: fixed; }
-  th, td{ border:1px solid var(--border); padding:6px; font-size:13px; text-align:center; }
-  th{ background:#f8fafc; color:#374151; font-weight:800 }
-  td{ background:#fff }
-  .pont-col { display: ${showPont ? '' : 'none'}; }
-  /* Set column widths for better balance */
-  th, td { word-wrap: break-word; }
-  .col-idx { width: 5%; }
-  .col-supplier { width: 25%; }
-  .col-mtype { width: 10%; }
-  .col-qty { width: 15%; }
-  .col-pont { width: 10%; }
-  @media print{
-    .page{ padding:10mm }
-    th,td{ padding:4mm 3mm; font-size:12px }
-  }
-</style>
-</head>
-<body>
-`;
+      const N = group.length;
+      const half = Math.ceil(N / 2);
+      totalDisplayedRows += Math.max(half, N - half);
 
-      const renderDriverPage = (driver_name, rowsForDriver) => {
-        // Group by village
-        const byVillage = {};
-        rowsForDriver.forEach(r => {
-          (byVillage[r.village] = byVillage[r.village] || []).push(r);
-        });
+      let rowsHtml = '';
+      for (let i = 0; i < Math.max(half, N - half); i++) {
+        const a = group[i] || null;
+        const b = group[half + i] || null;
+        const aIdx = a ? (i + 1) : '';
+        const bIdx = b ? (half + i + 1) : '';
 
-        html += `
-<section class="page">
-  <div class="hdr">
-    <div class="title">${__('مسودة تسجيل اللبن')} — ${driver_name || __('غير محدد')}</div>
-    <div class="meta">${dayName} - ${today}</div>
-  </div>
-`;
-
-        const villageNames = Object.keys(byVillage).sort((a, b) => a.localeCompare(b, 'ar'));
-
-        villageNames.forEach(villageName => {
-          const group = byVillage[villageName];
-
-          // Sort inside village: custom_sort -> supplier -> milk_type
-          group.sort((a, b) => {
-            if (a.sort_key !== b.sort_key) return a.sort_key - b.sort_key;
-            if (a.supplier !== b.supplier) return a.supplier.localeCompare(b.supplier, 'ar');
-            return a.milk_type.localeCompare(b.milk_type, 'ar');
-          });
-
-          // Two columns with continuous indices
-          const N = group.length;
-          const half = Math.ceil(N / 2);
-          const left = group.slice(0, half);
-          const right = group.slice(half);
-          const maxRows = Math.max(left.length, right.length);
-
-          let rowsHtml = '';
-          for (let i = 0; i < maxRows; i++) {
-            const a = left[i] || null;
-            const b = right[i] || null;
-            const aIdx = a ? (i + 1) : '';
-            const bIdx = b ? (half + i + 1) : '';
-            rowsHtml += `
-            <tr>
-              <td class="col-idx">${aIdx}</td>
-              <td class="col-supplier">${a ? a.supplier : ''}</td>
-              <td class="col-mtype">${a ? a.milk_type : ''}</td>
-              <td class="col-qty"></td>
-              <td class="col-pont pont-col"></td>
-              <td class="col-idx">${bIdx}</td>
-              <td class="col-supplier">${b ? b.supplier : ''}</td>
-              <td class="col-mtype">${b ? b.milk_type : ''}</td>
-              <td class="col-qty"></td>
-              <td class="col-pont pont-col"></td>
-            </tr>`;
-          }
-
-          html += `
-  <div class="village-title">${__('القرية')}: ${villageName || __('غير محدد')}</div>
-  <table>
-    <thead>
-      <tr>
-        <th class="col-idx">#</th>
-        <th class="col-supplier">${__('المورد')}</th>
-        <th class="col-mtype">${__('نوع اللبن')}</th>
-        <th class="col-qty">${__('كمية الصباح')}</th>
-        <th class="col-pont pont-col">${__('بنط الصباح')}</th>
-        <th class="col-idx">#</th>
-        <th class="col-supplier">${__('المورد')}</th>
-        <th class="col-mtype">${__('نوع اللبن')}</th>
-        <th class="col-qty">${__('كمية الصباح')}</th>
-        <th class="col-pont pont-col">${__('بنط الصباح')}</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rowsHtml || `<tr><td colspan="10">${__('لا توجد بيانات')}</td></tr>`}
-    </tbody>
-  </table>
-`;
-        });
-
-        html += `
-</section>
-`;
-      };
-
-      // Group rows by driver for page breaks
-      let currentDriver = null;
-      let buffer = [];
-      const flushDriver = () => {
-        if (!buffer.length) return;
-        renderDriverPage(currentDriver, buffer);
-        buffer = [];
-      };
-
-      rows.forEach(r => {
-        if (currentDriver === null) currentDriver = r.driver;
-        if (r.driver !== currentDriver) {
-          flushDriver();
-          currentDriver = r.driver;
-        }
-        buffer.push(r);
-      });
-      flushDriver();
+        rowsHtml += `
+        <div class="row">
+          <div class="cell">${aIdx}</div>
+          <div class="cell start">${a ? a.supplier : ''}</div>
+          <div class="cell">${a ? a.milk_type : ''}</div>
+          <div class="cell"></div>
+          <div class="cell"></div>
+          <div class="cell">${bIdx}</div>
+          <div class="cell start">${b ? b.supplier : ''}</div>
+          <div class="cell">${b ? b.milk_type : ''}</div>
+          <div class="cell"></div>
+          <div class="cell"></div>
+        </div>`;
+      }
 
       html += `
+    <div class="village">
+      <div class="village-title">${__('القرية')}: ${villageName || __('غير محدد')}</div>
+      <div class="grid">
+        ${rowsHtml || `<div class="row"><div class="cell" style="grid-column:1 / -1; text-align:center; color:#777">${__('لا توجد بيانات')}</div></div>`}
+      </div>
+    </div>
+`;
+    });
+
+    html += `
+  </div> <!-- fitwrap -->
+</div>  <!-- canvas -->
+<script>
+  // Auto-scale to ensure one-page fit by row count heuristic
+  (function(){
+    var totalRows = ${JSON.stringify(totalDisplayedRows)};
+    var wrap = document.getElementById('fitwrap');
+    // Choose scale class based on rough row count
+    if (totalRows > ${MAX_ROWS_BEFORE_SCALE} + 20) {
+      wrap.className = 'fitwrap scale-75';
+    } else if (totalRows > ${MAX_ROWS_BEFORE_SCALE} + 10) {
+      wrap.className = 'fitwrap scale-80';
+    } else if (totalRows > ${MAX_ROWS_BEFORE_SCALE}) {
+      wrap.className = 'fitwrap scale-85';
+    } else {
+      wrap.className = 'fitwrap scale-100';
+    }
+  })();
+</script>
 </body>
 </html>`;
 
-      // Open and print
-      const w = window.open('', '_blank');
-      if (!w) {
-        frappe.msgprint(__('فضلاً فعّل النوافذ المنبثقة للسماح بالطباعة.'));
-        return;
-      }
-      w.document.open();
-      w.document.write(html);
-      w.document.close();
-      w.focus();
-      setTimeout(() => { w.print(); }, 300);
-    } catch (e) {
-      console.error(e);
-      frappe.msgprint({ title: __('خطأ'), message: e.message || String(e), indicator: 'red' });
-    } finally {
-      frappe.dom.unfreeze();
+    // Open and print
+    const w = window.open('', '_blank');
+    if (!w) {
+      frappe.msgprint(__('فضلاً فعّل النوافذ المنبثقة للسماح بالطباعة.'));
+      return;
     }
-  });
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { w.print(); }, 350);
+  } catch (e) {
+    console.error(e);
+    frappe.msgprint({ title: __('خطأ'), message: e.message || String(e), indicator: 'red' });
+  } finally {
+    frappe.dom.unfreeze();
+  }
+});
 
   // React to Use Pont toggle and apply immediately (default No)
   $(use_pont.$input).on('change', togglePontVisibility);
