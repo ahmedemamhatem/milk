@@ -7,6 +7,9 @@ def on_cancel_journal_entry(doc, method=None):
     - Clear the matching field(s).
     - If both fields are empty after clearing, set paid = 0.
     """
+    if getattr(doc, "custom_supplier_loan", None):
+        frappe.throw("لا يمكنك إلغاء قيد اليومية المرتبط بقرض مورد مباشرة. من فضلك ألغِ القرض أولًا.")
+
     if not doc or not getattr(doc, "name", None):
         return
 

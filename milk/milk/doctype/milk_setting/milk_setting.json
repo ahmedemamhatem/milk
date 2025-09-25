@@ -8,7 +8,8 @@
   "buffalo_item",
   "cow_item",
   "column_break_ulcb",
-  "company"
+  "company",
+  "supplier_loan_account"
  ],
  "fields": [
   {
@@ -37,12 +38,19 @@
    "label": "Company",
    "options": "Company",
    "reqd": 1
+  },
+  {
+   "fieldname": "supplier_loan_account",
+   "fieldtype": "Link",
+   "label": "Supplier Loan Account",
+   "options": "Account",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-08-17 19:25:18.987789",
+ "modified": "2025-09-25 15:20:01.108213",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Milk Setting",
