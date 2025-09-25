@@ -141,7 +141,7 @@ def floor_to_multiple(value, base):
 def _random_ref_no(length=10):
     # Generate a pseudo reference number
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
-
+@frappe.whitelist()
 def create_accrual_and_payment_journal_entries(selected_date, mode_of_payment, supplier=None, driver=None, village=None, throw_on_paid=False):
     """
     Creates:
