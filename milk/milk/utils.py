@@ -7,6 +7,30 @@ from datetime import datetime, timedelta
 
 
 @frappe.whitelist()
+def get_weekly_supplier_loan_totals(selected_date):
+    if not selected_date:
+        frappe.throw("من فضلك أدخل تاريخًا صحيحًا.")
+    start_date = getdate(selected_date)
+    end_date = add_days(start_date, 6)
+
+    rows = frappe.db.sql(
+        """
+        SELECT sl.supplier as supplier, SUM(slt.amount) as total_loan
+        FROM `tabSupplier Loan Table` slt
+        INNER JOIN `tabSupplier Loan` sl ON slt.parent = sl.name
+        WHERE sl.docstatus = 1
+          AND IFNULL(slt.paied, 0) = 0
+          AND slt.date BETWEEN %s AND %s
+        GROUP BY sl.supplier
+        """,
+        (start_date, end_date),
+        as_dict=True,
+    )
+    result = {r["supplier"]: float(r["total_loan"] or 0) for r in rows or []}
+    return {"status": "success", "data": result, "start": str(start_date), "end": str(end_date)}
+
+
+@frappe.whitelist()
 def disable_inactive_milk_suppliers():
     """
     Disable suppliers (custom_milk_supplier == 1) if they have no milk entries
@@ -105,22 +129,38 @@ def _random_ref_no(prefix="MILK"):
     rand = ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
     return f"{prefix}-{rand}"
 
-@frappe.whitelist()
+
+def floor_to_multiple(value, base):
+    # Floor value to nearest lower multiple of 'base'
+    value = float(value or 0)
+    base = float(base or 0)
+    if base <= 0:
+        return value
+    return float(int(value // base) * base)
+
+def _random_ref_no(length=10):
+    # Generate a pseudo reference number
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+
 def create_accrual_and_payment_journal_entries(selected_date, mode_of_payment, supplier=None, driver=None, village=None, throw_on_paid=False):
     """
-    Creates two Journal Entries:
-      1) Accrual JE: Dr Stock Adjustment (single line), Cr Payable (per supplier, with party info).
-      2) Payment JE: Dr Payable (per supplier, with party info), Cr Mode of Payment account (single line).
-         Includes reference_no and reference_date for Bank Entry requirement.
+    Creates:
+      1) Accrual JE: Dr Stock Adjustment (single), Cr Payable (per supplier, with party).
+      2) Supplier Loan Refund JE (same week window, only rows with paied=0):
+         Dr Payable (per supplier, with party), Cr Supplier Loan Account (per supplier, with party).
+         Marks each used loan row: paied=1 and journal_entry=<refund JE name>.
+      3) Payment JE: pays net = earnings - loan refund per supplier, then floors to nearest 5 EGP.
+         Dr Payable (per supplier, with party) with the floored net,
+         Cr Mode of Payment (single line). Any remainder stays payable.
 
-    Updates Milk Entries Log:
+    Updates Milk Entries Log for earnings:
       - invoice_entry = accrual JE name
       - payment_entry = payment JE name
       - paid = 1
     """
 
     if not selected_date:
-        frappe.throw("Please provide a valid start date.")
+        frappe.throw("من فضلك أدخل تاريخًا صحيحًا.")
 
     try:
         posting_date = getdate(selected_date)
@@ -128,8 +168,10 @@ def create_accrual_and_payment_journal_entries(selected_date, mode_of_payment, s
         # Settings
         milk_setting = frappe.get_single("Milk Setting")
         if not milk_setting:
-            frappe.throw("Milk Setting document is missing. Please configure it first.")
+            frappe.throw("مستند Milk Setting غير موجود. من فضلك قم بإعداده أولًا.")
         company = milk_setting.company
+        if not company:
+            frappe.throw("شركة غير محددة في إعدادات Milk Setting.")
 
         # Company accounts
         company_doc = frappe.get_doc("Company", company)
@@ -137,7 +179,7 @@ def create_accrual_and_payment_journal_entries(selected_date, mode_of_payment, s
         # Stock Adjustment Account
         stock_adjustment_account = getattr(company_doc, "stock_adjustment_account", None)
         if not stock_adjustment_account:
-            frappe.throw(f"Stock Adjustment Account is not set in Company '{company}'.")
+            frappe.throw(f"حساب Stock Adjustment غير مضبوط في الشركة '{company}'.")
 
         # Default Payable Account
         payable_account = (
@@ -146,31 +188,30 @@ def create_accrual_and_payment_journal_entries(selected_date, mode_of_payment, s
             or getattr(company_doc, "accounts_payable", None)
         )
         if not payable_account:
-            frappe.throw(f"Default Payable Account is not set in Company '{company}'.")
+            frappe.throw(f"الحساب الدائن (Payable) غير مضبوط في الشركة '{company}'.")
 
         # Mode of Payment account
         mop_account = None
         mop_doc = frappe.get_doc("Mode of Payment", mode_of_payment)
-        for acc in mop_doc.accounts:
-            if acc.company == company:
+        for acc in getattr(mop_doc, "accounts", []) or []:
+            if acc.company == company and acc.default_account:
                 mop_account = acc.default_account
                 break
         if not mop_account:
-            frappe.throw(f"Default Account is not set for Mode of Payment '{mode_of_payment}' in company '{company}'.")
+            frappe.throw(f"لا يوجد حساب افتراضي مضبوط لوسيلة الدفع '{mode_of_payment}' في الشركة '{company}'.")
 
-        # Get grouped supplier report from your existing function
+        # Date window
+        start_date = getdate(selected_date)
+        end_date = add_days(start_date, 6)
+
+        # 1) Earnings: grouped supplier report
         report_data = get_grouped_supplier_report_pay(selected_date, supplier, driver, village)
         if report_data["status"] != "success":
             return {"status": "error", "message": report_data["message"]}
-
         data = report_data["data"]
 
-        # Aggregate totals and collect unpaid logs by supplier within date window
-        supplier_totals = {}     # {supplier: amount}
-        logs_by_supplier = {}    # {supplier: [log_names]}
-
-        start_date = getdate(selected_date)
-        end_date = add_days(start_date, 6)
+        supplier_totals = {}     # earnings per supplier
+        logs_by_supplier = {}    # unpaid milk logs by supplier for link-back
 
         for driver_name, driver_data in data.items():
             for village_name, village_data in driver_data.get("villages", {}).items():
@@ -198,15 +239,13 @@ def create_accrual_and_payment_journal_entries(selected_date, mode_of_payment, s
                         )
 
                         for log in logs:
-                            # Skip logs already linked (optional safeguard)
-                            if log.get("invoice_entry") or log.get("payment_entry") or log.get("paid") ==1:
+                            if log.get("invoice_entry") or log.get("payment_entry") or log.get("paid") == 1:
                                 if throw_on_paid:
-                                    frappe.throw(f"Log {log['name']} is already linked to a journal entry.")
+                                    frappe.throw(f"السجل {log['name']} مرتبط بالفعل بقيد يومية.")
                                 continue
-
                             if log["paid"]:
                                 if throw_on_paid:
-                                    frappe.throw(f"Log {log['name']} is already paid.")
+                                    frappe.throw(f"السجل {log['name']} تم سداده بالفعل.")
                                 else:
                                     continue
                             supplier_logs.append(log["name"])
@@ -219,21 +258,17 @@ def create_accrual_and_payment_journal_entries(selected_date, mode_of_payment, s
                             logs_by_supplier.setdefault(supplier_name, []).extend(supplier_logs)
 
         if not supplier_totals:
-            return {"status": "error", "message": "No amounts to book. No journal entries created."}
+            return {"status": "error", "message": "لا توجد مبالغ للقيد. لم يتم إنشاء أي قيود يومية."}
 
-        grand_total = round(sum(supplier_totals.values()), 2)
+        # 2) Accrual JE (full earnings)
+        grand_total_original = round(sum(supplier_totals.values()), 2)
 
-        # JE1: Accrual (Dr Stock Adjustment, Cr Payable per supplier)
         je1_accounts = []
-
-        # Debit: single line
         je1_accounts.append({
             "account": stock_adjustment_account,
-            "debit_in_account_currency": grand_total,
+            "debit_in_account_currency": grand_total_original,
             "credit_in_account_currency": 0,
         })
-
-        # Credit: per supplier lines with party
         for sup, amt in supplier_totals.items():
             if amt <= 0:
                 continue
@@ -247,54 +282,152 @@ def create_accrual_and_payment_journal_entries(selected_date, mode_of_payment, s
 
         je1 = frappe.get_doc({
             "doctype": "Journal Entry",
-            "voucher_type": "Journal Entry",
+            "voucher_type": "Milk Accrual for Supplier",
             "company": company,
             "posting_date": posting_date,
             "accounts": je1_accounts,
-            "user_remark": f"Milk accrual for {start_date} to {end_date}",
+            "user_remark": f"إثبات لبن عن الفترة {start_date} إلى {end_date}",
         })
         je1.insert()
         je1.submit()
 
-        # JE2: Payment (Dr Payable per supplier, Cr Mode of Payment), with ref no/date
-        je2_accounts = []
+        # 3) Supplier Loan Refund JE (only paied = 0 rows in window)
+        loan_rows = frappe.db.sql(
+            """
+            SELECT sl.supplier as supplier, slt.amount as amount, slt.name as row_name
+            FROM `tabSupplier Loan Table` slt
+            INNER JOIN `tabSupplier Loan` sl ON slt.parent = sl.name
+            WHERE sl.docstatus = 1
+              AND IFNULL(slt.paied, 0) = 0
+              AND slt.date BETWEEN %s AND %s
+            """,
+            (start_date, end_date),
+            as_dict=True,
+        )
 
-        # Debit: per supplier lines with party
-        for sup, amt in supplier_totals.items():
-            if amt <= 0:
+        refund_by_supplier = {}
+        rows_by_supplier = {}
+        for r in loan_rows or []:
+            sup = r.get("supplier")
+            amt = float(r.get("amount") or 0)
+            row_name = r.get("row_name")
+            if not sup or amt <= 0 or not row_name:
                 continue
-            je2_accounts.append({
-                "account": payable_account,
-                "debit_in_account_currency": amt,
-                "credit_in_account_currency": 0,
-                "party_type": "Supplier",
-                "party": sup,
+            refund_by_supplier[sup] = round(refund_by_supplier.get(sup, 0.0) + amt, 2)
+            rows_by_supplier.setdefault(sup, []).append(row_name)
+
+        refund_je_name = None
+        if refund_by_supplier:
+            loan_account = getattr(milk_setting, "supplier_loan_account", None)
+            if not loan_account:
+                frappe.throw("من فضلك حدّد حساب قرض المورد في إعدادات Milk Setting.")
+
+            refund_accounts = []
+            for sup, amt in refund_by_supplier.items():
+                if amt <= 0:
+                    continue
+                refund_accounts.append({
+                    "account": payable_account,
+                    "debit_in_account_currency": amt,
+                    "credit_in_account_currency": 0,
+                    "party_type": "Supplier",
+                    "party": sup,
+                })
+                refund_accounts.append({
+                    "account": loan_account,
+                    "debit_in_account_currency": 0,
+                    "credit_in_account_currency": amt,
+                    "party_type": "Supplier",
+                    "party": sup,
+                })
+
+            refund_je = frappe.get_doc({
+                "doctype": "Journal Entry",
+                "voucher_type": "Supplier Loan Refund",
+                "company": company,
+                "posting_date": posting_date,
+                "accounts": refund_accounts,
+                "user_remark": f"استرداد أقساط قرض المورد عن الفترة {start_date} إلى {end_date}",
             })
+            refund_je.insert()
+            refund_je.submit()
+            refund_je_name = refund_je.name
+
+            # Mark each used loan row
+            for sup, row_names in rows_by_supplier.items():
+                for row_name in row_names:
+                    frappe.db.set_value("Supplier Loan Table", row_name, {
+                        "paied": 1,
+                        "journal_entry": refund_je_name
+                    })
+
+        # 4) Payment JE: pay net (earnings - loan refund), floored to nearest 5
+        je2_accounts = []
+        supplier_adjusted = []  # include net logic in report
+
+        grand_total_paid = 0.0
+        for sup, earnings_amt in supplier_totals.items():
+            refund_amt = float(refund_by_supplier.get(sup, 0.0)) if refund_by_supplier else 0.0
+            net = max(0.0, round(earnings_amt - refund_amt, 2))  # net cannot be negative
+            paid_amount = floor_to_multiple(net, 5)               # floor to 5
+            paid_amount = round(paid_amount, 2)
+            remainder = round(net - paid_amount, 2)               # remains payable
+
+            if paid_amount > 0:
+                je2_accounts.append({
+                    "account": payable_account,
+                    "debit_in_account_currency": paid_amount,
+                    "credit_in_account_currency": 0,
+                    "party_type": "Supplier",
+                    "party": sup,
+                })
+                grand_total_paid += paid_amount
+
+            supplier_adjusted.append({
+                "supplier": sup,
+                "earnings": round(earnings_amt, 2),
+                "loan_refund": round(refund_amt, 2),
+                "net": net,
+                "paid_amount": paid_amount,
+                "remainder": remainder
+            })
+
+        if grand_total_paid <= 0:
+            # No payable reached threshold after loan refunds
+            # Still return the earlier entries if created
+            return {
+                "status": "error",
+                "message": "لا توجد مبالغ للسداد بعد خصم أقساط القرض أو أقل من 5 جنيه للصرف.",
+                "journal_entry_accrual": je1.name,
+                "journal_entry_loan_refund": refund_je_name,
+                "suppliers": supplier_adjusted,
+                "window": {"start": str(start_date), "end": str(end_date)},
+            }
 
         # Credit: single line to MOP account with reference fields
         reference_no = _random_ref_no()
         je2_accounts.append({
             "account": mop_account,
             "debit_in_account_currency": 0,
-            "credit_in_account_currency": grand_total,
+            "credit_in_account_currency": round(grand_total_paid, 2),
             "reference_no": reference_no,
             "reference_date": posting_date,
         })
 
         je2 = frappe.get_doc({
             "doctype": "Journal Entry",
-            "voucher_type": "Bank Entry",  # or "Cash Entry"
+            "voucher_type": "Milk Payment for Supplier",  # or "Cash Entry"
             "company": company,
             "posting_date": posting_date,
             "accounts": je2_accounts,
-            "cheque_no": reference_no,        # optional, aligns with bank entries UI
-            "cheque_date": posting_date,      # optional
-            "user_remark": f"Milk payout for {start_date} to {end_date} via {mode_of_payment}",
+            "cheque_no": reference_no,
+            "cheque_date": posting_date,
+            "user_remark": f"صرف لبن (صافي بعد خصم القرض) عن الفترة {start_date} إلى {end_date} عبر {mode_of_payment}",
         })
         je2.insert()
         je2.submit()
 
-        # Update logs with JE links and mark paid
+        # Update milk logs with JE links and mark paid
         updated_logs = []
         for sup, log_names in logs_by_supplier.items():
             for log_name in log_names:
@@ -309,12 +442,21 @@ def create_accrual_and_payment_journal_entries(selected_date, mode_of_payment, s
 
         return {
             "status": "success",
-            "message": "Created accrual and payment Journal Entries with reference info; logs updated.",
+            "message": "تم إنشاء قيود: إثبات كامل، استرداد أقساط القرض، وصرف صافي بعد الخصم بمضاعفات 5 جنيه.",
             "journal_entry_accrual": je1.name,
+            "journal_entry_loan_refund": refund_je_name,
             "journal_entry_payment": je2.name,
             "reference_no": reference_no,
-            "suppliers": [{"supplier": s, "amount": a} for s, a in supplier_totals.items()],
+            "totals": {
+                "earnings_total": round(grand_total_original, 2),
+                "loan_refund_total": round(sum(refund_by_supplier.values()) if refund_by_supplier else 0.0, 2),
+                "paid_total": round(grand_total_paid, 2),
+                "remaining_payable_total": round(grand_total_original - (sum(refund_by_supplier.values()) if refund_by_supplier else 0.0) - grand_total_paid, 2),
+            },
+            "suppliers": supplier_adjusted,
+            "loan_refund_suppliers": [{"supplier": s, "refund_amount": a} for s, a in (refund_by_supplier or {}).items()],
             "updated_logs": updated_logs,
+            "window": {"start": str(start_date), "end": str(end_date)},
         }
 
     except Exception as e:

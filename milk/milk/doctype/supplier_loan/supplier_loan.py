@@ -72,15 +72,13 @@ class SupplierLoan(Document):
 
         # Create Journal Entry
         je = frappe.new_doc("Journal Entry")
-        je.voucher_type = "Journal Entry"
+        je.voucher_type = "Supplier Loan Payment"
         je.company = company
         je.posting_date = posting_date
         je.user_remark = f"قرض مورد رقم {self.name}"
 
         # Set custom link back to Supplier Loan (custom field on JE)
-        # Ensure you created a Data/Link field 'custom_supplier_loan' on Journal Entry
-        if "custom_supplier_loan" in je.meta.get_fieldnames():
-            je.custom_supplier_loan = self.name
+        je.custom_supplier_loan = self.name
 
         # Set party info from document supplier
         party_type = "Supplier"
@@ -90,9 +88,7 @@ class SupplierLoan(Document):
         debit_row = {
             "account": loan_account,
             "debit_in_account_currency": amount,
-            "credit_in_account_currency": 0,
-            "reference_type": self.doctype,
-            "reference_name": self.name,
+            "credit_in_account_currency": 0
         }
         if party:
             debit_row.update({
@@ -105,9 +101,7 @@ class SupplierLoan(Document):
         credit_row = {
             "account": credit_account,
             "debit_in_account_currency": 0,
-            "credit_in_account_currency": amount,
-            "reference_type": self.doctype,
-            "reference_name": self.name,
+            "credit_in_account_currency": amount
         }
         je.append("accounts", credit_row)
 

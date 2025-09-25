@@ -8,7 +8,8 @@
  "field_order": [
   "date",
   "amount",
-  "paied"
+  "paied",
+  "journal_entry"
  ],
  "fields": [
   {
@@ -41,12 +42,24 @@
    "in_standard_filter": 1,
    "label": "Paied",
    "read_only": 1
+  },
+  {
+   "fieldname": "journal_entry",
+   "fieldtype": "Link",
+   "in_filter": 1,
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": " Journal Entry",
+   "options": "Journal Entry",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-09-25 15:23:47.302550",
+ "modified": "2025-09-25 20:46:12.770475",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Supplier Loan Table",

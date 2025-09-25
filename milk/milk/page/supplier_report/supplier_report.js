@@ -5,7 +5,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     single_column: true,
   });
 
-  // Translations for Milk Type
+  // ترجمات نوع اللبن
   const milkTypeTranslations = {
     "Cow": "بقر",
     "Buffalo": "جاموس",
@@ -16,26 +16,26 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     return milkTypeTranslations[type] || type;
   }
 
-  // --- FILTER UI ---
+  // واجهة المرشحات + الأزرار
   const filter_container = $(`
     <div class="flex items-center gap-4 mb-4" style="display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
-      <div id="filter-wrapper-date" style="flex:1 1 auto;"></div>
-      <div id="filter-wrapper-supplier" style="flex:1 1 auto;"></div>
-      <div id="filter-wrapper-driver" style="flex:1 1 auto;"></div>
-      <div id="filter-wrapper-village" style="flex:1 1 auto;"></div>
+      <div id="filter-wrapper-date" style="flex:1 1 200px; min-width:220px;"></div>
+      <div id="filter-wrapper-supplier" style="flex:1 1 200px; min-width:220px;"></div>
+      <div id="filter-wrapper-driver" style="flex:1 1 200px; min-width:220px;"></div>
+      <div id="filter-wrapper-village" style="flex:1 1 200px; min-width:220px;"></div>
       <div id="filter-wrapper-group" style="flex:0 0 auto;"></div>
-      <strong id="day-name-display" class="text-primary" style="white-space:nowrap;"></strong>
+      <div style="flex:1 1 100%; height:0;"></div>
       <button class="btn btn-primary" id="fetch-button" style="white-space:nowrap;">${__("جلب التقرير")}</button>
-      <button class="btn btn-secondary" id="refresh-button" style="white-space:nowrap;">${__("تحديث")}</button>
-      <button class="btn btn-success" id="print-button" style="white-space:nowrap;">${__("طباعة التقرير")}</button>
-      <button class="btn btn-warning" id="pay-button" style="white-space:nowrap;">${__("دفع للموردين")}</button>
+      <button class="btn btn-secondary" id="refresh-button" style="white-space:nowrap;">${__("إعادة التحميل")}</button>
+      <button class="btn btn-success" id="print-button" style="white-space:nowrap;">${__("طباعة")}</button>
+      <button class="btn btn-warning" id="pay-button" style="white-space:nowrap;">${__("إنشاء دفعات")}</button>
     </div>
   `).appendTo(page.body);
 
   const filters = {};
   filters.date = page.add_field({
     fieldname: "date",
-    label: __("تحديد تاريخ البداية"),
+    label: __("تاريخ البداية"),
     fieldtype: "Date",
     reqd: 1,
     container: filter_container.find("#filter-wrapper-date")[0],
@@ -69,24 +69,25 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
   });
   filters.group = page.add_field({
     fieldname: "group",
-    label: __("تجميع"),
+    label: __("عرض مجمّع"),
     fieldtype: "Check",
     reqd: 0,
+    description: __("تجميع حسب السائق والقرية"),
     container: filter_container.find("#filter-wrapper-group")[0],
   });
 
-  // --- RESULTS CONTAINER ---
+  // حاوية النتائج
   const results_container = $(`<div id="printable-content" class="results mt-4"></div>`).appendTo(page.body);
 
-  // --- PAY BUTTON ---
+  // زر إنشاء الدفعات
   filter_container.find("#pay-button").on("click", function () {
     if (!results_container || results_container.children().length === 0) {
-      frappe.msgprint(__("لا توجد بيانات للدفع."));
+      frappe.msgprint(__("لا توجد بيانات لمعالجة الدفعات."));
       return;
     }
 
     const dialog = new frappe.ui.Dialog({
-      title: __("حدد وضع الدفع"),
+      title: __("اختر طريقة الدفع"),
       fields: [
         {
           fieldname: "mode_of_payment",
@@ -105,7 +106,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
         dialog.hide();
 
         frappe.confirm(
-          __("هل أنت متأكد أنك تريد إنشاء قيود اليومية (الإثبات والدفع)؟"),
+          __("هل أنت متأكد من إنشاء قيود اليومية (الإثبات والدفع)؟"),
           function () {
             const args = {
               selected_date: filters?.date?.get_value ? filters.date.get_value() : null,
@@ -172,14 +173,11 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     dialog.show();
   });
 
-  // Helper to format currency safely
-  function format_currency(value) {
-    try {
-      return frappe.format(value, { fieldtype: "Currency" });
-    } catch (e) {
-      const n = Number(value);
-      return isNaN(n) ? "0.00" : n.toFixed(2);
-    }
+  // تنسيق الأرقام
+  function format_number(value) {
+    const n = Number(value);
+    if (Number.isFinite(n)) return n.toFixed(2);
+    return "0.00";
   }
 
   function show_success_dialog(msg) {
@@ -190,7 +188,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     const suppliers = Array.isArray(msg.suppliers) ? msg.suppliers : [];
 
     const supplierLines = suppliers.length
-      ? suppliers.map(s => `• ${frappe.utils.escape_html(s.supplier)}: ${format_currency(s.amount)}`).join("<br>")
+      ? suppliers.map(s => `• ${frappe.utils.escape_html(s.supplier)}: <strong>${format_number(s.amount || s.paid_amount || s.net || 0)}</strong>`).join("<br>")
       : __("لا يوجد موردون");
 
     const logsLine = updatedLogs.length
@@ -226,7 +224,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     });
   }
 
-  // --- FETCH REPORT ---
+  // جلب التقرير
   filter_container.find("#fetch-button").on("click", function () {
     const selected_date = filters.date.get_value();
     const selected_supplier = filters.supplier.get_value();
@@ -249,22 +247,38 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
         village: selected_village || null,
       },
       callback: function (response) {
-        if (response.message.status === "success") {
-          is_grouped
-            ? renderGroupedResults(response.message.data)
-            : renderResults(response.message.data, selected_date);
-        } else {
+        if (response.message.status !== "success") {
           frappe.msgprint({
             title: __("خطأ"),
             indicator: "red",
             message: response.message.message,
+          });
+          return;
+        }
+
+        if (is_grouped) {
+          renderGroupedResults(response.message.data);
+        } else {
+          // جلب إجمالي القروض الأسبوعية للموردين (paied = 0)
+          frappe.call({
+            method: "milk.milk.utils.get_weekly_supplier_loan_totals",
+            args: { selected_date },
+            callback: function (loanRes) {
+              const loanTotals = (loanRes && loanRes.message && loanRes.message.status === "success")
+                ? (loanRes.message.data || {})
+                : {};
+              renderResults(response.message.data, selected_date, loanTotals);
+            },
+            error: function () {
+              renderResults(response.message.data, selected_date, {});
+            }
           });
         }
       },
     });
   });
 
-  // --- GROUPED RESULTS ---
+  // العرض المُجمّع
   function renderGroupedResults(data) {
     results_container.empty();
 
@@ -279,7 +293,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
           border:1px solid #ddd; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.1);
           background:#f9f9f9; direction:rtl; text-align:right;">
           <h3 class="collapsible d-flex align-items-center" style="cursor:pointer; margin:0; font-size:18px; font-weight:bold; color:#0d6efd;">
-            <span style="flex-grow:1;">${__("الخط")}: ${driver} | ${__("إجمالي الكمية")}: ${driver_data.total_qty} | ${__("الإجمالي المالي")}: ${driver_data.total_amount.toFixed(2)}</span>
+            <span style="flex-grow:1;">${__("الخط")}: ${frappe.utils.escape_html(driver)} | ${__("إجمالي الكمية")}: <strong>${format_number(driver_data.total_qty)}</strong> | ${__("الإجمالي")}: <strong>${format_number(driver_data.total_amount)}</strong></span>
             <span class="collapse-icon" style="transition: transform 0.3s;">▶</span>
           </h3>
           <div class="content mt-2" style="display:none; padding-right:10px;"></div>
@@ -291,7 +305,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
           <div class="card village-section mb-2 p-2" style="
             border:1px solid #ccc; border-radius:10px; background:#fff; margin-right:15px; direction:rtl; text-align:right;">
             <h4 class="collapsible d-flex align-items-center" style="cursor:pointer; margin:0; font-size:16px; color:#198754;">
-              <span style="flex-grow:1;">${__("القرية")}: ${village} | ${__("إجمالي الكمية")}: ${village_data.total_qty} | ${__("الإجمالي المالي")}: ${village_data.total_amount.toFixed(2)}</span>
+              <span style="flex-grow:1;">${__("القرية")}: ${frappe.utils.escape_html(village)} | ${__("إجمالي الكمية")}: <strong>${format_number(village_data.total_qty)}</strong> | ${__("الإجمالي")}: <strong>${format_number(village_data.total_amount)}</strong></span>
               <span class="collapse-icon" style="transition: transform 0.3s;">▶</span>
             </h4>
             <div class="content mt-1" style="display:none; padding-right:10px;"></div>
@@ -302,22 +316,22 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
           let supplier_total_qty = 0;
           let supplier_total_amount = 0;
           Object.values(supplier_data.milk_types).forEach(milk => {
-            supplier_total_qty += milk.qty;
-            supplier_total_amount += milk.amount;
+            supplier_total_qty += Number(milk.qty || 0);
+            supplier_total_amount += Number(milk.amount || 0);
           });
 
           const supplier_section = $(`
             <div class="card supplier-section mb-2 p-2" style="
               border:1px solid #bbb; border-radius:8px; background:#fefefe; margin-right:10px; direction:rtl; text-align:right;">
               <h5 class="collapsible d-flex align-items-center" style="cursor:pointer; margin:0; font-size:14px; color:#6c757d;">
-                <span style="flex-grow:1;">${__("المورد")}: ${supplier} | ${__("إجمالي الكمية")}: ${supplier_total_qty} | ${__("الإجمالي المالي")}: ${supplier_total_amount.toFixed(2)}</span>
+                <span style="flex-grow:1;">${__("المورد")}: ${frappe.utils.escape_html(supplier)} | ${__("إجمالي الكمية")}: <strong>${format_number(supplier_total_qty)}</strong> | ${__("الإجمالي")}: <strong>${format_number(supplier_total_amount)}</strong></span>
                 <span class="collapse-icon" style="transition: transform 0.3s;">▶</span>
               </h5>
               <div class="content mt-1" style="display:none; padding-right:5px;">
                 <table class="table table-bordered supplier-table mb-2" style="width:100%; border-collapse:collapse; font-size:13px;">
                   <thead>
                     <tr style="background:#f1f5f9;">
-                      <th>${__("نوع الحليب")}</th>
+                      <th>${__("نوع اللبن")}</th>
                       <th>${__("الكمية")}</th>
                       <th>${__("الإجمالي")}</th>
                     </tr>
@@ -326,10 +340,9 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
                     ${Object.entries(supplier_data.milk_types).map(([milk_type, milk]) =>
                       `<tr>
                         <td>${translateMilkType(milk_type)}</td>
-                        <td>${milk.qty}</td>
-                        <td>${milk.amount.toFixed(2)}</td>
-                      </tr>`).join("")
-                    }
+                        <td><strong>${format_number(milk.qty)}</strong></td>
+                        <td><strong>${format_number(milk.amount)}</strong></td>
+                      </tr>`).join("")}
                   </tbody>
                 </table>
               </div>
@@ -345,7 +358,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
       results_container.append(driver_section);
     }
 
-    // Collapsible toggle
+    // فتح/طي الأقسام
     $(".collapsible").off("click").on("click", function () {
       const content = $(this).next(".content");
       const icon = $(this).find(".collapse-icon");
@@ -354,7 +367,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     });
   }
 
-  // --- REFRESH & PRINT ---
+  // إعادة التحميل والطباعة
   filter_container.find("#refresh-button").on("click", () => location.reload());
 
   filter_container.find("#print-button").on("click", function () {
@@ -406,8 +419,8 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     printWindow.onafterprint = () => printWindow.close();
   });
 
-  // --- SIMPLE RESULTS (UNGROUPED) ---
-  function renderResults(data, selected_date) {
+  // العرض البسيط (غير المجمّع) مع مسحوب/الصافي في أول بطاقة لكل مورد
+  function renderResults(data, selected_date, loanTotals = {}) {
     results_container.empty();
 
     if (!data || Object.keys(data).length === 0) {
@@ -416,10 +429,25 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     }
 
     const dateRangeArabic = getDateRangeInArabic(selected_date);
+    const shownLoanForSupplier = new Set(); // لضمان عرض "مسحوب/الصافي" مرة واحدة لكل مورد
 
     data.forEach((supplier) => {
+      const supplierName = supplier.supplier_name;
       const custom_villages = supplier.custom_villages || "غير محدد";
       const milkTypeDisplay = `${translateMilkType(supplier.milk_type)} (${supplier.encrypted_rate})`;
+
+      const total_morning = Number(supplier.total_morning || 0);
+      const total_evening = Number(supplier.total_evening || 0);
+      const total_qty = Number(supplier.total_quantity || 0);
+      const total_amount = Number(supplier.total_amount || 0);
+
+      const loan_full_supplier_week = Number(loanTotals[supplierName] || 0);
+      const canShowLoanHere = !shownLoanForSupplier.has(supplierName) && loan_full_supplier_week > 0;
+      if (canShowLoanHere) shownLoanForSupplier.add(supplierName);
+
+      const net_after = canShowLoanHere
+        ? Math.max(0, total_amount - loan_full_supplier_week)
+        : total_amount;
 
       const supplier_section = $(`
         <div class="supplier-section" style="
@@ -442,16 +470,16 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
             border-radius: 5px; 
             box-sizing: border-box;">
             <div style="color: #d9534f; font-size: 16px; font-weight: bold;">
-              البان العمري
+              ألبان العمري
             </div>
             <div style="text-align: right;">
-              <span style="color: blue;">${supplier.supplier_name}</span>
+              <span style="color: blue;">${frappe.utils.escape_html(supplierName)}</span>
               &nbsp;|&nbsp;
-              <span style="color: red;">(${custom_villages})</span>
+              <span style="color: red;">(${frappe.utils.escape_html(custom_villages)})</span>
               &nbsp;|&nbsp;
               <span>(${dateRangeArabic})</span>
               &nbsp;|&nbsp;
-              <span>${milkTypeDisplay}</span>
+              <span>${frappe.utils.escape_html(milkTypeDisplay)}</span>
             </div>
           </div>
 
@@ -464,8 +492,8 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
             border: 2px solid #000; 
             box-sizing: border-box;">
             <thead>
-              <tr style="background: #f1f1f1; font-weight: bold; white-space: nowrap;">
-                <th style="border: 2px solid #000;">${__("اليوم")}</th>
+              <tr style="background: #f1f1f1; font-weight: bold;">
+                <th style="border: 2px solid #000; white-space: nowrap;">${__("اليوم")}</th>
                 ${supplier.days
                   .map((day) => `<th style="font-weight: bold; white-space: nowrap; border: 2px solid #000;">${day.day_name || __("تاريخ غير صالح")}</th>`)
                   .join("")}
@@ -478,8 +506,8 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
                   .map((day) => {
                     const morning = day.morning || { qty: 0, pont: 0 };
                     return supplier.custom_pont_size_rate === 1
-                      ? `<td style="vertical-align: middle; white-space: nowrap; border: 2px solid #000;">${morning.qty} ${__("كجم")}-(${morning.pont})</td>`
-                      : `<td style="vertical-align: middle; white-space: nowrap; border: 2px solid #000;">${morning.qty} ${__("كجم")}</td>`;
+                      ? `<td style="vertical-align: middle; white-space: nowrap; border: 2px solid #000;"><strong>${format_number(morning.qty)}</strong> ${__("كجم")}-(${frappe.utils.escape_html(String(morning.pont))})</td>`
+                      : `<td style="vertical-align: middle; white-space: nowrap; border: 2px solid #000;"><strong>${format_number(morning.qty)}</strong> ${__("كجم")}</td>`;
                   })
                   .join("")}
               </tr>
@@ -489,8 +517,8 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
                   .map((day) => {
                     const evening = day.evening || { qty: 0, pont: 0 };
                     return supplier.custom_pont_size_rate === 1
-                      ? `<td style="vertical-align: middle; white-space: nowrap; border: 2px solid #000;">${evening.qty} ${__("كجم")}-(${evening.pont})</td>`
-                      : `<td style="vertical-align: middle; white-space: nowrap; border: 2px solid #000;">${evening.qty} ${__("كجم")}</td>`;
+                      ? `<td style="vertical-align: middle; white-space: nowrap; border: 2px solid #000;"><strong>${format_number(evening.qty)}</strong> ${__("كجم")}-(${frappe.utils.escape_html(String(evening.pont))})</td>`
+                      : `<td style="vertical-align: middle; white-space: nowrap; border: 2px solid #000;"><strong>${format_number(evening.qty)}</strong> ${__("كجم")}</td>`;
                   })
                   .join("")}
               </tr>
@@ -498,18 +526,27 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
             <tfoot>
               <tr style="background: #f8f8f8; font-weight: bold;">
                 <td style="border: 2px solid #000;">${__("الإجمالي")}</td>
-                <td colspan="${supplier.days.length}" style="text-align: center; white-space: nowrap; border: 2px solid #000; padding-bottom: 5px;">
-                  ${__("إجمالي الصباح")}: ${supplier.total_morning} ${__("كجم")} |
-                  ${__("إجمالي المساء")}: ${supplier.total_evening} ${__("كجم")} |
-                  ${__("الإجمالي الكلي")}: ${supplier.total_quantity} ${__("كجم")} |
-                  ${__("الإجمالي المالي")}: ${supplier.total_amount.toFixed(2)} ${__("جنيه")}
+                <td colspan="${supplier.days.length}" class="totals-cell" style="text-align: center; border: 2px solid #000; padding: 6px 4px;">
+                  ${__("الصباح")}: <strong>${format_number(total_morning)}</strong>
+                  <span class="sep"> | </span>
+                  ${__("المساء")}: <strong>${format_number(total_evening)}</strong>
+                  <span class="sep"> | </span>
+                  ${__("الإجمالي الكلي")}: <strong>${format_number(total_qty)}</strong>
+                  <span class="sep"> | </span>
+                  ${__("الإجمالي")}: <strong>${format_number(total_amount)}</strong>
+                  ${canShowLoanHere ? `
+                    <span class="sep"> | </span>
+                    ${__("مسحوب")}: <strong>${format_number(loan_full_supplier_week)}</strong>
+                    <span class="sep"> | </span>
+                    ${__("الصافي")}: <strong>${format_number(net_after)}</strong>
+                  ` : ""}
                 </td>
               </tr>
             </tfoot>
           </table>
 
           <div class="contact-info text-center" style="font-size: 14px; font-weight: bold; margin-top: 10px; color: #555;">
-            ${__("الحسابات : ٠١٠١٨١١٥٤١٥١")} &nbsp;&nbsp; -- &nbsp;&nbsp; ${__("الحاج احمد : ٠١١٢٦٩٥٤٧٠٠")}
+            ${__("الحسابات: ٠١٠١٨١١٥٤١٥١")} &nbsp;&nbsp; — &nbsp;&nbsp; ${__("الحاج أحمد: ٠١١٢٦٩٥٤٧٠٠")}
           </div>
         </div>
       `);
@@ -517,23 +554,47 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
       results_container.append(supplier_section);
     });
 
-    $("head").append(`
-      <style>
-        .centered-table td, .centered-table th { height: 40px; vertical-align: middle; text-align: center; white-space: nowrap; border: 2px solid #000; box-sizing: border-box; }
-        .table { border-collapse: collapse; border-spacing: 0; width: 100%; }
-        .tfoot td { padding-bottom: 5px; }
-        .supplier-header { margin-bottom: 5px; }
-        .supplier-section { page-break-inside: avoid; }
-        @media print {
-          .centered-table { border: 2px solid #000; }
-          .centered-table td, .centered-table th { border: 2px solid #000; }
-          .supplier-section { page-break-inside: avoid; margin: 0; padding: 0; }
+    // أنماط مساعدة لتثبيت عرض الجدول والسماح بلفّ سطر الإجماليات
+    const styleId = "supplier-report-print-styles";
+    if (!document.getElementById(styleId)) {
+      const styleEl = document.createElement("style");
+      styleEl.id = styleId;
+      styleEl.textContent = `
+        .centered-table { table-layout: fixed; width: 100%; }
+        .centered-table td, .centered-table th {
+          height: 40px;
+          vertical-align: middle;
+          text-align: center;
+          border: 2px solid #000;
+          box-sizing: border-box;
         }
-      </style>
-    `);
+        .centered-table th { white-space: nowrap; }
+
+        .totals-cell {
+          white-space: normal;
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          line-height: 1.4;
+        }
+        .sep { margin: 0 6px; }
+
+        @media print {
+          @page { size: A4; margin: 1cm; }
+          .centered-table th, .centered-table td { padding: 6px 4px; }
+          .totals-cell {
+            font-size: 12px;
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+          }
+          .sep { margin: 0 4px; }
+        }
+      `;
+      document.head.appendChild(styleEl);
+    }
   }
 
-  // --- HELPER ---
+  // أداة مساعدة للتواريخ
   function getDateRangeInArabic(startDate) {
     const start = new Date(startDate);
     const end = new Date(start);
