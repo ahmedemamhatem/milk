@@ -947,19 +947,108 @@ def validate_supplier_data(driver, village, collection_date, milk_entries):
 
 
 @frappe.whitelist()
+def _parse_villages_list(cv):
+    """
+    Normalize Supplier.custom_villages into a simple list of village names.
+    Accepts JSON string, CSV string, or list/dict structures.
+    """
+    out = []
+    if not cv:
+        return out
+
+    # already a list (from db or child table stored as JSON)
+    if isinstance(cv, list):
+        for item in cv:
+            if not item:
+                continue
+            if isinstance(item, str):
+                v = item.strip()
+                if v:
+                    out.append(v)
+            elif isinstance(item, dict):
+                v = str(item.get("village") or item.get("village_name") or item.get("value") or item.get("name") or "").strip()
+                if v:
+                    out.append(v)
+        return out
+
+    # JSON string or CSV string
+    if isinstance(cv, str):
+        s = cv.strip()
+        if not s:
+            return out
+        # try JSON first
+        try:
+            arr = json.loads(s)
+            if isinstance(arr, list):
+                for item in arr:
+                    if not item:
+                        continue
+                    if isinstance(item, str):
+                        v = item.strip()
+                        if v:
+                            out.append(v)
+                    elif isinstance(item, dict):
+                        v = str(item.get("village") or item.get("village_name") or item.get("value") or item.get("name") or "").strip()
+                        if v:
+                            out.append(v)
+                return out
+        except Exception:
+            # not JSON; fall back to CSV
+            out.extend([v.strip() for v in s.split(",") if v.strip()])
+            return out
+
+    return out
+
+
+def _entry_with_pont_rate(row):
+    """
+    Ensure draft/submitted milk entries include custom_pont_size_rate if present on row.
+    """
+    d = frappe._dict(row.as_dict() if hasattr(row, "as_dict") else row)
+    # Normalize expected keys; fallback defaults to avoid frontend crashes
+    d.setdefault("supplier", d.get("supplier_name") or d.get("supplier"))
+    d.setdefault("supplier_name", d.get("supplier_name") or d.get("supplier"))
+    d.setdefault("milk_type", d.get("milk_type") or "")
+    d.setdefault("morning_quantity", d.get("morning_quantity") or 0)
+    d.setdefault("evening_quantity", d.get("evening_quantity") or 0)
+    d.setdefault("morning_pont", d.get("morning_pont") or 0)
+    d.setdefault("evening_pont", d.get("evening_pont") or 0)
+    d.setdefault("village", d.get("village") or d.get("village_name") or "")
+    d.setdefault("custom_sort", d.get("custom_sort") or None)
+    d.setdefault("custom_pont_size_rate", d.get("custom_pont_size_rate") or 0)
+    return d
+
+
+def process_milk_entries(entries):
+    """
+    Normalize draft rows to include fields the frontend expects.
+    """
+    return [_entry_with_pont_rate(e) for e in entries]
+
+
+@frappe.whitelist()
 def get_suppliers(driver, collection_date, villages=None):
     """
-    Fetch suppliers, load draft, or load submitted milk collection based on the driver, villages, and date.
+    Fetch suppliers, or load draft/submitted milk collection based on the driver, villages, and date.
+
+    Returns:
+      {
+        status: 'submitted' | 'draft' | 'new' | 'no_suppliers' | 'error',
+        milk_entries?: [],
+        suppliers?: [],
+        message: str,
+      }
     """
     try:
         # Validate inputs
         if not driver or not collection_date:
             frappe.throw("مطلوب تحديد السائق وتاريخ الجمع عشان نجيب الموردين 😅")
 
+        # Normalize villages: [] means "all"
         if not villages or not isinstance(villages, list):
-            villages = []  # Default to an empty list if no villages are provided
+            villages = []
 
-        # Check for existing Milk Collection documents
+        # 1) Check for an existing Milk Collection document (by driver + date)
         existing_doc = frappe.db.get_value(
             "Milk Collection",
             {"driver": driver, "collection_date": collection_date},
@@ -967,35 +1056,48 @@ def get_suppliers(driver, collection_date, villages=None):
             as_dict=True
         )
 
-        # Handle submitted document
-        if existing_doc and existing_doc["docstatus"] == 1:
+        # Submitted
+        if existing_doc and existing_doc.get("docstatus") == 1:
             submitted_doc = frappe.get_doc("Milk Collection", existing_doc["name"])
             return {
                 "status": "submitted",
-                "milk_entries": submitted_doc.milk_entries,
+                "milk_entries": [ _entry_with_pont_rate(r) for r in submitted_doc.milk_entries ],
                 "message": f"تسجيل اللبن للسائق '{driver}' والتاريخ '{collection_date}' متسلم بالفعل ✅"
             }
 
-        # Handle draft document
-        if existing_doc and existing_doc["docstatus"] == 0:
+        # Draft
+        if existing_doc and existing_doc.get("docstatus") == 0:
             draft_doc = frappe.get_doc("Milk Collection", existing_doc["name"])
-            # Process draft entries to include custom_pont_size_rate
             return {
                 "status": "draft",
                 "milk_entries": process_milk_entries(draft_doc.milk_entries),
                 "message": "في مسودة موجودة، ممكن تكمل إدخال البيانات ✍️"
             }
 
-        # New entries logic (if no draft or submitted document exists)
-        filters = {"custom_driver_in_charge": driver}
-        filters = {"custom_milk_supplier": 1}
-        if villages:
-            filters["custom_villages"] = ["in", villages]
+        # 2) New entries: fetch suppliers for this driver
+        # Combine filters correctly (your original code overwrote driver filter).
+        base_filters = {
+            "disabled": 0,
+            "custom_milk_supplier": 1,
+            "custom_driver_in_charge": driver
+        }
 
+        # Fetch candidate suppliers (we'll apply village filter in Python for robustness)
         suppliers = frappe.get_all(
             "Supplier",
-            filters=filters,
-            fields=["name", "custom_cow", "custom_villages", "custom_buffalo", "custom_cow_price", "custom_buffalo_price", "custom_pont_size_rate"]
+            filters=base_filters,
+            fields=[
+                "name",
+                "supplier_name",
+                "custom_cow",
+                "custom_buffalo",
+                "custom_villages",
+                "custom_cow_price",
+                "custom_buffalo_price",
+                "custom_pont_size_rate",
+                "custom_sort"
+            ],
+            order_by="COALESCE(custom_sort, 999999), supplier_name asc"
         )
 
         if not suppliers:
@@ -1005,30 +1107,52 @@ def get_suppliers(driver, collection_date, villages=None):
                 "message": f"لا يوجد موردين للسائق '{driver}' والقرى المحددة 😞"
             }
 
-        # Process suppliers for new milk entries
+        # Apply villages filter if provided
+        selected_villages = [v.strip() for v in villages if isinstance(v, str) and v.strip()]
+        filtered_suppliers = []
+        for sup in suppliers:
+            sup_villages = _parse_villages_list(sup.get("custom_villages"))
+            if selected_villages:
+                # keep supplier if any intersection
+                if not any(v in sup_villages for v in selected_villages):
+                    continue
+            filtered_suppliers.append(sup)
+
+        if not filtered_suppliers:
+            return {
+                "status": "no_suppliers",
+                "suppliers": [],
+                "message": f"لا يوجد موردين للسائق '{driver}' والقرى المحددة 😞"
+            }
+
+        # Build processed suppliers payload
         processed_suppliers = []
-        for supplier in suppliers:
-            supplier_name = supplier.get("name") or "غير معروف"
-            custom_villages = supplier.get("custom_villages") or "غير معروف"
+        for sup in filtered_suppliers:
+            sup_name = sup.get("supplier_name") or sup.get("name") or "غير معروف"
+            sup_villages = _parse_villages_list(sup.get("custom_villages"))
             milk_types = []
-            if supplier.get("custom_cow"):
+            if sup.get("custom_cow"):
                 milk_types.append("Cow")
-            if supplier.get("custom_buffalo"):
+            if sup.get("custom_buffalo"):
                 milk_types.append("Buffalo")
 
-            pont_size_rate = supplier.get("custom_pont_size_rate", 0)
+            pont_size_rate = sup.get("custom_pont_size_rate") or 0
 
             processed_suppliers.append({
-                "supplier": supplier_name,
-                "custom_villages": custom_villages,
-                "milk_type": ",".join(milk_types),
+                "supplier": sup.get("name"),
+                "supplier_name": sup_name,
+                "custom_villages": sup_villages,       # normalized list for the frontend
+                "milk_type": ",".join(milk_types),     # "Cow,Buffalo" ...
                 "custom_pont_size_rate": pont_size_rate,
                 "morning_quantity": 0,
                 "evening_quantity": 0,
-                "morning_pont": 0 if pont_size_rate == 0 else None,
-                "evening_pont": 0 if pont_size_rate == 0 else None,
-                "cow_price": supplier.get("custom_cow_price", 0),
-                "buffalo_price": supplier.get("custom_buffalo_price", 0),
+                "morning_pont": 0 if not pont_size_rate else 0,
+                "evening_pont": 0 if not pont_size_rate else 0,
+                "cow_price": sup.get("custom_cow_price") or 0,
+                "buffalo_price": sup.get("custom_buffalo_price") or 0,
+                "custom_sort": sup.get("custom_sort"),
+                # Provide a default village for grouping if only one present
+                "village": sup_villages[0] if sup_villages else ""
             })
 
         return {
@@ -1038,9 +1162,9 @@ def get_suppliers(driver, collection_date, villages=None):
         }
 
     except Exception as e:
-        frappe.log_error(message=str(e), title="خطأ في جلب الموردين 🐄")
-        return {"status": "error", "message": f"حصل خطأ وإحنا بنجيب الموردين 😢: {str(e)}"}
-    
+        frappe.log_error(message=frappe.get_traceback(), title="خطأ في جلب الموردين 🐄")
+        return {"status": "error", "message": f"حصل خطأ وإحنا بنجيب الموردين 😢: {frappe.as_unicode(e)}"}
+      
 
 def process_milk_entries(milk_entries):
     """

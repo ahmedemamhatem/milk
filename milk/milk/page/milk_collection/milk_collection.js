@@ -276,10 +276,8 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
     const isSubmitted = status === 'submitted';
     const $save = actions_section.find('.save-btn');
     const $submit = actions_section.find('.submit-btn');
-    // Disable Save/Submit on submitted
     $save.prop('disabled', isSubmitted);
     $submit.prop('disabled', isSubmitted);
-    // Disable Use Pont checkbox when submitted
     $(use_pont.$input).prop('disabled', isSubmitted);
   }
 
@@ -341,7 +339,6 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
     const tbody = table_section.find("tbody");
     tbody.empty();
 
-    // Utility to extract the village name to display for an entry
     const getVillageForEntry = (entry) => {
       const explicit = (entry.village || entry.village_name || '').toString().trim();
       if (explicit) return explicit;
@@ -350,7 +347,6 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
       return '';
     };
 
-    // Normalize entries
     const normalized = [];
     const suppliersToFetch = new Set();
 
@@ -375,9 +371,8 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
       normalized.push(rec);
     };
 
-    data.forEach(pushEntry);
+    (data || []).forEach(pushEntry);
 
-    // Batch fetch custom_sort for suppliers missing it
     if (suppliersToFetch.size > 0) {
       try {
         const names = Array.from(suppliersToFetch);
@@ -410,12 +405,10 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
       }
     }
 
-    // Defaults
     normalized.forEach(rec => {
       if (!Number.isFinite(rec.custom_sort)) rec.custom_sort = 999999;
     });
 
-    // Sort by village, then custom_sort, then supplier
     normalized.sort((a, b) => {
       const va = (a.village || '').toString();
       const vb = (b.village || '').toString();
@@ -424,7 +417,6 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
       return (a.supplier || '').localeCompare((b.supplier || ''), 'ar');
     });
 
-    // Render with village headers
     let rowCount = 1;
     let lastVillage = null;
 
@@ -469,10 +461,7 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
       tbody.html(`<tr><td colspan="7" style="text-align:center;">${__('لا توجد بيانات')}</td></tr>`);
     }
 
-    // Apply pont visibility after rows rendered
     togglePontVisibility();
-
-    // Lock UI based on status
     toggleActionButtons(status);
   }
 
@@ -485,93 +474,97 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
 
     const usePont = Boolean(use_pont.get_value());
 
-table_section.find("tbody tr").each(function (index, row) {
-  const $row = $(row);
+    table_section.find("tbody tr").each(function (index, row) {
+      const $row = $(row);
 
-  // Skip village header rows or any non-data rows
-  if ($row.hasClass('village-header-row')) return; // ignore header row
-  if ($row.find('input').length === 0) return;     // safety: no inputs means not a data row
+      // Skip village header rows or any non-data rows
+      if ($row.hasClass('village-header-row')) return;
+      if ($row.find('input').length === 0) return;
 
-  const supplier = $row.find("td:nth-child(2)").text().trim();
-  const milk_type = translateMilkType($row.find("td:nth-child(3)").text().trim(), false);
-  const morning_quantity = parseFloat($row.find(".morning-quantity").val()) || 0;
-  const evening_quantity = parseFloat($row.find(".evening-quantity").val()) || 0;
+      const supplier = $row.find("td:nth-child(2)").text().trim();
+      const milk_type = translateMilkType($row.find("td:nth-child(3)").text().trim(), false);
+      const morning_quantity = parseFloat($row.find(".morning-quantity").val()) || 0;
+      const evening_quantity = parseFloat($row.find(".evening-quantity").val()) || 0;
 
-  let morning_pont = 0;
-  let evening_pont = 0;
+      let morning_pont = 0;
+      let evening_pont = 0;
 
-  if (usePont) {
-    const $mp = $row.find(".morning-pont");
-    const $ep = $row.find(".evening-pont");
-    morning_pont = parseFloat($mp.val()) || 0;
-    evening_pont = parseFloat($ep.val()) || 0;
+      if (usePont) {
+        const $mp = $row.find(".morning-pont");
+        const $ep = $row.find(".evening-pont");
+        morning_pont = parseFloat($mp.val()) || 0;
+        evening_pont = parseFloat($ep.val()) || 0;
 
-    const isMorningPontReadonly = $mp.prop("readonly");
-    const isEveningPontReadonly = $ep.prop("readonly");
+        const isMorningPontReadonly = $mp.prop("readonly");
+        const isEveningPontReadonly = $ep.prop("readonly");
 
-    const morningPontValidation = validate_pont_field(morning_pont, milk_type, isMorningPontReadonly);
-    if (morningPontValidation === "invalid_cow") {
-      frappe.msgprint(`خطأ في الصف ${index + 1}: بنط الصباح (بقر) يجب أن يكون بين 3 و 5.`);
-      invalid_rows = true;
-      return false;
-    }
-    if (morningPontValidation === "invalid_buffalo") {
-      frappe.msgprint(`خطأ في الصف ${index + 1}: بنط الصباح (جاموس) يجب أن يكون بين 6 و 9.`);
-      invalid_rows = true;
-      return false;
-    }
-
-    const eveningPontValidation = validate_pont_field(evening_pont, milk_type, isEveningPontReadonly);
-    if (eveningPontValidation === "invalid_cow") {
-      frappe.msgprint(`خطأ في الصف ${index + 1}: بنط المساء (بقر) يجب أن يكون بين 3 و 5.`);
-      invalid_rows = true;
-      return false;
-    }
-    if (eveningPontValidation === "invalid_buffalo") {
-      frappe.msgprint(`خطأ في الصف ${index + 1}: بنط المساء (جاموس) يجب أن يكون بين 6 و 9.`);
-      invalid_rows = true;
-      return false;
-    }
-  }
-
-  const promise = new Promise((resolve) => {
-    frappe.call({
-      method: "milk.milk.utils.get_average_quantity",
-      args: { supplier, milk_type, days: 10 },
-      callback: function (response) {
-        const average = response.message || { morning: 0, evening: 0 };
-        const morning_min = average.morning - 2;
-        const morning_max = average.morning + 2;
-        const evening_min = average.evening - 2;
-        const evening_max = average.evening + 2;
-
-        let errors = [];
-        if (morning_quantity > 0) {
-          if (morning_quantity < morning_min || morning_quantity > morning_max) {
-            errors.push(`كمية الصباح (${morning_quantity}) خارج النطاق (المتوسط: ${average.morning} ± 2).`);
-          }
-        } else if (morning_quantity === 0) {
-          errors.push(`كمية الصباح = 0`);
+        const morningPontValidation = validate_pont_field(morning_pont, milk_type, isMorningPontReadonly);
+        if (morningPontValidation === "invalid_cow") {
+          frappe.msgprint(`خطأ في الصف ${index + 1}: بنط الصباح (بقر) يجب أن يكون بين ٣ و ٥.`);
+          invalid_rows = true;
+          return false;
+        }
+        if (morningPontValidation === "invalid_buffalo") {
+          frappe.msgprint(`خطأ في الصف ${index + 1}: بنط الصباح (جاموس) يجب أن يكون بين ٦ و ٩.`);
+          invalid_rows = true;
+          return false;
         }
 
-        if (evening_quantity > 0) {
-          if (evening_quantity < evening_min || evening_quantity > evening_max) {
-            errors.push(`كمية المساء (${evening_quantity}) خارج النطاق (المتوسط: ${average.evening} ± 2).`);
-          }
-        } else if (evening_quantity === 0) {
-          errors.push(`كمية المساء = 0`);
+        const eveningPontValidation = validate_pont_field(evening_pont, milk_type, isEveningPontReadonly);
+        if (eveningPontValidation === "invalid_cow") {
+          frappe.msgprint(`خطأ في الصف ${index + 1}: بنط المساء (بقر) يجب أن يكون بين ٣ و ٥.`);
+          invalid_rows = true;
+          return false;
         }
+        if (eveningPontValidation === "invalid_buffalo") {
+          frappe.msgprint(`خطأ في الصف ${index + 1}: بنط المساء (جاموس) يجب أن يكون بين ٦ و ٩.`);
+          invalid_rows = true;
+          return false;
+        }
+      }
 
-        if (errors.length > 0) validation_issues.push(`صف ${index + 1}: ${errors.join(" | ")}`);
+      const promise = new Promise((resolve) => {
+        frappe.call({
+          method: "milk.milk.utils.get_average_quantity",
+          args: { supplier, milk_type, days: 10 },
+          callback: function (response) {
+            const average = response.message || { morning: 0, evening: 0 };
 
-        milk_entries.push({ supplier, milk_type, morning_quantity, morning_pont, evening_quantity, evening_pont });
-        resolve();
-      },
-    });
-  });
+            // ±20% variance
+            const morning_min = average.morning * 0.80;
+            const morning_max = average.morning * 1.20;
+            const evening_min = average.evening * 0.80;
+            const evening_max = average.evening * 1.20;
 
-  validationPromises.push(promise);
-});
+            const fmt = (n) => Number.isFinite(n) ? Number(n).toFixed(2) : '0.00';
+
+            let errors = [];
+            if (morning_quantity > 0) {
+              if (morning_quantity < morning_min || morning_quantity > morning_max) {
+                errors.push(`كمية الصباح (${fmt(morning_quantity)}) خارج النطاق (المتوسط: ${fmt(average.morning)} ± 20%).`);
+              }
+            } else if (morning_quantity === 0) {
+              errors.push(`كمية الصباح = 0`);
+            }
+
+            if (evening_quantity > 0) {
+              if (evening_quantity < evening_min || evening_quantity > evening_max) {
+                errors.push(`كمية المساء (${fmt(evening_quantity)}) خارج النطاق (المتوسط: ${fmt(average.evening)} ± 20%).`);
+              }
+            } else if (evening_quantity === 0) {
+              errors.push(`كمية المساء = 0`);
+            }
+
+            if (errors.length > 0) validation_issues.push(`صف ${index + 1}: ${errors.join(" | ")}`);
+
+            milk_entries.push({ supplier, milk_type, morning_quantity, morning_pont, evening_quantity, evening_pont });
+            resolve();
+          },
+        });
+      });
+
+      validationPromises.push(promise);
+    }); // END each
 
     if (invalid_rows) {
       frappe.msgprint("يرجى تصحيح الأخطاء قبل المتابعة!");
@@ -610,7 +603,6 @@ table_section.find("tbody tr").each(function (index, row) {
 
   function clear_table_and_filters() {
     table_section.find("tbody").html(`<tr><td colspan="7">لا توجد بيانات</td></tr>`);
-    // Re-enable controls after clear
     toggleActionButtons('new');
     $(use_pont.$input).prop('disabled', false).prop('checked', false).trigger('change');
     frappe.msgprint("تم مسح البيانات.");
@@ -631,18 +623,27 @@ table_section.find("tbody tr").each(function (index, row) {
       args: {
         driver: selectedDriver,
         collection_date: selectedDate,
-        villages: [village.get_value()],
+        villages: village.get_value() ? [village.get_value()] : []
       },
       callback: function (response) {
-        const status = response.message.status || 'new';
-        if (status === "submitted") {
-          populate_table_with_data(response.message.milk_entries || [], 'submitted');
-        } else if (status === "draft") {
-          populate_table_with_data(response.message.milk_entries || [], 'draft');
-        } else {
-          populate_table_with_data(response.message.suppliers || [], 'new');
+        // Debug and defensive handling
+        console.log('get_suppliers response', response);
+        const msg = response && response.message ? response.message : {};
+        const status = msg.status || 'new';
+
+        let rows = [];
+        if (Array.isArray(msg.milk_entries) && msg.milk_entries.length) {
+          rows = msg.milk_entries;
+        } else if (Array.isArray(msg.suppliers) && msg.suppliers.length) {
+          rows = msg.suppliers;
         }
-        frappe.msgprint(response.message.message);
+
+        populate_table_with_data(rows || [], status);
+
+        if (msg.message) frappe.msgprint(msg.message);
+        if (!rows || !rows.length) {
+          frappe.show_alert({ message: __('لا توجد بيانات لعرضها بعد تطبيق الفلاتر.'), indicator: 'orange' }, 5);
+        }
       },
     });
   });
@@ -712,7 +713,6 @@ table_section.find("tbody tr").each(function (index, row) {
       const selectedDriver = driver.get_value();
       const selectedVillage = village.get_value();
 
-      // Fetch suppliers including supplier-level custom_sort and custom_villages
       const suppliers = await frappe.db.get_list('Supplier', {
         fields: [
           'name',
@@ -734,7 +734,6 @@ table_section.find("tbody tr").each(function (index, row) {
         return;
       }
 
-      // Build rows
       const rows = [];
       suppliers.forEach(sup => {
         const driver_name = (sup.custom_driver_in_charge || '').toString().trim() || __('غير محدد');
@@ -770,7 +769,6 @@ table_section.find("tbody tr").each(function (index, row) {
         return;
       }
 
-      // Sort: driver -> village -> custom_sort -> supplier -> milk_type
       rows.sort((a, b) => {
         if (a.driver !== b.driver) return a.driver.localeCompare(b.driver, 'ar');
         if (a.village !== b.village) return a.village.localeCompare(b.village, 'ar');
@@ -859,12 +857,11 @@ table_section.find("tbody tr").each(function (index, row) {
 <div class="canvas">
   <div id="fitwrap" class="fitwrap scale-100">
     <div class="hdr">
-      <div class="title">${__('مسودة تسجيل اللبن')} — ${rows[0]?.driver || __('غير محدد')}</div>
+      <div class="title">${__('مسودة تسجيل اللبن')} -- ${rows[0]?.driver || __('غير محدد')}</div>
       <div class="meta">${dayName} • ${today}</div>
     </div>
 `;
 
-      // Group rows by village within the single page (no page breaks)
       const byVillageMap = {};
       rows.forEach(r => {
         (byVillageMap[r.village] = byVillageMap[r.village] || []).push(r);
