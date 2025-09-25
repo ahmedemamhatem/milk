@@ -9,11 +9,9 @@ from datetime import datetime, timedelta
 @frappe.whitelist()
 def disable_inactive_milk_suppliers():
     """
-    Disable suppliers with custom_milk_supplier == 1
-    if they have no milk entries or only zero-quantity entries
-    for the last 12 consecutive days.
+    Disable suppliers (custom_milk_supplier == 1) if they have no milk entries
+    or only zero-quantity entries for the last 12 consecutive days.
     """
-    # Get all milk suppliers
     suppliers = frappe.get_all(
         "Supplier",
         filters={"custom_milk_supplier": 1, "disabled": 0},
@@ -23,40 +21,35 @@ def disable_inactive_milk_suppliers():
     start_date = add_days(today(), -12)
     end_date = today()
 
+    to_disable = []
+
     for s in suppliers:
-        # Fetch logs for this supplier in last 12 days
         logs = frappe.get_all(
             "Milk Entries Log",
             filters={
                 "supplier": s.name,
                 "date": ["between", [start_date, end_date]],
             },
-            fields=["quantity"]
+            fields=["quantity"],
+            limit=1000
         )
 
         if not logs:
-            # No logs at all → disable supplier
-            frappe.db.set_value("Supplier", s.name, "disabled", 1)
-            frappe.db.commit()
-            frappe.logger().info(f"Disabled supplier {s.name} (no logs in last 7 days)")
+            to_disable.append(s.name)
             continue
 
-        # Check if all quantities are 0
-        if all((flt(log.quantity) == 0 for log in logs)):
-            frappe.db.set_value("Supplier", s.name, "disabled", 1)
-            frappe.db.commit()
+        # if all quantities are zero -> disable
+        if all(flt(log.get("quantity") or 0) == 0 for log in logs):
+            to_disable.append(s.name)
+
+    if to_disable:
+        for sup in to_disable:
+            frappe.db.set_value("Supplier", sup, "disabled", 1)
+        frappe.db.commit()
 
 
 @frappe.whitelist()
 def get_suppliers_with_villages(driver=None, village=None):
-    # Returns suppliers with villages and custom_sort from child table
-    # Assumptions:
-    # - custom_milk_supplier: Check field on Supplier
-    # - custom_driver_in_charge: Link field on Supplier to Driver
-    # - custom_cow, custom_buffalo: Int fields (1/0)
-    # - Child table doctype: "Supplier Village" (example) linked to Supplier via parent
-    #   Fields: parent (Supplier), village (Link to Village), custom_sort (Int)
-    # Adjust child table doctype and fieldnames if yours differ.
     suppliers = frappe.get_all(
         "Supplier",
         filters={"disabled": 0, "custom_milk_supplier": 1},
@@ -64,24 +57,22 @@ def get_suppliers_with_villages(driver=None, village=None):
         limit=5000
     )
 
-    # Fetch child rows for all suppliers in one query
     supplier_names = [s["name"] for s in suppliers] or ["___none___"]
-    # Replace "Supplier Village" and its fields with your actual child doctype/fields
+
     child_rows = frappe.get_all(
-        "Supplier Village",
+        "Supplier Village",  # adjust if your child doctype differs
         filters={"parent": ["in", supplier_names]},
         fields=["parent", "village", "custom_sort", "idx"],
         order_by="parent asc, custom_sort asc, idx asc"
     )
 
-    # Map parent -> villages list
     by_parent = {}
     for row in child_rows:
-        if village and row.get("village") != village:
+        if village and (row.get("village") or "") != village:
             continue
         by_parent.setdefault(row["parent"], []).append({
             "village": row.get("village"),
-            "custom_sort": row.get("custom_sort") if row.get("custom_sort") is not None else row.get("idx", 999999)
+            "custom_sort": row.get("custom_sort") if row.get("custom_sort") is not None else (row.get("idx") or 999999)
         })
 
     result = []
@@ -90,7 +81,6 @@ def get_suppliers_with_villages(driver=None, village=None):
             continue
 
         villages = by_parent.get(s["name"], [])
-        # If a village filter was provided and no villages matched, skip
         if village and not villages:
             continue
 
