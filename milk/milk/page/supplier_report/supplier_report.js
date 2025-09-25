@@ -5,7 +5,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     single_column: true,
   });
 
-  // ترجمات نوع اللبن
+  // Translations for Milk Type
   const milkTypeTranslations = {
     "Cow": "بقر",
     "Buffalo": "جاموس",
@@ -16,7 +16,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     return milkTypeTranslations[type] || type;
   }
 
-  // واجهة المرشحات + الأزرار
+  // --- FILTER UI ---
   const filter_container = $(`
     <div class="flex items-center gap-4 mb-4" style="display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
       <div id="filter-wrapper-date" style="flex:1 1 200px; min-width:220px;"></div>
@@ -76,10 +76,10 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     container: filter_container.find("#filter-wrapper-group")[0],
   });
 
-  // حاوية النتائج
+  // --- RESULTS CONTAINER ---
   const results_container = $(`<div id="printable-content" class="results mt-4"></div>`).appendTo(page.body);
 
-  // زر إنشاء الدفعات
+  // --- PAY BUTTON ---
   filter_container.find("#pay-button").on("click", function () {
     if (!results_container || results_container.children().length === 0) {
       frappe.msgprint(__("لا توجد بيانات لمعالجة الدفعات."));
@@ -173,7 +173,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     dialog.show();
   });
 
-  // تنسيق الأرقام
+  // Helper to format numbers safely
   function format_number(value) {
     const n = Number(value);
     if (Number.isFinite(n)) return n.toFixed(2);
@@ -184,7 +184,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     const je1 = msg.journal_entry_accrual;
     const je2 = msg.journal_entry_payment;
     const refNo = msg.reference_no || "";
-    const updatedLogs = Array.isArray(msg.updated_logs) ? msg.updated_logs : [];
+       const updatedLogs = Array.isArray(msg.updated_logs) ? msg.updated_logs : [];
     const suppliers = Array.isArray(msg.suppliers) ? msg.suppliers : [];
 
     const supplierLines = suppliers.length
@@ -224,7 +224,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     });
   }
 
-  // جلب التقرير
+  // --- FETCH REPORT ---
   filter_container.find("#fetch-button").on("click", function () {
     const selected_date = filters.date.get_value();
     const selected_supplier = filters.supplier.get_value();
@@ -247,19 +247,23 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
         village: selected_village || null,
       },
       callback: function (response) {
+        if (!response || !response.message) {
+          frappe.msgprint({ title: __("خطأ"), indicator: "red", message: __("استجابة غير صالحة من الخادم.") });
+          return;
+        }
         if (response.message.status !== "success") {
-          frappe.msgprint({
-            title: __("خطأ"),
-            indicator: "red",
-            message: response.message.message,
-          });
+          frappe.msgprint({ title: __("خطأ"), indicator: "red", message: response.message.message || __("فشل الجلب.") });
           return;
         }
 
+        // Clear previous content and events before rendering
+        results_container.off().empty();
+
         if (is_grouped) {
-          renderGroupedResults(response.message.data);
+          const groupedData = response.message.data || {};
+          renderGroupedResults(groupedData);
         } else {
-          // جلب إجمالي القروض الأسبوعية للموردين (paied = 0)
+          // Fetch weekly loan totals for suppliers (paied=0)
           frappe.call({
             method: "milk.milk.utils.get_weekly_supplier_loan_totals",
             args: { selected_date },
@@ -278,53 +282,79 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     });
   });
 
-  // العرض المُجمّع
+  // --- GROUPED RESULTS ---
   function renderGroupedResults(data) {
-    results_container.empty();
-
-    if (!data || Object.keys(data).length === 0) {
+    // Defensive guard: ensure data is a plain object with drivers
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
       results_container.html(`<div class="alert alert-warning">${__("لا توجد بيانات.")}</div>`);
       return;
     }
 
-    for (const [driver, driver_data] of Object.entries(data)) {
+    results_container.empty();
+
+    const driverEntries = Object.entries(data);
+    if (driverEntries.length === 0) {
+      results_container.html(`<div class="alert alert-warning">${__("لا توجد بيانات.")}</div>`);
+      return;
+    }
+
+    driverEntries.forEach(([driver, driver_data]) => {
+      const total_qty = Number(driver_data?.total_qty || 0);
+      const total_amount = Number(driver_data?.total_amount || 0);
+
       const driver_section = $(`
         <div class="card driver-section mb-3 p-3" style="
           border:1px solid #ddd; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.1);
           background:#f9f9f9; direction:rtl; text-align:right;">
           <h3 class="collapsible d-flex align-items-center" style="cursor:pointer; margin:0; font-size:18px; font-weight:bold; color:#0d6efd;">
-            <span style="flex-grow:1;">${__("الخط")}: ${frappe.utils.escape_html(driver)} | ${__("إجمالي الكمية")}: <strong>${format_number(driver_data.total_qty)}</strong> | ${__("الإجمالي")}: <strong>${format_number(driver_data.total_amount)}</strong></span>
+            <span style="flex-grow:1;">${__("الخط")}: ${frappe.utils.escape_html(driver)} | ${__("إجمالي الكمية")}: <strong>${format_number(total_qty)}</strong> | ${__("الإجمالي")}: <strong>${format_number(total_amount)}</strong></span>
             <span class="collapse-icon" style="transition: transform 0.3s;">▶</span>
           </h3>
           <div class="content mt-2" style="display:none; padding-right:10px;"></div>
         </div>
       `);
 
-      for (const [village, village_data] of Object.entries(driver_data.villages)) {
+      const villages = driver_data?.villages && typeof driver_data.villages === "object"
+        ? Object.entries(driver_data.villages)
+        : [];
+
+      villages.forEach(([village, village_data]) => {
+        const v_total_qty = Number(village_data?.total_qty || 0);
+        const v_total_amount = Number(village_data?.total_amount || 0);
+
         const village_section = $(`
           <div class="card village-section mb-2 p-2" style="
             border:1px solid #ccc; border-radius:10px; background:#fff; margin-right:15px; direction:rtl; text-align:right;">
             <h4 class="collapsible d-flex align-items-center" style="cursor:pointer; margin:0; font-size:16px; color:#198754;">
-              <span style="flex-grow:1;">${__("القرية")}: ${frappe.utils.escape_html(village)} | ${__("إجمالي الكمية")}: <strong>${format_number(village_data.total_qty)}</strong> | ${__("الإجمالي")}: <strong>${format_number(village_data.total_amount)}</strong></span>
+              <span style="flex-grow:1;">${__("القرية")}: ${frappe.utils.escape_html(village)} | ${__("إجمالي الكمية")}: <strong>${format_number(v_total_qty)}</strong> | ${__("الإجمالي")}: <strong>${format_number(v_total_amount)}</strong></span>
               <span class="collapse-icon" style="transition: transform 0.3s;">▶</span>
             </h4>
             <div class="content mt-1" style="display:none; padding-right:10px;"></div>
           </div>
         `);
 
-        for (const [supplier, supplier_data] of Object.entries(village_data.suppliers)) {
+        const suppliers = village_data?.suppliers && typeof village_data.suppliers === "object"
+          ? Object.entries(village_data.suppliers)
+          : [];
+
+        suppliers.forEach(([supplierName, supplier_data]) => {
           let supplier_total_qty = 0;
           let supplier_total_amount = 0;
-          Object.values(supplier_data.milk_types).forEach(milk => {
-            supplier_total_qty += Number(milk.qty || 0);
-            supplier_total_amount += Number(milk.amount || 0);
+
+          const milk_entries = supplier_data?.milk_types && typeof supplier_data.milk_types === "object"
+            ? Object.entries(supplier_data.milk_types)
+            : [];
+
+          milk_entries.forEach(([, milk]) => {
+            supplier_total_qty += Number(milk?.qty || 0);
+            supplier_total_amount += Number(milk?.amount || 0);
           });
 
           const supplier_section = $(`
             <div class="card supplier-section mb-2 p-2" style="
               border:1px solid #bbb; border-radius:8px; background:#fefefe; margin-right:10px; direction:rtl; text-align:right;">
-              <h5 class="collapsible d-flex align-items-center" style="cursor:pointer; margin:0; font-size:14px; color:#6c757d;">
-                <span style="flex-grow:1;">${__("المورد")}: ${frappe.utils.escape_html(supplier)} | ${__("إجمالي الكمية")}: <strong>${format_number(supplier_total_qty)}</strong> | ${__("الإجمالي")}: <strong>${format_number(supplier_total_amount)}</strong></span>
+              <h5 class="collapsible d-flex align-items-center" style="cursor:pointer; margin:0; font-size:14px; color:#6c757د;">
+                <span style="flex-grow:1;">${__("المورد")}: ${frappe.utils.escape_html(supplierName)} | ${__("إجمالي الكمية")}: <strong>${format_number(supplier_total_qty)}</strong> | ${__("الإجمالي")}: <strong>${format_number(supplier_total_amount)}</strong></span>
                 <span class="collapse-icon" style="transition: transform 0.3s;">▶</span>
               </h5>
               <div class="content mt-1" style="display:none; padding-right:5px;">
@@ -337,11 +367,11 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
                     </tr>
                   </thead>
                   <tbody>
-                    ${Object.entries(supplier_data.milk_types).map(([milk_type, milk]) =>
+                    ${milk_entries.map(([milk_type, milk]) =>
                       `<tr>
                         <td>${translateMilkType(milk_type)}</td>
-                        <td><strong>${format_number(milk.qty)}</strong></td>
-                        <td><strong>${format_number(milk.amount)}</strong></td>
+                        <td><strong>${format_number(milk?.qty)}</strong></td>
+                        <td><strong>${format_number(milk?.amount)}</strong></td>
                       </tr>`).join("")}
                   </tbody>
                 </table>
@@ -350,24 +380,25 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
           `);
 
           village_section.find(".content").append(supplier_section);
-        }
+        });
 
         driver_section.find(".content").append(village_section);
-      }
+      });
 
       results_container.append(driver_section);
-    }
+    });
 
-    // فتح/طي الأقسام
-    $(".collapsible").off("click").on("click", function () {
+    // Collapsible toggle: safe, no re-fetch or re-render
+    results_container.find(".collapsible").off("click").on("click", function () {
       const content = $(this).next(".content");
       const icon = $(this).find(".collapse-icon");
-      content.slideToggle(300);
-      icon.css("transform", content.is(":visible") ? "rotate(90deg)" : "rotate(0deg)");
+      const visible = content.is(":visible");
+      content.stop(true, true).slideToggle(200);
+      icon.css("transform", visible ? "rotate(0deg)" : "rotate(90deg)");
     });
   }
 
-  // إعادة التحميل والطباعة
+  // --- REFRESH & PRINT ---
   filter_container.find("#refresh-button").on("click", () => location.reload());
 
   filter_container.find("#print-button").on("click", function () {
@@ -419,7 +450,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     printWindow.onafterprint = () => printWindow.close();
   });
 
-  // العرض البسيط (غير المجمّع) مع مسحوب/الصافي في أول بطاقة لكل مورد
+  // --- SIMPLE RESULTS (UNGROUPED) ---
   function renderResults(data, selected_date, loanTotals = {}) {
     results_container.empty();
 
@@ -429,7 +460,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     }
 
     const dateRangeArabic = getDateRangeInArabic(selected_date);
-    const shownLoanForSupplier = new Set(); // لضمان عرض "مسحوب/الصافي" مرة واحدة لكل مورد
+    const shownLoanForSupplier = new Set(); // Track first card per supplier
 
     data.forEach((supplier) => {
       const supplierName = supplier.supplier_name;
@@ -477,7 +508,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
               &nbsp;|&nbsp;
               <span style="color: red;">(${frappe.utils.escape_html(custom_villages)})</span>
               &nbsp;|&nbsp;
-              <span>(${dateRangeArabic})</span>
+              <span>(${frappe.utils.escape_html(dateRangeArabic)})</span>
               &nbsp;|&nbsp;
               <span>${frappe.utils.escape_html(milkTypeDisplay)}</span>
             </div>
@@ -492,8 +523,8 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
             border: 2px solid #000; 
             box-sizing: border-box;">
             <thead>
-              <tr style="background: #f1f1f1; font-weight: bold;">
-                <th style="border: 2px solid #000; white-space: nowrap;">${__("اليوم")}</th>
+              <tr style="background: #f1f1f1; font-weight: bold; white-space: nowrap;">
+                <th style="border: 2px solid #000;">${__("اليوم")}</th>
                 ${supplier.days
                   .map((day) => `<th style="font-weight: bold; white-space: nowrap; border: 2px solid #000;">${day.day_name || __("تاريخ غير صالح")}</th>`)
                   .join("")}
@@ -554,7 +585,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
       results_container.append(supplier_section);
     });
 
-    // أنماط مساعدة لتثبيت عرض الجدول والسماح بلفّ سطر الإجماليات
+    // One-time style injection
     const styleId = "supplier-report-print-styles";
     if (!document.getElementById(styleId)) {
       const styleEl = document.createElement("style");
@@ -594,7 +625,7 @@ frappe.pages["supplier-report"].on_page_load = function (wrapper) {
     }
   }
 
-  // أداة مساعدة للتواريخ
+  // --- HELPER ---
   function getDateRangeInArabic(startDate) {
     const start = new Date(startDate);
     const end = new Date(start);
