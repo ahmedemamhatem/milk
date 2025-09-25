@@ -988,6 +988,7 @@ def get_suppliers(driver, collection_date, villages=None):
 
         # New entries logic (if no draft or submitted document exists)
         filters = {"custom_driver_in_charge": driver}
+        filters = {"custom_milk_supplier": 1}
         if villages:
             filters["custom_villages"] = ["in", villages]
 
