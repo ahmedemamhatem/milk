@@ -22,7 +22,8 @@
   "rate",
   "amount",
   "invoice_entry",
-  "payment_entry"
+  "payment_entry",
+  "weekly_supplier_payment"
  ],
  "fields": [
   {
@@ -170,12 +171,19 @@
    "label": "Payment Entry",
    "options": "Journal Entry",
    "read_only": 1
+  },
+  {
+   "fieldname": "weekly_supplier_payment",
+   "fieldtype": "Link",
+   "label": "Weekly Supplier Payment",
+   "options": "Weekly Supplier Payment",
+   "read_only": 1
   }
  ],
  "in_create": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-24 16:25:59.735581",
+ "modified": "2025-09-26 18:11:20.216670",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Milk Entries Log",

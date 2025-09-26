@@ -4,8 +4,147 @@ import random
 import string
 from frappe.utils import getdate, add_days, nowdate, now_datetime, today, flt
 from datetime import datetime, timedelta
+from frappe import _
 
 
+PARENT_DOTYPE = "Supplier Loan"            # parent doctype
+CHILD_DOTYPE = "Supplier Loan Table"       # child doctype
+
+# Parent fields
+PARENT_FIELD_SUPPLIER = "supplier"         # Link to Supplier
+PARENT_FIELD_NAME = "name"                 # parent name (ID)
+
+# Child fields
+CHILD_FIELD_PARENT = "parent"
+CHILD_FIELD_PARENTTYPE = "parenttype"
+CHILD_FIELD_DATE = "date"                  # weekly installment date
+CHILD_FIELD_AMOUNT = "amount"              # weekly amount
+CHILD_FIELD_PAIED = "paied"                # 0/1
+
+# Table names
+TAB_PARENT = f"`tab{PARENT_DOTYPE}`"
+TAB_CHILD = f"`tab{CHILD_DOTYPE}`"
+
+def _parse_week_range(selected_date: str):
+    if not selected_date:
+        raise ValueError("selected_date is required (YYYY-MM-DD)")
+    start = datetime.strptime(selected_date, "%Y-%m-%d").date()
+    end = start + timedelta(days=6)
+    return start, end
+
+
+
+def _fetch_rows(start, end, unpaid_only=False):
+    """
+    Returns aggregated rows per supplier from child installments:
+
+    SELECT parent.supplier, SUM(child.amount) total
+    FROM Supplier Loan Table child
+    JOIN Supplier Loan parent ON child.parent = parent.name
+    WHERE child.date BETWEEN %s AND %s
+      AND (optional) child.paied = 0
+    GROUP BY parent.supplier
+    """
+    params = [start, end]
+    unpaid_clause = ""
+    if unpaid_only:
+        unpaid_clause = f" AND COALESCE(child.{CHILD_FIELD_PAIED}, 0) = 0"
+
+    sql = f"""
+        SELECT
+            parent.{PARENT_FIELD_SUPPLIER} AS supplier,
+            COALESCE(SUM(child.{CHILD_FIELD_AMOUNT}), 0) AS total
+        FROM {TAB_CHILD} AS child
+        INNER JOIN {TAB_PARENT} AS parent
+            ON child.{CHILD_FIELD_PARENT} = parent.{PARENT_FIELD_NAME}
+           AND child.{CHILD_FIELD_PARENTTYPE} = %s
+        WHERE parent.docstatus = 1
+          AND child.{CHILD_FIELD_DATE} BETWEEN %s AND %s
+        {unpaid_clause}
+        GROUP BY parent.{PARENT_FIELD_SUPPLIER}
+    """
+
+    # Note order of params: parenttype first (due to join condition), then date range
+    rows = frappe.db.sql(sql, [PARENT_DOTYPE, start, end], as_dict=True)
+    out = {}
+    for r in rows or []:
+        supplier = r.get("supplier")
+        total = float(r.get("total") or 0)
+        if supplier:
+            out[supplier] = round(total, 2)
+    return out
+
+
+@frappe.whitelist()
+def get_weekly_supplier_loan_totals_total(selected_date: str):
+    """
+    Total (paid + unpaid) child installments per supplier in the 7-day window.
+    Returns:
+    { "status": "success", "data": { "Supplier Name": 1234.0, ... } }
+    """
+    try:
+        start, end = _parse_week_range(selected_date)
+        data = _fetch_rows(start, end, unpaid_only=False)
+        return {"status": "success", "data": data}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_weekly_supplier_loan_totals_total failed")
+        return {"status": "error", "message": f"Failed to fetch total loan totals: {e}"}
+
+
+
+@frappe.whitelist()
+def get_weekly_supplier_loan_totals_unpaid(selected_date: str):
+    """
+    Unpaid-only child installments per supplier in the 7-day window (paied = 0).
+    Returns:
+    { "status": "success", "data": { "Supplier Name": 1000.0, ... } }
+    """
+    try:
+        start, end = _parse_week_range(selected_date)
+        data = _fetch_rows(start, end, unpaid_only=True)
+        return {"status": "success", "data": data}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_weekly_supplier_loan_totals_unpaid failed")
+        return {"status": "error", "message": f"Failed to fetch unpaid loan totals: {e}"}
+
+
+@frappe.whitelist()
+def get_weekly_supplier_loan_totals_breakdown(selected_date: str):
+    """
+    Combined endpoint for both total and unpaid:
+
+    {
+      "status": "success",
+      "data": {
+        "total":  { "Supplier": X, ... },  # paid + unpaid
+        "unpaid": { "Supplier": Y, ... }   # paied = 0 only
+      }
+    }
+    """
+    try:
+        # Try each and bubble the first error encountered with clear message
+        total_res = get_weekly_supplier_loan_totals_total(selected_date)
+        if not total_res or total_res.get("status") != "success":
+            msg = (total_res or {}).get("message") or "Failed to compute total loans"
+            return {"status": "error", "message": msg}
+
+        unpaid_res = get_weekly_supplier_loan_totals_unpaid(selected_date)
+        if not unpaid_res or unpaid_res.get("status") != "success":
+            msg = (unpaid_res or {}).get("message") or "Failed to compute unpaid loans"
+            return {"status": "error", "message": msg}
+
+        return {
+            "status": "success",
+            "data": {
+                "total": total_res.get("data", {}) or {},
+                "unpaid": unpaid_res.get("data", {}) or {},
+            },
+        }
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_weekly_supplier_loan_totals_breakdown failed")
+        return {"status": "error", "message": f"Failed to fetch breakdown: {e}"}
+   
+    
 @frappe.whitelist()
 def get_weekly_supplier_loan_totals(selected_date):
     if not selected_date:

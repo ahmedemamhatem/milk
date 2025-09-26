@@ -9,7 +9,8 @@
   "cow_item",
   "column_break_ulcb",
   "company",
-  "supplier_loan_account"
+  "supplier_loan_account",
+  "supplier_deduction_account"
  ],
  "fields": [
   {
@@ -45,12 +46,19 @@
    "label": "Supplier Loan Account",
    "options": "Account",
    "reqd": 1
+  },
+  {
+   "fieldname": "supplier_deduction_account",
+   "fieldtype": "Link",
+   "label": "Supplier Deduction Account",
+   "options": "Account",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-09-25 15:20:01.108213",
+ "modified": "2025-09-26 19:04:13.131711",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Milk Setting",

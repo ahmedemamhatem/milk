@@ -171,7 +171,8 @@ class SupplierLoan(Document):
             # Single installment on first_date
             self.append("supplier_loan_table", {
                 "date": start_date,
-                "amount": float(self.amount)
+                "amount": float(self.amount),
+                "pending_amount": float(self.pending_amount)
             })
             return
 
@@ -185,7 +186,8 @@ class SupplierLoan(Document):
                 d = start_date + timedelta(days=7 * i)
                 self.append("supplier_loan_table", {
                     "date": d,
-                    "amount": weekly_amt
+                    "amount": weekly_amt,
+                    "pending_amount": weekly_amt
                 })
 
 def _to_date(d):
