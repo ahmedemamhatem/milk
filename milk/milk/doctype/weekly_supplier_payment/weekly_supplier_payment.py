@@ -843,14 +843,27 @@ def print_weekly_payment_inline_pdf(name: str):
           {{ _(BRAND) }} -- كشف أسبوعي - {{ frappe.utils.escape_html(doc.driver or "-") }} - 
           {{ to_ar_digits(frappe.utils.formatdate(doc.start_date, "dd/MM/yyyy")) }} إلى {{ to_ar_digits(frappe.utils.formatdate(doc.to_date, "dd/MM/yyyy")) }}
         </div>
+        {% set total_week_amount = (doc.total_week_amount or 0) | float %}
+        {% set total_deduction_amount = (doc.total_deduction_amount or 0) | float %}
+        {% set total_loans = (doc.total_loans or 0) | float %}
+        {% set total_amount = (doc.total_amount or 0) | float %}
+        {% set total_less_5 = (doc.total_less_5 or 0) | float %}
+        {% set total_payment = (doc.total_payment or 0) | float %}
+
+        {% set deductions_net = (total_deduction_amount - total_loans) %}
+
         <div class="totals-line">
-          <span>إجمالي الأسبوع: <strong>{{ fmt(doc.total_week_amount) }}</strong></span>
+          <span>إجمالي الأسبوع: <strong>{{ "{:,.2f}".format(total_week_amount) }}</strong></span>
           <span class="sep">--</span>
-          <span>إجمالي الخصومات والمسحوب: <strong>-{{ fmt(doc.total_deduction_amount) }}</strong></span>
+          <span>إجمالي الخصومات: <strong>{{ "{:,.2f}".format(-deductions_net) }}</strong></span>
           <span class="sep">--</span>
-          <span>الصافي قبل التقريب: <strong>{{ fmt(doc.total_amount) }}</strong></span>
+          <span>إجمالي المسحوبات: <strong>{{ "{:,.2f}".format(-total_loans) }}</strong></span>
           <span class="sep">--</span>
-          <span>المبلغ للدفع: <strong>{{ fmt(doc.total_payment) }}</strong></span>
+          <span>الصافي قبل التقريب: <strong>{{ "{:,.2f}".format(total_amount) }}</strong></span>
+          <span class="sep">--</span>
+          <span>اجمالي التقريب: <strong>{{ "{:,.2f}".format(total_less_5) }}</strong></span>
+          <span class="sep">--</span>
+          <span>المبلغ للدفع: <strong>{{ "{:,.2f}".format(total_payment) }}</strong></span>
         </div>
       </div>
       <div class="spacer"></div>
