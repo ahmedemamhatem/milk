@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 
 def on_cancel_journal_entry(doc, method=None):
     """
@@ -7,7 +8,13 @@ def on_cancel_journal_entry(doc, method=None):
     - Clear the matching field(s).
     - If both fields are empty after clearing, set paid = 0.
     """
-
+    try:
+        if (doc.voucher_type or "").strip() == "Supplier Loan Refund":
+            from milk.milk.doctype.weekly_supplier_payment.api import reverse_allocation_for_refund_je
+            reverse_allocation_for_refund_je(doc.name)
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Failed reversing refund allocation on JE cancel")
+  
     if not doc or not getattr(doc, "name", None):
         return
 

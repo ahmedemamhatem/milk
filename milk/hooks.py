@@ -19,7 +19,10 @@ doc_events = {
     },
     "Journal Entry": {
         "on_cancel": "milk.journal_entry.on_cancel_journal_entry"
-    }
+    },
+    "Weekly Supplier Payment": {
+        "on_cancel": "milk.milk.doctype.weekly_supplier_payment.link_guard.on_cancel_weekly_supplier_payment",
+    },
 }
 
 scheduler_events = {

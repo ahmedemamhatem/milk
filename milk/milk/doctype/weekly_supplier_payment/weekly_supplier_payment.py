@@ -6,9 +6,49 @@ from frappe.model.document import Document
 from datetime import datetime, date as dt_date, datetime as dt_datetime
 from typing import Dict, List, Tuple, Optional
 from frappe.utils.pdf import get_pdf
+import frappe
+from frappe.model.document import Document
+from frappe import _
+from frappe.utils import getdate
+
+def _overlaps(s1, e1, s2, e2):
+    return (s1 <= e2) and (s2 <= e1)
 
 class WeeklySupplierPayment(Document):
-    pass
+    def validate(self):
+        self.validate_duplicate_period_for_driver()
+
+    def validate_duplicate_period_for_driver(self):
+        if not self.driver or not self.start_date or not self.to_date:
+            return
+
+        s1 = getdate(self.start_date)
+        e1 = getdate(self.to_date)
+
+        # Fetch other docs for same driver with docstatus 0 or 1
+        others = frappe.db.sql(
+            """
+            SELECT name, start_date, to_date, docstatus
+            FROM `tabWeekly Supplier Payment`
+            WHERE driver = %s
+              AND docstatus IN (0, 1)
+              AND name != %s
+            """,
+            (self.driver, self.name or ""),
+            as_dict=True,
+        )
+
+        for o in others:
+            s2 = getdate(o.start_date) if o.start_date else None
+            e2 = getdate(o.to_date) if o.to_date else None
+            if not s2 or not e2:
+                continue
+            if _overlaps(s1, e1, s2, e2):
+                frappe.throw(
+                    _("Duplicate weekly payment for driver {0} overlaps with {1} ({2} → {3}).")
+                    .format(self.driver, o.name, o.start_date, o.to_date),
+                    title=_("Duplicate Period")
+                )
 
 
 COW_LABEL = "بقري"
@@ -594,12 +634,11 @@ def print_weekly_payment_inline_pdf(name: str):
     Generate PDF for Weekly Supplier Payment using inline HTML (no Print Format).
 
     Features:
-    - Cards sorted with custom_sort ascending while pushing 0-values to the end; then by village (normalized) and supplier name.
-    - No village break lines.
-    - Card header includes rate*90 and (custom_sort).
-    - Small vertical gap between rows for easy cutting.
-    - Double-line borders for cards and tables.
-    - Tiny spacer before contacts + cut guide under contacts.
+    - Full utilization of A4 page width.
+    - Professional styling for headers, tables, and cards.
+    - Totals row with calculations for each supplier.
+    - Cutting guide with clear layout.
+    - Arabic support for numbers and text alignment (RTL).
 
     Endpoint:
       milk.milk.doctype.weekly_supplier_payment.weekly_supplier_payment.print_weekly_payment_inline_pdf
@@ -645,295 +684,280 @@ def print_weekly_payment_inline_pdf(name: str):
       {{- t -}}
     {%- endmacro %}
 
-    {% set AR_DIGITS_IN_TABLE = False %}
+    {% set AR_DIGITS_IN_TABLE = True %}
 
     <meta charset="utf-8">
-    <style>
-      @page { size: A4; margin: 6mm; }
-      html, body { height: auto !important; }
-      body {
-        direction: rtl; text-align: right;
-        font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-        color: #000; margin: 0; font-size: 11.5px;
-      }
+<style>
+  @page {
+    size: A4;
+    margin: 5mm; /* Reduced page margins */
+  }
+  body {
+    direction: rtl;
+    text-align: right;
+    font-family: "Arial", sans-serif;
+    font-size: 14px;
+    color: #000;
+    margin: 0;
+    background-color: #fff;
+  }
 
-      /* Double line border helper via outline hack for print reliability */
-      .dbl-border {
-        border: 3px double #000; /* renders as double line in most PDF renderers */
-      }
-      .dbl-cell { border: 3px double #000; }
-      .dbl-top { border-top: 3px double #000; }
-      .dbl-right { border-right: 3px double #000; }
-      .dbl-bottom { border-bottom: 3px double #000; }
-      .dbl-left { border-left: 3px double #000; }
+  .card {
+    border: 1px solid #000; /* Thinner card border */
+    border-radius: 4px; /* Less border rounding */
+    margin-bottom: 10px; /* Reduced spacing between cards */
+    padding: 8px 12px; /* Reduced padding inside the card */
+    page-break-inside: avoid;
+    background-color: #f9f9f9;
+  }
 
-      .card {
-        border: 3px double #000;
-        border-radius: 4px;
-        background: #fff;
-        padding: 6px 7px;
-        page-break-inside: avoid;
-      }
+  .hdr-band {
+    font-size: 14px; /* Slightly smaller header font */
+    font-weight: bold;
+    margin-bottom: 6px; /* Reduced space below the header */
+    padding: 6px 8px; /* Reduced padding inside header */
+    border: 1px solid #000; /* Thinner border for header */
+    background-color: #f1f1f1;
+    text-align: center;
+  }
 
-      .spacer { border-top: 1px dotted #000; margin: 4mm 0; }
+  .info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px; /* Reduced space above table */
+    font-size: 12px; /* Slightly smaller font for the table */
+  }
 
-      /* Grid of supplier cards */
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        column-gap: 6mm;
-        row-gap: 5mm; /* small vertical space between rows for cutting */
-        margin-top: 6mm;
-      }
-      @media screen and (max-width: 900px) {
-        .grid { grid-template-columns: 1fr; }
-      }
+  .info-table th,
+  .info-table td {
+    border: 1px solid #000; /* Thinner table borders */
+    padding: 4px; /* Reduced cell padding */
+    text-align: center;
+    vertical-align: middle;
+  }
 
-      /* Header band */
-      .hdr-band {
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;
-        font-weight: 900; font-size: 12.5px; line-height: 1.25;
-        padding: 4px 6px; border: 3px double #000; border-radius: 4px; background: #fff;
-        margin-bottom: 6px;
-      }
+  .info-table th {
+    background-color: #e9e9e9;
+    font-weight: bold;
+  }
 
-      table.info {
-        width: 100%; border-collapse: collapse; font-size: 11.5px; margin-top: 2px;
-      }
-      .info th, .info td {
-        border: 3px double #000; padding: 4px 6px; vertical-align: middle; line-height: 1.35;
-      }
-      .info th { font-weight: 800; white-space: nowrap; text-align: center; }
-      .info td { text-align: right; }
+  .totals-line {
+    font-size: 12px; /* Slightly smaller font for totals */
+    font-weight: bold;
+    margin-top: 6px; /* Reduced space above totals */
+    text-align: right;
+    line-height: 1.4; /* Reduced line spacing */
+  }
 
-      /* Supplier header */
-      .sup-hdr {
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;
-        border: 3px double #000; border-radius: 3px; padding: 3px 5px;
-        font-size: 11.5px; font-weight: 800; margin-bottom: 4px;
-      }
-      .sep-pipe { padding: 0 8px; }
+  .totals-line .sep {
+    margin: 0 6px; /* Reduced space between separators */
+    color: #000;
+  }
 
-      /* Table for days with double-line grid */
-      table.mini {
-        width:100%; border-collapse:collapse; margin-top:4px; font-size: 11.5px;
-        table-layout: fixed; border: 3px double #000;
-      }
-      .mini th, .mini td {
-        border: 3px double #000; padding: 4px 3px; text-align:center; vertical-align: middle;
-        height: 24px; line-height: 1.25;
-      }
-      .mini thead th { white-space: nowrap; }
-      .mini tfoot td { font-weight: 800; }
-      .totals-line { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
-      .sep { margin: 0 6px; }
+  .cut-row {
+    position: relative;
+    margin-top: 6px; /* Reduced spacing above cut line */
+    border-top: 1px dashed #000;
+  }
 
-      /* Tiny spacer before contacts */
-      .contacts-sp { height: 2mm; }
+  .cut-row::before {
+    content: "✂";
+    position: absolute;
+    top: -8px; /* Adjusted cut icon position */
+    right: 0;
+    background: #fff;
+    padding: 0 4px;
+    font-size: 10px; /* Smaller cut icon font size */
+  }
 
-      /* Cutting guide under contacts */
-      .cut-row {
-        position:relative; margin-top:4px; height:0; border-top:1px dotted #000;
-      }
-      .cut-row::before {
-        content:"✂"; position:absolute; top:-11px; right:0;
-        font-size:11px; line-height:1; background:#fff; padding:0 2px;
-      }
+  .contacts-sp {
+    height: 4px; /* Reduced spacing for contact information */
+  }
 
-      .foot {
-        text-align:center; margin-top:4px; margin-bottom: 1.5mm;
-        font-weight:800; font-size:11.5px;
-      }
-    </style>
+  .foot {
+    text-align: center;
+    margin-top: 6px; /* Reduced footer spacing */
+    font-weight: bold;
+    font-size: 11px; /* Slightly smaller footer font */
+    color: #000;
+  }
 
-    {% set arfmt = frappe.utils.formatdate %}
-    {% set start = doc.start_date %}
-    {% set end   = doc.to_date %}
-    {% set dr = arfmt(start, "dd MMMM yyyy") ~ " - " ~ arfmt(end, "dd MMMM yyyy") %}
-    {% set date_range_ar = to_ar_digits(dr) %}
+  .spacer {
+    border-top: 1px dotted #000;
+    margin: 8px 0; /* Reduced spacing for spacers */
+  }
 
-    <div class="card">
-      <div class="hdr-band">
-        {{ _(BRAND) }} | كشف أسبوعي — {{ frappe.utils.escape_html(doc.name or "") }}
+  .sup-hdr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    font-size: 12px; /* Slightly smaller font for supplier headers */
+    font-weight: bold;
+    background-color: #f9f9f9;
+    padding: 6px; /* Reduced padding */
+    border: 1px solid #000; /* Thinner border */
+    border-radius: 4px; /* Less border rounding */
+    margin-bottom: 6px; /* Reduced spacing below header */
+  }
+
+  .sup-hdr span {
+    margin: 0 4px; /* Reduced spacing between text */
+    white-space: nowrap;
+  }
+
+  .sup-hdr .brand-name {
+    color: #2c3e50;
+    font-size: 13px; /* Slightly smaller brand name font */
+    font-weight: 900;
+  }
+
+  .sup-hdr .supplier-name {
+    color: #34495e;
+    font-weight: 700;
+  }
+
+  .sup-hdr .village {
+    color: #7f8c8d;
+    font-weight: 600;
+  }
+
+  .sup-hdr .rate {
+    color: #16a085;
+    font-weight: 700;
+  }
+
+  .sup-hdr .sort {
+    color: #c0392b;
+    font-weight: 700;
+  }
+
+  .sep-pipe {
+    color: #7f8c8d;
+    padding: 0 4px; /* Reduced spacing for separators */
+  }
+</style>
+    <div>
+      <!-- First Card: Document Totals -->
+      <div class="card">
+        <div class="hdr-band">
+          {{ _(BRAND) }} -- كشف أسبوعي - {{ frappe.utils.escape_html(doc.driver or "-") }} - 
+          {{ to_ar_digits(frappe.utils.formatdate(doc.start_date, "dd/MM/yyyy")) }} إلى {{ to_ar_digits(frappe.utils.formatdate(doc.to_date, "dd/MM/yyyy")) }}
+        </div>
+        <div class="totals-line">
+          <span>إجمالي الأسبوع: <strong>{{ fmt(doc.total_week_amount) }}</strong></span>
+          <span class="sep">--</span>
+          <span>إجمالي الخصومات والمسحوب: <strong>-{{ fmt(doc.total_deduction_amount) }}</strong></span>
+          <span class="sep">--</span>
+          <span>الصافي قبل التقريب: <strong>{{ fmt(doc.total_amount) }}</strong></span>
+          <span class="sep">--</span>
+          <span>المبلغ للدفع: <strong>{{ fmt(doc.total_payment) }}</strong></span>
+        </div>
+      </div>
+      <div class="spacer"></div>
+
+      <!-- Supplier Cards -->
+      {% for r in rows %}
+      <div class="card">
+        <!-- Supplier Header -->
+        <div class="sup-hdr">
+        <span class="brand-name">{{ _(BRAND) }}</span>
+        <span class="sep-pipe">--</span>
+        <span class="supplier-name">{{ frappe.utils.escape_html(r.supplier_name or r.supplier or "-") }}</span>
+        <span class="sep-pipe">--</span>
+        <span class="village">( {{ frappe.utils.escape_html(r.village or "غير محدد") }} )</span>
+        <span class="sep-pipe">--</span>
+        {% if r.rate %}
+          <span class="rate">{{ to_ar_digits(fmt90(r.rate)) }}</span>
+        {% endif %}
+        {% if r.milk_type %}
+           <span class="village">( {{ frappe.utils.escape_html(r.milk_type or "غير محدد") }} )</span>
+          <span class="sep-pipe">--</span>
+        {% endif %}
+        <span class="sort">(<strong>{{ to_ar_digits(r.custom_sort or 0) }}</strong>)</span>
       </div>
 
-      <table class="info">
-        <tr>
-          <th style="width:14%;">الفترة</th>
-          <td style="width:36%;">{{ date_range_ar }}</td>
-          <th style="width:12%;">السائق</th>
-          <td style="width:18%;">{{ frappe.utils.escape_html(doc.driver or "-") }}</td>
-          <th style="width:12%;">القرية</th>
-          <td style="width:8%;">{{ frappe.utils.escape_html(doc.village or "-") }}</td>
-        </tr>
-      </table>
-
-      {% set t_week  = to_ar_digits(fmt(doc.total_week_amount or 0)) %}
-      {% set t_comb  = to_ar_digits(fmt((doc.total_deduction_amount or 0) + (doc.total_loans or 0))) %}
-      {% set t_net0  = to_ar_digits(fmt(doc.total_amount or 0)) %}
-      {% set t_less5 = to_ar_digits(fmt(doc.total_less_5 or 0)) %}
-      {% set t_pay   = to_ar_digits(fmt(doc.total_payment or 0)) %}
-
-      <table class="info" style="margin-top:6px;">
-        <tr>
-          <th>قيمة الأسبوع</th>
-          <td>{{ t_week }}</td>
-          <th>خصم جوده + مسحوب</th>
-          <td>-{{ t_comb }}</td>
-          <th>الصافي قبل التقريب</th>
-          <td>{{ t_net0 }}</td>
-        </tr>
-        <tr>
-          <th>أقل من 5</th>
-          <td>-{{ t_less5 }}</td>
-          <th>المستحق للدفع</th>
-          <td colspan="3">{{ t_pay }}</td>
-        </tr>
-      </table>
-    </div>
-
-    <div class="spacer"></div>
-
-    <div class="grid">
-      {% for r in rows %}
-        {% set current_village = (r.village or "").strip() if r.village is string else r.village %}
-        {% set current_village = current_village if current_village else "غير محدد" %}
-
-        {% set total_morning = (r.total_morning_qty or 0) | float %}
-        {% set total_evening = (r.total_evening_qty or 0) | float %}
-        {% set total_qty     = (r.total_qty or 0) | float %}
-        {% set week_amount   = (r.total_week_amount or 0) | float %}
-        {% set deduction_amt = (r.deduction_amount or 0) | float %}
-        {% set supplier_loan = (r.supplier_loan or 0) | float %}
-        {% set total_ded     = (r.total_deduction_amount or 0) | float %}
-        {% set net_before    = (r.total_amount or (week_amount - total_ded)) | float %}
-        {% set less5         = (r.less_5 or 0) | float %}
-        {% set net_pay       = (r.total_amount_to_pay or (net_before - less5)) | float %}
-        {% set milk_type     = r.milk_type or "" %}
-        {% set rate          = (r.rate or 0) | float %}
-        {% set custom_sort   = (r.custom_sort or 0) | int %}
-
-        <div class="card">
-          <div class="sup-hdr">
-            {{ _(BRAND) }}
-            <span class="sep-pipe">|</span>
-            {{ frappe.utils.escape_html(r.supplier_name or r.supplier or "-") }}
-            <span class="sep-pipe">|</span>
-            ({{ frappe.utils.escape_html(current_village) }})
-            <span class="sep-pipe">|</span>
-            {{ frappe.utils.escape_html(milk_type) }}
-            <span class="sep-pipe">|</span>
-            {% if rate %}
-              {{ to_ar_digits(fmt90(rate)) }}
-              <span class="sep-pipe">|</span>
-              ({{ to_ar_digits(custom_sort) }})
-            {% else %}
-              ({{ to_ar_digits(custom_sort) }})
-            {% endif %}
-          </div>
-
-          <table class="mini">
-            <thead>
-              <tr>
-                <th>اليوم</th>
-                <th>الأحد</th>
-                <th>الاثنين</th>
-                <th>الثلاثاء</th>
-                <th>الأربعاء</th>
-                <th>الخميس</th>
-                <th>الجمعة</th>
-                <th>السبت</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>الصباح</strong></td>
+        <!-- Milk Data Table -->
+        <table class="info-table">
+          <thead>
+            <tr>
+              <th>اليوم</th>
+              <th>الأحد</th>
+              <th>الاثنين</th>
+              <th>الثلاثاء</th>
+              <th>الأربعاء</th>
+              <th>الخميس</th>
+              <th>الجمعة</th>
+              <th>السبت</th>
+              <th>الاجمالي</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>الصباح</strong></td>
+              {% for day in ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] %}
+                <td>{{ fmt(r[day + "_morning"] or 0) }}</td>
+              {% endfor %}
+              <td><strong><strong>{{ to_ar_digits(fmt(r.total_morning_qty or 0)) }}</strong></strong></td>
+            </tr>
+            <tr>
+              <td><strong>المساء</strong></td>
+              {% for day in ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] %}
+                <td>{{ fmt(r[day + "_evening"] or 0) }}</td>
+              {% endfor %}
+              <td><strong><strong>{{ to_ar_digits(fmt(r.total_evening_qty or 0)) }}</strong></strong></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>الإجمالي</td>
+              <td colspan="7" class="totals-line">
                 {% if AR_DIGITS_IN_TABLE %}
-                  <td>{{ to_ar_digits(fmt(r.sunday_morning)) }}</td>
-                  <td>{{ to_ar_digits(fmt(r.monday_morning)) }}</td>
-                  <td>{{ to_ar_digits(fmt(r.tuesday_morning)) }}</td>
-                  <td>{{ to_ar_digits(fmt(r.wednesday_morning)) }}</td>
-                  <td>{{ to_ar_digits(fmt(r.thursday_morning)) }}</td>
-                  <td>{{ to_ar_digits(fmt(r.friday_morning)) }}</td>
-                  <td>{{ to_ar_digits(fmt(r.saturday_morning)) }}</td>
+                  قيمة الأسبوع: <strong>{{ to_ar_digits(fmt(r.total_week_amount or 0)) }}</strong>
                 {% else %}
-                  <td>{{ fmt(r.sunday_morning) }}</td>
-                  <td>{{ fmt(r.monday_morning) }}</td>
-                  <td>{{ fmt(r.tuesday_morning) }}</td>
-                  <td>{{ fmt(r.wednesday_morning) }}</td>
-                  <td>{{ fmt(r.thursday_morning) }}</td>
-                  <td>{{ fmt(r.friday_morning) }}</td>
-                  <td>{{ fmt(r.saturday_morning) }}</td>
+                  صباح: <strong>{{ fmt(r.total_morning_qty or 0) }}</strong>
+                  <span class="sep">--</span>
+                  مساء: <strong>{{ fmt(r.total_evening_qty or 0) }}</strong>
+                  <span class="sep">--</span>
+                  الإجمالي: <strong>{{ fmt(r.total_qty or 0) }}</strong>
+                  <span class="sep">--</span>
+                  قيمة الأسبوع: <strong>{{ fmt(r.total_week_amount or 0) }}</strong>
                 {% endif %}
-              </tr>
-              <tr>
-                <td><strong>المساء</strong></td>
-                {% if AR_DIGITS_IN_TABLE %}
-                  <td>{{ to_ar_digits(fmt(r.sunday_evening)) }}</td>
-                  <td>{{ to_ar_digits(fmt(r.monday_evening)) }}</td>
-                  <td>{{ to_ar_digits(fmt(r.tuesday_evening)) }}</td>
-                  <td>{{ to_ar_digits(fmt(r.wednesday_evening)) }}</td>
-                  <td>{{ to_ar_digits(fmt(r.thursday_evening)) }}</td>
-                  <td>{{ to_ar_digits(fmt(r.friday_evening)) }}</td>
-                  <td>{{ to_ar_digits(fmt(r.saturday_evening)) }}</td>
-                {% else %}
-                  <td>{{ fmt(r.sunday_evening) }}</td>
-                  <td>{{ fmt(r.monday_evening) }}</td>
-                  <td>{{ fmt(r.tuesday_evening) }}</td>
-                  <td>{{ fmt(r.wednesday_evening) }}</td>
-                  <td>{{ fmt(r.thursday_evening) }}</td>
-                  <td>{{ fmt(r.friday_evening) }}</td>
-                  <td>{{ fmt(r.saturday_evening) }}</td>
+
+                {% if r.deduction_amount and r.deduction_amount > 0 %}
+                  <span class="sep">--</span>
+                  خصم جوده: <strong>{{ fmt(r.deduction_amount) }}</strong>
                 {% endif %}
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr>
-                <td>الإجمالي</td>
-                <td colspan="7" class="totals-line">
-                  {% if AR_DIGITS_IN_TABLE %}
-                    صباح: <strong>{{ to_ar_digits(fmt(total_morning)) }}</strong>
-                    <span class="sep">|</span>
-                    مساء: <strong>{{ to_ar_digits(fmt(total_evening)) }}</strong>
-                    <span class="sep">|</span>
-                    الإجمالي: <strong>{{ to_ar_digits(fmt(total_qty)) }}</strong>
-                    <span class="sep">|</span>
-                    قيمة الأسبوع: <strong>{{ to_ar_digits(fmt(week_amount)) }}</strong>
-                  {% else %}
-                    صباح: <strong>{{ fmt(total_morning) }}</strong>
-                    <span class="sep">|</span>
-                    مساء: <strong>{{ fmt(total_evening) }}</strong>
-                    <span class="sep">|</span>
-                    الإجمالي: <strong>{{ fmt(total_qty) }}</strong>
-                    <span class="sep">|</span>
-                    قيمة الأسبوع: <strong>{{ fmt(week_amount) }}</strong>
-                  {% endif %}
+                {% if r.supplier_loan and r.supplier_loan > 0 %}
+                  <span class="sep">--</span>
+                  مسحوب: <strong>{{ fmt(r.supplier_loan) }}</strong>
+                {% endif %}
+                
+                {% if r.total_amount and r.total_amount != r.total_amount_to_pay %}
+                  <span class="sep">--</span>
+                  احمالي بعد الخصم: <strong>{{ fmt(r.total_amount) }}</strong>
+                {% endif %}
+                {% if r.less_5 and r.less_5 > 0 %}
+                  <span class="sep">--</span>
+                  أقل من 5: <strong>{{ fmt(r.less_5) }}</strong>
+                {% endif %}
+                
+                <span class="sep">--</span>
+                الصافي: <strong>{{ fmt(r.total_amount_to_pay) }}</strong>
+              </td>
+              <td>
+              <strong>{{ to_ar_digits(fmt(r.total_qty or 0)) }}</strong>
+              </td>
+              
+            </tr>
+          </tfoot>
+        </table>
 
-                  {% if deduction_amt and deduction_amt > 0 %}
-                    <span class="sep">|</span>
-                    خصم جوده: <strong>-{{ AR_DIGITS_IN_TABLE and to_ar_digits(fmt(deduction_amt)) or fmt(deduction_amt) }}</strong>
-                  {% endif %}
-                  {% if supplier_loan and supplier_loan > 0 %}
-                    <span class="sep">|</span>
-                    مسحوب: <strong>-{{ AR_DIGITS_IN_TABLE and to_ar_digits(fmt(supplier_loan)) or fmt(supplier_loan) }}</strong>
-                  {% endif %}
-                  {% if less5 and less5 > 0 %}
-                    <span class="sep">|</span>
-                    أقل من 5: <strong>-{{ AR_DIGITS_IN_TABLE and to_ar_digits(fmt(less5)) or fmt(less5) }}</strong>
-                  {% endif %}
-                  <span class="sep">|</span>
-                  الصافي: <strong>{{ AR_DIGITS_IN_TABLE and to_ar_digits(fmt(net_pay)) or fmt(net_pay) }}</strong>
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-
-          <div class="contacts-sp"></div>
-          <div class="foot">
-            الحسابات: ٠١٠١٨١١٥٤١٥١ — الحاج أحمد: ٠١١٢٦٩٥٤٧٠٠
-          </div>
+        <!-- Footer -->
+        <div class="foot">
+          الحسابات: ٠١٠١٨١١٥٤١٥١ — الحاج أحمد: ٠١١٢٦٩٥٤٧٠٠
         </div>
-        <div class="cut-row"></div>
+      </div>
+      <div class="cut-row"></div>
       {% endfor %}
     </div>
     """
