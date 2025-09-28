@@ -14,6 +14,9 @@ const SERVER_METHOD_PREVIEW = "milk.milk.doctype.weekly_supplier_payment.api.pre
 const ENABLE_CANCEL_BUTTON = false;
 const SERVER_METHOD_CANCEL_JES = "milk.milk.doctype.weekly_supplier_payment.api.cancel_weekly_supplier_journals";
 
+// Optional duplicate-check API (uncomment if you add it server-side)
+// const SERVER_METHOD_CHECK_DUP = "milk.milk.doctype.weekly_supplier_payment.api.check_duplicate_weekly_payment";
+
 frappe.ui.form.on("Weekly Supplier Payment", {
   onload(frm) {
     // Auto-set to_date = start_date + 6 if empty
@@ -32,6 +35,11 @@ frappe.ui.form.on("Weekly Supplier Payment", {
     if (frm.doc.start_date) {
       frm.set_value("to_date", add_days(frm.doc.start_date, 6));
     }
+    // check_duplicate_silent(frm); // optional
+  },
+
+  to_date(frm) {
+    // check_duplicate_silent(frm); // optional
   },
 
   driver(frm) {
@@ -40,15 +48,13 @@ frappe.ui.form.on("Weekly Supplier Payment", {
       frm.dashboard.clear_headline();
       frm.dashboard.set_headline(__("قم بالنقر على 'حساب الأسبوع للموردين' لتحديث البيانات بعد تغيير السائق."));
     }
+    // check_duplicate_silent(frm); // optional
   },
 
   refresh(frm) {
     if (!frm.doc.name || frm.is_new()) return;
 
     // Clear dashboard and show a status summary
-    frm.dashboard.clear_headline();
-    render_status_banner(frm);
-
     // Always show PDF after save or submit (not when cancelled)
     if (frm.doc.docstatus !== 2) {
       frm.add_custom_button(__("طباعة PDF"), () => {
@@ -135,6 +141,13 @@ frappe.ui.form.on("Weekly Supplier Payment", {
             if (!confirm_basic_consistency(frm)) {
               return;
             }
+
+            // Optional: re-check duplicates before JE creation
+            // const dup = await check_duplicate(frm);
+            // if (dup) {
+            //   frappe.msgprint({ title: __("خطأ"), indicator: "red", message: __("لا يمكن إنشاء القيود لوجود تضارب لنفس السائق في نفس الفترة.") });
+            //   return;
+            // }
 
             try {
               frappe.dom.freeze(__("جاري إنشاء القيود المحاسبية..."));
@@ -263,7 +276,17 @@ function render_status_banner(frm) {
   ];
   const totals = totalFields
     .filter(([f]) => frm.doc[f] !== undefined && frm.doc[f] !== null)
-    .map(([f, label]) => `${label}: <b>${frappe.utils.fmt_money(frm.doc[f])}</b>`);
+    .map(([f, label]) => {
+      // Currency-like fields
+      if (["total_week_amount","total_deduction_amount","total_loans","total_amount","total_less_5","total_payment"].includes(f)) {
+        return `${label}: <b>${format_currency_client(frm.doc[f], frm.doc.currency)}</b>`;
+      }
+      // Quantity/float fields
+      if (f === "total_week_qty") {
+        return `${label}: <b>${format_float_client(frm.doc[f])}</b>`;
+      }
+      return `${label}: <b>${frappe.utils.escape_html(String(frm.doc[f]))}</b>`;
+    });
 
   if (totals.length) lines.push(totals.join(" | "));
 
@@ -400,3 +423,63 @@ function add_days(dateStr, days) {
   d.setDate(d.getDate() + Number(days || 0));
   return frappe.datetime.obj_to_str(d);
 }
+
+// ---------- Formatting helpers ----------
+
+function format_currency_client(value, currency) {
+  try {
+    return frappe.format_value(value, {
+      fieldtype: "Currency",
+      options: currency || (frappe.boot?.sysdefaults?.currency),
+      always_show_decimals: true
+    });
+  } catch (e) {
+    const n = Number(value || 0);
+    return (isFinite(n) ? n.toFixed(2) : "0.00") + (currency ? ` ${currency}` : "");
+  }
+}
+
+function format_float_client(value, precision) {
+  try {
+    return frappe.format_value(value, {
+      fieldtype: "Float",
+      precision: precision != null ? precision : cint(frappe.boot?.sysdefaults?.float_precision) || 2
+    });
+  } catch (e) {
+    const n = Number(value || 0);
+    const p = precision != null ? precision : 2;
+    return (isFinite(n) ? n.toFixed(p) : "0.00");
+  }
+}
+
+function cint(v) {
+  const n = parseInt(v, 10);
+  return isNaN(n) ? 0 : n;
+}
+
+// ---------- Optional duplicate check (client-side helper) ----------
+// Requires a whitelisted server method (see previous message).
+// async function check_duplicate(frm) {
+//   if (!frm.doc.driver || !frm.doc.start_date || !frm.doc.to_date) return false;
+//   try {
+//     const r = await frappe.call({
+//       method: SERVER_METHOD_CHECK_DUP,
+//       args: {
+//         name: frm.doc.name,
+//         driver: frm.doc.driver,
+//         start_date: frm.doc.start_date,
+//         to_date: frm.doc.to_date
+//       }
+//     });
+//     const m = r?.message;
+//     if (m?.duplicate) {
+//       const msg = __("يوجد سجل آخر لنفس السائق خلال نفس الفترة: {0} ({1} → {2})", [m.other, m.other_start, m.other_end]);
+//       frm.dashboard.set_headline_alert(msg, "red");
+//       return true;
+//     }
+//   } catch (e) {
+//     console.warn("Duplicate check failed", e);
+//   }
+//   return false;
+// }
+// function check_duplicate_silent(frm) { check_duplicate(frm); }
