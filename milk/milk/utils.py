@@ -968,6 +968,7 @@ def get_driver_report(from_date, to_date, driver=None):
     """
     Generate a daily report comparing milk collected from suppliers (Milk Entries Log)
     and car collection (Car Collection), grouped by milk type for each driver within the specified date range.
+    Names (driver_name, driver_helper_name) are sourced only from tabCar Collection.
     """
     try:
         # Validate input
@@ -975,102 +976,129 @@ def get_driver_report(from_date, to_date, driver=None):
             frappe.throw("يرجى تحديد التاريخ من وإلى للحصول على التقرير.")
 
         # Filter conditions for driver (optional)
-        driver_condition = f"AND driver = %(driver)s" if driver else ""
+        driver_condition_mel = "AND mel.driver = %(driver)s" if driver else ""
+        driver_condition_cc = "AND cc.driver = %(driver)s" if driver else ""
 
-        # Query Milk Entries Log: Collected Morning and Evening Totals by Milk Type
+        # Milk Entries Log (no names here)
         milk_entries_query = f"""
             SELECT
-                driver,
-                date,
-                milk_type,
-                SUM(CASE WHEN morning = 1 THEN quantity ELSE 0 END) AS collected_morning,
-                SUM(CASE WHEN evening = 1 THEN quantity ELSE 0 END) AS collected_evening
-            FROM
-                `tabMilk Entries Log`
-            WHERE
-                date BETWEEN %(from_date)s AND %(to_date)s
-                {driver_condition}
-            GROUP BY
-                driver, date, milk_type
+                mel.driver,
+                mel.date,
+                mel.milk_type,
+                COALESCE(SUM(CASE WHEN mel.morning = 1 THEN mel.quantity ELSE 0 END), 0) AS collected_morning,
+                COALESCE(SUM(CASE WHEN mel.evening = 1 THEN mel.quantity ELSE 0 END), 0) AS collected_evening
+            FROM `tabMilk Entries Log` mel
+            WHERE mel.date BETWEEN %(from_date)s AND %(to_date)s
+            {driver_condition_mel}
+            GROUP BY mel.driver, mel.date, mel.milk_type
         """
-
         milk_entries = frappe.db.sql(
             milk_entries_query,
             {"from_date": from_date, "to_date": to_date, "driver": driver},
             as_dict=True,
         )
 
-        # Query Car Collection: Calculate Morning and Evening Totals by Milk Type
+        # Car Collection (contains names)
         car_collection_query = f"""
             SELECT
-                driver,
-                date,
-                milk_type,
-                SUM(CASE WHEN morning = 1 THEN quantity ELSE 0 END) AS car_morning,
-                SUM(CASE WHEN evening = 1 THEN quantity ELSE 0 END) AS car_evening
-            FROM
-                `tabCar Collection`
-            WHERE
-                date BETWEEN %(from_date)s AND %(to_date)s
-                {driver_condition}
-            GROUP BY
-                driver, date, milk_type
+                cc.driver,
+                cc.driver_name,
+                cc.driver_helper_name,
+                cc.date,
+                cc.milk_type,
+                COALESCE(SUM(CASE WHEN cc.morning = 1 THEN cc.quantity ELSE 0 END), 0) AS car_morning,
+                COALESCE(SUM(CASE WHEN cc.evening = 1 THEN cc.quantity ELSE 0 END), 0) AS car_evening
+            FROM `tabCar Collection` cc
+            WHERE cc.date BETWEEN %(from_date)s AND %(to_date)s
+            {driver_condition_cc}
+            GROUP BY cc.driver, cc.date, cc.milk_type, cc.driver_name, cc.driver_helper_name
         """
-
         car_collection = frappe.db.sql(
             car_collection_query,
             {"from_date": from_date, "to_date": to_date, "driver": driver},
             as_dict=True,
         )
 
-        # Merge Data from Both Sources
+        # Build a lookup of names per (driver, date) from Car Collection
+        names_by_driver_date = {}
+        for row in car_collection:
+            key_dd = (row["driver"], row["date"])
+            # Prefer first non-empty names we encounter
+            if key_dd not in names_by_driver_date:
+                names_by_driver_date[key_dd] = {
+                    "driver_name": row.get("driver_name") or "",
+                    "driver_helper_name": row.get("driver_helper_name") or "",
+                }
+            else:
+                # If existing is empty and current has data, fill it
+                if not names_by_driver_date[key_dd]["driver_name"] and row.get("driver_name"):
+                    names_by_driver_date[key_dd]["driver_name"] = row["driver_name"]
+                if not names_by_driver_date[key_dd]["driver_helper_name"] and row.get("driver_helper_name"):
+                    names_by_driver_date[key_dd]["driver_helper_name"] = row["driver_helper_name"]
+
+        # Merge Data from Both Sources keyed by (driver, date, milk_type)
         report_data = {}
 
-        # Populate Milk Entries Log Data
+        # From Milk Entries Log
         for entry in milk_entries:
             key = (entry["driver"], entry["date"], entry["milk_type"])
+            dn = names_by_driver_date.get((entry["driver"], entry["date"]), {})
             report_data[key] = {
                 "driver": entry["driver"],
+                "driver_name": dn.get("driver_name", ""),
+                "driver_helper_name": dn.get("driver_helper_name", ""),
                 "date": entry["date"],
                 "milk_type": entry["milk_type"],
                 "collected_morning": float(entry["collected_morning"] or 0),
                 "collected_evening": float(entry["collected_evening"] or 0),
-                "car_morning": 0,
-                "car_evening": 0,
+                "car_morning": 0.0,
+                "car_evening": 0.0,
             }
 
-        # Populate Car Collection Data
+        # From Car Collection
         for entry in car_collection:
             key = (entry["driver"], entry["date"], entry["milk_type"])
             if key not in report_data:
                 report_data[key] = {
                     "driver": entry["driver"],
+                    "driver_name": entry.get("driver_name") or "",
+                    "driver_helper_name": entry.get("driver_helper_name") or "",
                     "date": entry["date"],
                     "milk_type": entry["milk_type"],
-                    "collected_morning": 0,
-                    "collected_evening": 0,
+                    "collected_morning": 0.0,
+                    "collected_evening": 0.0,
+                    "car_morning": 0.0,
+                    "car_evening": 0.0,
                 }
+            # Update names from CC if missing
+            if not report_data[key].get("driver_name"):
+                report_data[key]["driver_name"] = entry.get("driver_name") or ""
+            if not report_data[key].get("driver_helper_name"):
+                report_data[key]["driver_helper_name"] = entry.get("driver_helper_name") or ""
+
             report_data[key]["car_morning"] = float(entry["car_morning"] or 0)
             report_data[key]["car_evening"] = float(entry["car_evening"] or 0)
 
         # Calculate Differences and Totals
         final_report = []
-        for key, data in report_data.items():
-            collected_total = data["collected_morning"] + data["collected_evening"]
-            car_total = data["car_morning"] + data["car_evening"]
-            morning_diff = data["car_morning"] - data["collected_morning"]
-            evening_diff = data["car_evening"] - data["collected_evening"]
+        for data in report_data.values():
+            collected_total = float(data["collected_morning"]) + float(data["collected_evening"])
+            car_total = float(data["car_morning"]) + float(data["car_evening"])
+            morning_diff = float(data["car_morning"]) - float(data["collected_morning"])
+            evening_diff = float(data["car_evening"]) - float(data["collected_evening"])
             total_diff = car_total - collected_total
 
             final_report.append({
                 "driver": data["driver"],
+                "driver_name": data.get("driver_name") or "",
+                "driver_helper_name": data.get("driver_helper_name") or "",
                 "date": data["date"],
                 "milk_type": data["milk_type"],
-                "collected_morning": data["collected_morning"],
-                "car_morning": data["car_morning"],
+                "collected_morning": float(data["collected_morning"] or 0),
+                "car_morning": float(data["car_morning"] or 0),
                 "morning_diff": morning_diff,
-                "collected_evening": data["collected_evening"],
-                "car_evening": data["car_evening"],
+                "collected_evening": float(data["collected_evening"] or 0),
+                "car_evening": float(data["car_evening"] or 0),
                 "evening_diff": evening_diff,
                 "collected_total": collected_total,
                 "car_total": car_total,
@@ -1333,7 +1361,7 @@ def get_suppliers(driver, collection_date, villages=None):
             return {
                 "status": "submitted",
                 "milk_entries": [ _entry_with_pont_rate(r) for r in submitted_doc.milk_entries ],
-                "message": f"تسجيل اللبن للسائق '{driver}' والتاريخ '{collection_date}' متسلم بالفعل ✅"
+                "message": f"تسجيل اللبن للخط '{driver}' والتاريخ '{collection_date}' متسلم بالفعل ✅"
             }
 
         # Draft
@@ -1375,7 +1403,7 @@ def get_suppliers(driver, collection_date, villages=None):
             return {
                 "status": "no_suppliers",
                 "suppliers": [],
-                "message": f"لا يوجد موردين للسائق '{driver}' والقرى المحددة 😞"
+                "message": f"لا يوجد موردين للخط '{driver}' والقرى المحددة 😞"
             }
 
         # Apply villages filter if provided
@@ -1393,7 +1421,7 @@ def get_suppliers(driver, collection_date, villages=None):
             return {
                 "status": "no_suppliers",
                 "suppliers": [],
-                "message": f"لا يوجد موردين للسائق '{driver}' والقرى المحددة 😞"
+                "message": f"لا يوجد موردين للخط '{driver}' والقرى المحددة 😞"
             }
 
         # Build processed suppliers payload
@@ -1429,7 +1457,7 @@ def get_suppliers(driver, collection_date, villages=None):
         return {
             "status": "new",
             "suppliers": processed_suppliers,
-            "message": f"تم جلب الموردين للسائق '{driver}' والقرى المحددة ✅"
+            "message": f"تم جلب الموردين للخط '{driver}' والقرى المحددة ✅"
         }
 
     except Exception as e:

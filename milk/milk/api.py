@@ -29,11 +29,9 @@ def handle_invoice_cancel_or_delete(doc, method):
 
 def validate_supplier(doc, method):
     """
-    - If supplier is custom_milk_supplier: ensure custom_sort is unique within
-      (custom_villages, custom_driver_in_charge). If there's a conflict, throw an error
-      and include the next available number as a suggestion (do not set it automatically).
-    - Recalculate amounts for all unpaid Milk Entries Log records for this supplier.
-    Triggered on validation of the Supplier doctype.
+    - Uniqueness: If supplier is custom_milk_supplier, ensure custom_sort is unique within same driver.
+    - Recalculate amounts for unpaid Milk Entries Log after the newest Weekly Supplier Payment's to_date
+      that includes this supplier in Weekly Pay Table. If no payment exists, recalc all unpaid logs.
     """
     try:
         # ---------------------------
@@ -44,15 +42,12 @@ def validate_supplier(doc, method):
             driver = getattr(doc, "custom_driver_in_charge", None)
             current_sort = getattr(doc, "custom_sort", None)
 
-            # Only validate when a sort number is provided
             if current_sort not in (None, "", 0):
-                # Get all used sort numbers in the same (village, driver)
                 peers = frappe.get_all(
                     "Supplier",
                     filters={
                         "name": ["!=", doc.name],
                         "custom_milk_supplier": 1,
-                        "custom_villages": villages or "",
                         "custom_driver_in_charge": driver or "",
                     },
                     fields=["custom_sort"]
@@ -64,12 +59,10 @@ def validate_supplier(doc, method):
                 }
 
                 if current_sort in used_sorts:
-                    # Compute next available number (starting at current_sort)
                     n = int(current_sort)
                     while n in used_sorts:
                         n += 1
                     suggested = n
-
                     frappe.throw(
                         f"رقم الترتيب {current_sort} مستخدم قبل كده لنفس القرية ({villages}) ونفس السواق ({driver}). "
                         f"من فضلك اختار رقم ترتيب مختلف. الرقم المتاح المقترح: {suggested}.",
@@ -78,11 +71,46 @@ def validate_supplier(doc, method):
 
         # -----------------------------------------
         # Recalculate unpaid Milk Entries Log rates
+        # Only AFTER the newest Weekly Supplier Payment to_date for this supplier
         # -----------------------------------------
+        wsp_child_doctype = "Weekly Pay Table"      # child table containing 'supplier' and parent link
+        wsp_parent_doctype = "Weekly Supplier Payment"  # parent contains start_date, to_date, docstatus
+
+        # 1) Find all parent payment docs that include this supplier
+        child_rows = frappe.get_all(
+            wsp_child_doctype,
+            filters={"supplier": doc.name},
+            fields=["parent"],
+            distinct=True
+        )
+        parent_names = [r["parent"] for r in child_rows] if child_rows else []
+
+        newest_to_date = None
+        if parent_names:
+            # Get parents excluding cancelled; pick the newest by to_date
+            parents = frappe.get_all(
+                wsp_parent_doctype,
+                filters={
+                    "name": ["in", parent_names],
+                    "docstatus": ["!=", 2]
+                },
+                fields=["name", "to_date"],
+                order_by="to_date desc",
+                limit_page_length=1
+            )
+            if parents:
+                newest_to_date = parents[0].get("to_date")
+
+        # 2) Build filters for unpaid logs; if cutoff exists, only after that date
+        log_filters = {"supplier": doc.name, "paid": 0}
+        if newest_to_date:
+            # date field on Milk Entries Log is 'date' per your code; change if different
+            log_filters["date"] = [">", newest_to_date]
+
         logs = frappe.get_all(
             "Milk Entries Log",
-            filters={"supplier": doc.name, "paid": 0},
-            fields=["name", "milk_type", "quantity", "pont"]
+            filters=log_filters,
+            fields=["name", "milk_type", "quantity", "pont", "date"]
         )
 
         custom_pont_size_rate = doc.custom_pont_size_rate or 0
@@ -98,7 +126,6 @@ def validate_supplier(doc, method):
 
             quantity = log.get("quantity") or 0
             pont = log.get("pont") or 0
-
             amount = rate * quantity if custom_pont_size_rate == 0 else rate * quantity * pont
 
             frappe.db.set_value("Milk Entries Log", log.get("name"), {
