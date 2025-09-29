@@ -14,6 +14,7 @@
   "journal_entry",
   "column_break_orfc",
   "expense_category",
+  "cost_center",
   "account",
   "amount",
   "section_break_xhac",
@@ -105,12 +106,18 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-24 15:41:03.597041",
+ "modified": "2025-09-29 09:36:03.828595",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Expense",
@@ -143,6 +150,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

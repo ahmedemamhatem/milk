@@ -16,7 +16,9 @@
   "date",
   "morning",
   "evening",
-  "milk_type"
+  "milk_type",
+  "driver_name",
+  "driver_helper_name"
  ],
  "fields": [
   {
@@ -47,7 +49,7 @@
    "in_list_view": 1,
    "in_preview": 1,
    "in_standard_filter": 1,
-   "label": "Driver",
+   "label": "\u0627\u0644\u062e\u0637",
    "options": "Driver",
    "reqd": 1
   },
@@ -115,12 +117,24 @@
    "label": "company",
    "options": "Company",
    "reqd": 1
+  },
+  {
+   "fieldname": "driver_name",
+   "fieldtype": "Data",
+   "label": "\u0627\u0633\u0645 \u0627\u0644\u0633\u0627\u0626\u0642",
+   "read_only": 1
+  },
+  {
+   "fieldname": "driver_helper_name",
+   "fieldtype": "Data",
+   "label": "\u0627\u0644\u0645\u0633\u0627\u0639\u062f",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-17 19:37:45.079572",
+ "modified": "2025-09-29 09:13:47.074580",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Car Collection",
@@ -140,6 +154,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

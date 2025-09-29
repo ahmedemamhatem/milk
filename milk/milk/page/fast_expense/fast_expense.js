@@ -43,9 +43,10 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
         /* Field layout */
         .c-date{grid-column:span 4}
         .c-mop{grid-column:span 4}
+        .c-cost-center{grid-column:span 4}
         .c-category{grid-column:span 6}
         .c-amount{grid-column:span 3}
-        .c-ref{grid-column:span 3}
+        .c-ref{grid-column:span 12}
 
         /* Field UI */
         .field{padding:6px}
@@ -60,6 +61,12 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
         .field .control-input:focus, .field .input-with-feedback:focus, .field .awesomplete>input:focus{border-color:var(--fxp-focus)!important;box-shadow:0 0 0 3px rgba(37,99,235,.15)!important;outline:none!important}
         .field.error .control-input, .field.error .awesomplete>input, .field.error .input-with-feedback{border-color: var(--fxp-danger)!important; box-shadow: 0 0 0 3px rgba(239,68,68,.12)!important}
 
+        /* Large text area tweaks */
+        .field.c-ref .control-input, .field.c-ref textarea.input-with-feedback {
+          height:160px!important; min-height:160px!important; resize: vertical;
+          line-height:1.6; padding-top:10px; padding-bottom:10px;
+        }
+
         .help-hint{font-size:12px;color:#64748b;margin-top:4px}
         .help-hint .ok{color:var(--fxp-success);display:none}
         .help-hint .warn{color:var(--fxp-warn);display:none}
@@ -72,7 +79,7 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
 
         /* Totals widget */
         .totals{display:grid;grid-template-columns:repeat(12,1fr);gap:10px;margin-top:10px}
-        .kv{grid-column:span 4;text-align:center;background:#fff;border:1px solid var(--fxp-border);border-radius:12px;padding:12px}
+        .kv{grid-column:span 3;text-align:center;background:#fff;border:1px solid var(--fxp-border);border-radius:12px;padding:12px}
         .kv .k{font-size:11px;color:var(--fxp-muted);text-transform:uppercase}
         .kv .v{font-size:20px;font-weight:900;color:#111827}
 
@@ -90,6 +97,7 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
         @media (max-width: 900px){
           .c-date{grid-column:span 6}
           .c-mop{grid-column:span 6}
+          .c-cost-center{grid-column:span 12}
           .c-category{grid-column:span 12}
           .c-amount{grid-column:span 12}
           .c-ref{grid-column:span 12}
@@ -101,17 +109,16 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
         <div class="title-wrap">
           <div class="title"></div>
           <div class="badge" data-bind="status">جاهز</div>
-          <div class="hint" data-bind="company_hint">—</div>
+          <div class="hint" data-bind="company_hint">--</div>
         </div>
         <div class="tips">Ctrl/⌘ + Enter للترحيل</div>
       </div>
 
       <div class="cards">
-        <!-- Main form -->
         <div class="card">
           <div class="card-header">
             <div class="card-title">البيانات</div>
-            <div class="recent" data-bind="recent_wrap" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+            <div class="recent" data-bind="recent_wrap" style="display:none"></div>
           </div>
           <div class="grid">
             <div class="field c-date" data-wrap="posting_date">
@@ -121,34 +128,37 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
             <div class="field c-mop" data-wrap="mode_of_payment">
               <div class="field-label">طريقة الدفع</div>
               <div data-field="mode_of_payment"></div>
-              <div class="help-hint"><span class="warn" data-bind="mop_warn">—</span></div>
+              <div class="help-hint"><span class="warn" data-bind="mop_warn">--</span></div>
+            </div>
+            <div class="field c-cost-center" data-wrap="cost_center">
+              <div class="field-label">مركز التكلفة</div>
+              <div data-field="cost_center"></div>
             </div>
             <div class="field c-category" data-wrap="expense_category">
               <div class="field-label">
                 تصنيف المصروف
-                <span class="hint help-hint" style="border:none;padding:0;margin:0"><span class="ok" data-bind="acc_ok">—</span><span class="warn" data-bind="acc_warn">—</span></span>
+                <span class="hint help-hint" style="border:none;padding:0;margin:0"><span class="ok" data-bind="acc_ok">--</span><span class="warn" data-bind="acc_warn">--</span></span>
               </div>
               <div data-field="expense_category"></div>
             </div>
             <div class="field c-amount" data-wrap="amount">
-              <div class="field-label">المبلغ <span class="hint" data-bind="currency_hint">—</span></div>
+              <div class="field-label">المبلغ <span class="hint" data-bind="currency_hint">--</span></div>
               <div data-field="amount"></div>
             </div>
             <div class="field c-ref" data-wrap="remarks">
-              <div class="field-label">مرجع/ملاحظة</div>
+              <div class="field-label">ملاحظة/تفاصيل</div>
               <div data-field="remarks"></div>
             </div>
           </div>
 
-          <!-- Live summary pills -->
           <div class="pills">
             <div class="pill"><span class="key">المبلغ:</span> <span class="val" data-bind="pill_amount">0.00</span></div>
-            <div class="pill"><span class="key">الدفع:</span> <span class="val" data-bind="pill_mop">—</span></div>
-            <div class="pill"><span class="key">التصنيف:</span> <span class="val" data-bind="pill_category">—</span></div>
-            <div class="pill"><span class="key">التاريخ:</span> <span class="val" data-bind="pill_date">—</span></div>
+            <div class="pill"><span class="key">الدفع:</span> <span class="val" data-bind="pill_mop">--</span></div>
+            <div class="pill"><span class="key">التصنيف:</span> <span class="val" data-bind="pill_category">--</span></div>
+            <div class="pill"><span class="key">مركز التكلفة:</span> <span class="val" data-bind="pill_cost_center">--</span></div>
+            <div class="pill"><span class="key">التاريخ:</span> <span class="val" data-bind="pill_date">--</span></div>
           </div>
 
-          <!-- Totals widget -->
           <div class="totals">
             <div class="kv">
               <div class="k">المبلغ</div>
@@ -156,16 +166,19 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
             </div>
             <div class="kv">
               <div class="k">طريقة الدفع</div>
-              <div class="v" data-bind="mop_preview">—</div>
+              <div class="v" data-bind="mop_preview">--</div>
+            </div>
+            <div class="kv">
+              <div class="k">مركز التكلفة</div>
+              <div class="v" data-bind="cost_center_preview">--</div>
             </div>
             <div class="kv">
               <div class="k">التاريخ</div>
-              <div class="v" data-bind="date_preview">—</div>
+              <div class="v" data-bind="date_preview">--</div>
             </div>
           </div>
         </div>
 
-        <!-- Actions -->
         <div class="actions">
           <div class="left-actions">
             <button class="btn btn-secondary" data-action="clear">تفريغ</button>
@@ -183,16 +196,16 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
   const $ui = $(ui);
   $section.append($ui);
 
-  // State (company is not user-editable; inferred on backend)
+  // State
   const state = {
-    company_currency: null, // best-effort fetch for display
+    company_currency: null,
     posting_date: frappe.datetime.get_today(),
     mode_of_payment: null,
+    cost_center: null,
     expense_category: null,
     amount: 0,
     remarks: '',
-    auto_note: false,
-    recent: { mops: [], cats: [] }
+    auto_note: false
   };
 
   // Binds
@@ -200,10 +213,12 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
   const $company_hint = $ui.find('[data-bind="company_hint"]');
   const $amount_preview = $ui.find('[data-bind="amount_preview"]');
   const $mop_preview = $ui.find('[data-bind="mop_preview"]');
+  const $cost_center_preview = $ui.find('[data-bind="cost_center_preview"]');
   const $date_preview = $ui.find('[data-bind="date_preview"]');
   const $pill_amount = $ui.find('[data-bind="pill_amount"]');
   const $pill_mop = $ui.find('[data-bind="pill_mop"]');
   const $pill_category = $ui.find('[data-bind="pill_category"]');
+  const $pill_cost_center = $ui.find('[data-bind="pill_cost_center"]');
   const $pill_date = $ui.find('[data-bind="pill_date"]');
   const $progress = $ui.find('[data-bind="progress"]');
   const $acc_ok = $ui.find('[data-bind="acc_ok"]');
@@ -224,11 +239,14 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
       Currency: frappe.ui.form.ControlCurrency,
       Date: frappe.ui.form.ControlDate,
       Select: frappe.ui.form.ControlSelect,
-      Data: frappe.ui.form.ControlData
+      Data: frappe.ui.form.ControlData,
+      SmallText: frappe.ui.form.ControlSmallText,
+      Text: frappe.ui.form.ControlText // Large Text
     };
     const C = Map[df.fieldtype] || frappe.ui.form.ControlData;
     const ctrl = new C({ df, parent: $ui.find(sel)[0], render_input: true });
     if (ctrl.$input && df.placeholder) ctrl.$input.attr('placeholder', df.placeholder);
+    if (df.change && ctrl.$input) ctrl.$input.on('change', df.change);
     return ctrl;
   }
 
@@ -249,12 +267,26 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
     get_query: () => ({ filters: { enabled: 1 } }),
     change: async () => {
       state.mode_of_payment = controls.mode_of_payment.get_value();
-      remember_recent('mop', state.mode_of_payment);
       await refresh_mop_hint();
       update_previews();
       if (state.auto_note) update_auto_note();
     }
   }, '[data-field="mode_of_payment"]');
+
+  controls.cost_center = Control({
+    fieldtype: 'Link',
+    fieldname: 'cost_center',
+    label: 'مركز التكلفة',
+    options: 'Cost Center',
+    get_query: () => {
+      const company = frappe.defaults.get_user_default('Company') || frappe.defaults.get_default('company');
+      return company ? { filters: { is_group: 0, company } } : { filters: { is_group: 0 } };
+    },
+    change: () => {
+      state.cost_center = controls.cost_center.get_value();
+      update_previews();
+    }
+  }, '[data-field="cost_center"]');
 
   controls.expense_category = Control({
     fieldtype: 'Link',
@@ -264,7 +296,6 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
     get_query: () => ({ filters: { disabled: 0 } }),
     change: async () => {
       state.expense_category = controls.expense_category.get_value();
-      remember_recent('cat', state.expense_category);
       await refresh_category_hint();
       update_previews();
       if (state.auto_note) update_auto_note();
@@ -284,35 +315,36 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
   }, '[data-field="amount"]');
   controls.amount.set_value(state.amount);
 
+  // Large Text Note
   controls.remarks = Control({
-    fieldtype: 'Data',
+    fieldtype: 'Text', // Large Text
     fieldname: 'remarks',
-    label: 'مرجع/ملاحظة',
-    placeholder: 'اختياري...',
+    label: 'ملاحظة/تفاصيل',
+    placeholder: 'اكتب تفاصيل المصروف هنا...',
     change: () => { state.remarks = controls.remarks.get_value(); }
   }, '[data-field="remarks"]');
 
-  // Init context (currency, recents)
   init_context();
 
   async function init_context() {
     try {
-      // Best-effort: get default company currency for hints (optional)
       const default_company = frappe.defaults.get_user_default('Company') || frappe.defaults.get_default('company');
       if (default_company) {
         const c = await frappe.call({
           method: 'frappe.client.get_value',
-          args: { doctype: 'Company', filters: { name: default_company }, fieldname: ['default_currency'] }
+          args: { doctype: 'Company', filters: { name: default_company }, fieldname: ['default_currency', 'cost_center'] }
         });
         state.company_currency = c.message && c.message.default_currency || null;
-        $company_hint.text(`العملة: ${state.company_currency || '—'}`);
+        $company_hint.text(`العملة: ${state.company_currency || '--'}`);
         $currency_hint.text(state.company_currency || '');
+        if (c.message && c.message.cost_center && controls.cost_center) {
+          controls.cost_center.set_value(c.message.cost_center);
+          state.cost_center = c.message.cost_center;
+        }
       } else {
-        $company_hint.text('—');
+        $company_hint.text('--');
         $currency_hint.text('');
       }
-
-      load_recent();
       update_previews();
     } catch {
       // non-fatal
@@ -339,7 +371,6 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
     $acc_ok.hide(); $acc_warn.hide();
     if (!state.expense_category) return;
     try {
-      // No company param now; backend will infer default company
       const r = await frappe.call({
         method: 'milk.milk.page.fast_expense.api.peek_expense_account',
         args: { expense_category: state.expense_category }
@@ -355,64 +386,6 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
     }
   }
 
-  // Recent selections
-  function load_recent() {
-    try {
-      const raw = localStorage.getItem('fast_expense_recent');
-      if (raw) {
-        const obj = JSON.parse(raw);
-        state.recent.mops = Array.isArray(obj.mops) ? obj.mops : [];
-        state.recent.cats = Array.isArray(obj.cats) ? obj.cats : [];
-      }
-    } catch {}
-  }
-  function save_recent() {
-    try { localStorage.setItem('fast_expense_recent', JSON.stringify(state.recent)); } catch {}
-  }
-  function remember_recent(kind, value) {
-    if (!value) return;
-    const list = (kind === 'mop') ? state.recent.mops : state.recent.cats;
-    const idx = list.indexOf(value);
-    if (idx !== -1) list.splice(idx, 1);
-    list.unshift(value);
-    if (list.length > 5) list.pop();
-    save_recent();
-  }
-  function render_recent_chips() {
-    const $wrap = $ui.find('[data-bind="recent_wrap"]');
-    $wrap.empty();
-    if (state.recent.mops.length) {
-      $wrap.append(`<span class="hint" style="border:none">أخيرة (الدفع):</span>`);
-      state.recent.mops.forEach(v => {
-        const $c = $(`<span class="chip" data-recent="mop:${frappe.utils.escape_html(v)}">${frappe.utils.escape_html(v)}</span>`);
-        $wrap.append($c);
-      });
-    }
-    if (state.recent.cats.length) {
-      $wrap.append(`<span class="hint" style="border:none">أخيرة (التصنيف):</span>`);
-      state.recent.cats.forEach(v => {
-        const $c = $(`<span class="chip" data-recent="cat:${frappe.utils.escape_html(v)}">${frappe.utils.escape_html(v)}</span>`);
-        $wrap.append($c);
-      });
-    }
-  }
-  $ui.on('click', '.chip[data-recent]', function() {
-    const d = $(this).data('recent');
-    if (!d) return;
-    const [kind, val] = String(d).split(':');
-    if (kind === 'mop') {
-      controls.mode_of_payment.set_value(val);
-      state.mode_of_payment = val;
-      refresh_mop_hint();
-    } else if (kind === 'cat') {
-      controls.expense_category.set_value(val);
-      state.expense_category = val;
-      refresh_category_hint();
-    }
-    update_previews();
-    if (state.auto_note) update_auto_note();
-  });
-
   // Helpers
   function flt_safe(v) { const n = parseFloat(v); return isFinite(n) ? n : 0; }
   function fmt(n) { const x = Number(n); return (isFinite(x) ? x : 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -420,13 +393,15 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
   function update_previews() {
     const amt = fmt(state.amount || 0) + (state.company_currency ? ` ${state.company_currency}` : '');
     $amount_preview.text(amt);
-    $mop_preview.text(state.mode_of_payment || '—');
-    $date_preview.text(state.posting_date || '—');
+    $mop_preview.text(state.mode_of_payment || '--');
+    $cost_center_preview.text(state.cost_center || '--');
+    $date_preview.text(state.posting_date || '--');
 
     $pill_amount.text(amt);
-    $pill_mop.text(state.mode_of_payment || '—');
-    $pill_category.text(state.expense_category || '—');
-    $pill_date.text(state.posting_date || '—');
+    $pill_mop.text(state.mode_of_payment || '--');
+    $pill_category.text(state.expense_category || '--');
+    $pill_cost_center.text(state.cost_center || '--');
+    $pill_date.text(state.posting_date || '--');
   }
   update_previews();
 
@@ -466,9 +441,10 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
           <li><b>التاريخ:</b> ${frappe.utils.escape_html(doc.posting_date || state.posting_date)}</li>
           <li><b>التصنيف:</b> ${frappe.utils.escape_html(doc.expense_category || state.expense_category)}</li>
           <li><b>طريقة الدفع:</b> ${frappe.utils.escape_html(doc.mode_of_payment || state.mode_of_payment || '')}</li>
+          <li><b>مركز التكلفة:</b> ${frappe.utils.escape_html(doc.cost_center || state.cost_center || '--')}</li>
           <li><b>المبلغ:</b> ${fmt(doc.amount || state.amount)} ${state.company_currency || ''}</li>
-          ${doc.journal_entry ? '<li><b>قيد اليومية:</b> '+frappe.utils.escape_html(doc.journal_entry)+'</li>' : ''}
         </ul>
+        <div style="white-space:pre-wrap;margin:10px 0 6px 0"><b>الملاحظة:</b> ${frappe.utils.escape_html(state.remarks || '')}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-secondary" data-act="open-expense">فتح المستند</button>
           ${doc.journal_entry ? '<button class="btn btn-secondary" data-act="open-je">فتح القيد</button>' : ''}
@@ -486,6 +462,7 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
     if (state.expense_category) parts.push(`مصروف ${state.expense_category}`);
     if (state.mode_of_payment) parts.push(`(${state.mode_of_payment})`);
     if (state.amount) parts.push(`${fmt(state.amount)}${state.company_currency ? ' ' + state.company_currency : ''}`);
+    if (state.cost_center) parts.push(`مركز تكلفة: ${state.cost_center}`);
     if (state.posting_date) parts.push(`بتاريخ ${state.posting_date}`);
     const note = parts.join(' - ');
     controls.remarks.set_value(note);
@@ -508,7 +485,8 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
           mode_of_payment: state.mode_of_payment,
           expense_category: state.expense_category,
           amount: state.amount,
-          remarks: state.remarks || ''
+          remarks: state.remarks || '',
+          cost_center: state.cost_center || null
         }
       });
       const out = r.message || {};
@@ -519,8 +497,6 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
       if (out.name) {
         $status.text('تم الإنشاء');
         success_dialog(out);
-        remember_recent('mop', state.mode_of_payment);
-        remember_recent('cat', state.expense_category);
       } else {
         frappe.show_alert({ message: 'لم يتم إنشاء مستند.', indicator: 'orange' });
       }
@@ -544,13 +520,15 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
     const today = frappe.datetime.get_today();
     state.posting_date = today;
     state.mode_of_payment = null;
+    state.cost_center = null;
     state.expense_category = null;
     state.amount = 0;
-    state.remarks = '';
+       state.remarks = '';
     state.auto_note = false;
 
     controls.posting_date.set_value(today);
     controls.mode_of_payment.set_value('');
+    controls.cost_center.set_value('');
     controls.expense_category.set_value('');
     controls.amount.set_value(0);
     controls.remarks.set_value('');
@@ -563,14 +541,14 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
     }
   }
 
+  const order = [
+    controls.posting_date, controls.mode_of_payment, controls.cost_center,
+    controls.expense_category, controls.amount, controls.remarks
+  ].filter(Boolean);
+
   $btn_submit.on('click', submit_expense);
   $btn_clear.on('click', clear_form);
 
-  // Enter to go next, Ctrl+Enter submit
-  const order = [
-    controls.posting_date, controls.mode_of_payment, controls.expense_category,
-    controls.amount, controls.remarks
-  ].filter(Boolean);
   order.forEach((c,i)=>{
     const next = order[i+1];
     if (c.$input) {
