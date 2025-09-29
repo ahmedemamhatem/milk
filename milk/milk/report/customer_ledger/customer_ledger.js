@@ -1,3 +1,5 @@
+// Customer Ledger (General-Ledger-like) with Detail/Summary modes
+
 frappe.query_reports["Customer Ledger"] = {
   filters: [
     {
@@ -13,7 +15,7 @@ frappe.query_reports["Customer Ledger"] = {
       label: __("Customer"),
       fieldtype: "Link",
       options: "Customer",
-      reqd: 1
+      reqd: 0
     },
     {
       fieldname: "from_date",
@@ -29,42 +31,27 @@ frappe.query_reports["Customer Ledger"] = {
       reqd: 1,
       default: (frappe.datetime.year_end ? frappe.datetime.year_end() : frappe.datetime.get_today())
     },
-
-    // Optional toggles (safe, no server deps)
     {
-      fieldname: "show_opening_entries",
-      label: __("Show Opening Entries"),
-      fieldtype: "Check",
-      default: 1,
-      hidden: 1
+      fieldname: "mode",
+      label: __("Mode"),
+      fieldtype: "Select",
+      options: ["Detail", "Summary (Final Balance for All)"],
+      default: "Detail"
     },
-    {
-      fieldname: "group_by_voucher",
-      label: __("Group by Voucher"),
-      fieldtype: "Check",
-      default: 0,
-  	  hidden: 1
-    },
-    {
-      fieldname: "ignore_cancelled",
-      label: __("Ignore Cancelled"),
-      fieldtype: "Check",
-      default: 1,
-  	  hidden: 1
-    }
+    // Hidden toggles for parity/future use
+    { fieldname: "ignore_cancelled", label: __("Ignore Cancelled"), fieldtype: "Check", default: 1, hidden: 1 },
+    { fieldname: "group_by_voucher", label: __("Group by Voucher"), fieldtype: "Check", default: 0, hidden: 1 },
+    { fieldname: "show_opening_entries", label: __("Show Opening Entries"), fieldtype: "Check", default: 1, hidden: 1 }
   ],
 
-  onload: function (report) {
-    // Enforce mandatory filters before running
+  onload(report) {
     const orig_refresh = report.refresh.bind(report);
     report.refresh = function () {
       const company = frappe.query_report.get_filter_value("company");
-      const customer = frappe.query_report.get_filter_value("customer");
       const from_date = frappe.query_report.get_filter_value("from_date");
       const to_date = frappe.query_report.get_filter_value("to_date");
 
       if (!company) return frappe.msgprint({ message: __("Please select Company"), indicator: "orange" });
-      if (!customer) return frappe.msgprint({ message: __("Please select Customer"), indicator: "orange" });
       if (!from_date || !to_date) return frappe.msgprint({ message: __("Please set From and To Date"), indicator: "orange" });
 
       return orig_refresh();
