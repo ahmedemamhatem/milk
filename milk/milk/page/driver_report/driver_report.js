@@ -34,13 +34,30 @@ frappe.pages["driver-report"].on_page_load = function (wrapper) {
 		display: flex; justify-content: space-between; align-items: center;
 		padding: 10px 12px;
 	}
-	.dr-header h3 { margin: 0; font-size: 16px; font-weight: 800; display: flex; gap: 8px; align-items: baseline; }
+	.dr-header h3 { margin: 0; font-size: 16px; font-weight: 800; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 	.dr-header .meta { margin: 0; font-size: 13px; color: #0c5460; font-weight: 600; }
 	.dr-names { font-size: 12px; font-weight: 700; color: #0c5460; opacity: .9; }
 	.table.dr-table { font-size: 1.05rem; }
 	.table.dr-table thead th { background:#f8fafc; font-weight:700; }
 	.table.dr-table tfoot th, .table.dr-table tfoot td { background:#f8fafc; font-weight:700; }
+	/* داخل نفس السطر بين السائق والمساعد */
+.dr-names .spacer-inner {
+	display: inline-block;
+	width: 24px; /* غيّر الرقم حسب رغبتك للمسافة بين السائق والمساعد */
+}
 
+/* مسافة كبيرة بين فقرة الصباح وفقرة المساء */
+.dr-names .spacer-outer {
+	display: inline-block;
+	width: 64px; /* غيّر الرقم لمسافة أكبر/أصغر بين الصباح والمساء */
+}
+
+/* يمكنك أيضاً فرض تباعد موحد ومساحة قابلة للالتفاف */
+.dr-names {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 0; /* نتحكم يدوياً عبر spacers */
+}
 	/* Print view: print exactly what you see */
 	@media print {
 		.navbar, .page-head, .page-head .page-actions, .page-form, .btn, .dr-toolbar { display: none !important; }
@@ -140,7 +157,6 @@ frappe.pages["driver-report"].on_page_load = function (wrapper) {
 
 	// Print current view as-is
 	$btn_print.on("click", function () {
-		// Open a print window with the same HTML of results_container and minimal head
 		const w = window.open('', '_blank');
 		if (!w) {
 			frappe.msgprint('فضلاً فعّل النوافذ المنبثقة للسماح بالطباعة.');
@@ -176,20 +192,34 @@ frappe.pages["driver-report"].on_page_load = function (wrapper) {
 			return;
 		}
 
-		// Group data by driver and date, and keep names
+		// Group data by driver and date, and keep names per shift
 		const groupedData = data.reduce((acc, row) => {
 			const driver = row.driver || "غير محدد";
 			const date = row.date;
 
 			if (!acc[driver]) acc[driver] = {};
-			if (!acc[driver][date]) acc[driver][date] = { rows: [], meta: { driver_name: "", driver_helper_name: "" } };
+			if (!acc[driver][date]) {
+				acc[driver][date] = {
+					rows: [],
+					meta: {
+						driver_name_morning: "",
+						driver_helper_name_morning: "",
+						driver_name_evening: "",
+						driver_helper_name_evening: "",
+					}
+				};
+			}
 
-			// Set meta from first available row
-			if (!acc[driver][date].meta.driver_name && row.driver_name) acc[driver][date].meta.driver_name = row.driver_name;
-			if (!acc[driver][date].meta.driver_helper_name && row.driver_helper_name) acc[driver][date].meta.driver_helper_name = row.driver_helper_name;
+			// Capture shift-specific names if present (first non-empty per date)
+			const m = acc[driver][date].meta;
+
+			if (!m.driver_name_morning && row.driver_name_morning) m.driver_name_morning = row.driver_name_morning;
+			if (!m.driver_helper_name_morning && row.driver_helper_name_morning) m.driver_helper_name_morning = row.driver_helper_name_morning;
+
+			if (!m.driver_name_evening && row.driver_name_evening) m.driver_name_evening = row.driver_name_evening;
+			if (!m.driver_helper_name_evening && row.driver_helper_name_evening) m.driver_helper_name_evening = row.driver_helper_name_evening;
 
 			acc[driver][date].rows.push(row);
-
 			return acc;
 		}, {});
 
@@ -198,14 +228,40 @@ frappe.pages["driver-report"].on_page_load = function (wrapper) {
 			Object.keys(groupedData[driver]).forEach((date) => {
 				const bucket = groupedData[driver][date];
 				const rowsForSection = bucket.rows || [];
-				const driver_name = bucket.meta?.driver_name || "";
-				const driver_helper_name = bucket.meta?.driver_helper_name || "";
+				const m = bucket.meta || {};
 
-				// Header parts
-				const name_parts = [];
-				if (driver_name) name_parts.push(frappe.utils.escape_html(driver_name));
-				if (driver_helper_name) name_parts.push(frappe.utils.escape_html(driver_helper_name));
-				const names_html = name_parts.length ? `<span class="dr-names">— ${name_parts.join(" — ")}</span>` : "";
+				const nameOrUnregistered = (v) => (v && String(v).trim() ? frappe.utils.escape_html(v) : "غير مسجل");
+
+				// صباح
+				const morningDriver = nameOrUnregistered(m.driver_name_morning);
+				const morningHelper = nameOrUnregistered(m.driver_helper_name_morning);
+				const morning_html = `الصباح السائق: ${morningDriver} - المساعد: ${morningHelper}`;
+
+				// مساء
+				const eveningDriver = nameOrUnregistered(m.driver_name_evening);
+				const eveningHelper = nameOrUnregistered(m.driver_helper_name_evening);
+				const evening_html = `المساء السائق: ${eveningDriver} - المساعد: ${eveningHelper}`;
+
+				// Final combined string
+				const names_html = `
+						<span class="dr-names">
+							<span class="shift morning">
+								<span class="label">الصباح السائق:</span>
+								<span class="value driver">${morningDriver}</span>
+								<span class="spacer-inner"></span>
+								<span class="label">المساعد:</span>
+								<span class="value helper">${morningHelper}</span>
+							</span>
+							<span class="spacer-outer"></span>
+							<span class="shift evening">
+								<span class="label">المساء السائق:</span>
+								<span class="value driver">${eveningDriver}</span>
+								<span class="spacer-inner"></span>
+								<span class="label">المساعد:</span>
+								<span class="value helper">${eveningHelper}</span>
+							</span>
+						</span>
+					`;
 
 				const driverSection = $(`
 					<div class="card dr-card rounded">
@@ -275,7 +331,7 @@ frappe.pages["driver-report"].on_page_load = function (wrapper) {
 					// Translate milk type to Arabic
 					const milkTypeArabic =
 						row.milk_type === "Cow" ? "بقر" :
-						row.milk_type === "Buffalo" ? "جاموس" : "غير محدد";
+						row.milk_type === "Buffalo" ? "جاموس" : (row.milk_type || "غير محدد");
 
 					const morning_diff_class = row.morning_diff >= 0 ? "bg-success text-white" : "bg-danger text-white";
 					const evening_diff_class = row.evening_diff >= 0 ? "bg-success text-white" : "bg-danger text-white";
@@ -283,33 +339,33 @@ frappe.pages["driver-report"].on_page_load = function (wrapper) {
 
 					tbody.append(`
 						<tr>
-							<td>${milkTypeArabic}</td>
-							<td>${row.collected_morning} كجم</td>
-							<td>${row.car_morning} كجم</td>
-							<td><span class="badge ${morning_diff_class}">${row.morning_diff} كجم</span></td>
-							<td>${row.collected_evening} كجم</td>
-							<td>${row.car_evening} كجم</td>
-							<td><span class="badge ${evening_diff_class}">${row.evening_diff} كجم</span></td>
-							<td>${row.collected_total} كجم</td>
-							<td>${row.car_total} كجم</td>
-							<td><span class="badge ${total_diff_class}">${row.total_diff} كجم</span></td>
+							<td>${frappe.utils.escape_html(milkTypeArabic)}</td>
+							<td>${Number(row.collected_morning || 0)} كجم</td>
+							<td>${Number(row.car_morning || 0)} كجم</td>
+							<td><span class="badge ${morning_diff_class}">${Number(row.morning_diff || 0)} كجم</span></td>
+							<td>${Number(row.collected_evening || 0)} كجم</td>
+							<td>${Number(row.car_evening || 0)} كجم</td>
+							<td><span class="badge ${evening_diff_class}">${Number(row.evening_diff || 0)} كجم</span></td>
+							<td>${Number(row.collected_total || 0)} كجم</td>
+							<td>${Number(row.car_total || 0)} كجم</td>
+							<td><span class="badge ${total_diff_class}">${Number(row.total_diff || 0)} كجم</span></td>
 						</tr>
 					`);
 
 					// Update totals
-					totals.collected_morning += row.collected_morning;
-					totals.car_morning += row.car_morning;
-					totals.morning_diff += row.morning_diff;
-					totals.collected_evening += row.collected_evening;
-					totals.car_evening += row.car_evening;
-					totals.evening_diff += row.evening_diff;
-					totals.collected_total += row.collected_total;
-					totals.car_total += row.car_total;
-					totals.total_diff += row.total_diff;
+					totals.collected_morning += Number(row.collected_morning || 0);
+					totals.car_morning += Number(row.car_morning || 0);
+					totals.morning_diff += Number(row.morning_diff || 0);
+					totals.collected_evening += Number(row.collected_evening || 0);
+					totals.car_evening += Number(row.car_evening || 0);
+					totals.evening_diff += Number(row.evening_diff || 0);
+					totals.collected_total += Number(row.collected_total || 0);
+					totals.car_total += Number(row.car_total || 0);
+					totals.total_diff += Number(row.total_diff || 0);
 				});
 
 				// Append totals to the footer
-				const fmt = (v) => (Number.isFinite(+v) ? +v : 0);
+				const fmt = (v) => (Number.isFinite(+v) ? +(+v).toFixed(2) : 0);
 				tfoot.find(".total-collected-morning").text(`${fmt(totals.collected_morning)} كجم`);
 				tfoot.find(".total-car-morning").text(`${fmt(totals.car_morning)} كجم`);
 				tfoot.find(".total-morning-diff").text(`${fmt(totals.morning_diff)} كجم`);

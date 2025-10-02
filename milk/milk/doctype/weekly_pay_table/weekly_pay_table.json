@@ -1,411 +1,414 @@
 {
-  "actions": [],
-  "allow_rename": 1,
-  "creation": "2025-09-26 12:59:23.542813",
-  "doctype": "DocType",
-  "editable_grid": 1,
-  "engine": "InnoDB",
-  "field_order": [
-    "supplier",
-    "village",
-    "milk_type",
-    "total_qty",
-    "total_amount",
-    "total_amount_to_pay",
-    "less_5",
-    "column_break_qive",
-    "rate",
-    "total_morning_qty",
-    "total_evening_qty",
-    "total_week_amount",
-    "custom_cow",
-    "custom_buffalo",
-    "custom_sort",
-    "supplier_name",
-    "section_break_mzun",
-    "sunday_morning",
-    "sunday_evening",
-    "monday_morning",
-    "monday_evening",
-    "column_break_vuxz",
-    "tuesday_morning",
-    "tuesday_evening",
-    "wednesday_morning",
-    "wednesday_evening",
-    "column_break_xhdd",
-    "thursday_morning",
-    "thursday_evening",
-    "friday_morning",
-    "friday_evening",
-    "column_break_xsjv",
-    "saturday_morning",
-    "saturday_evening",
-    "section_break_cfzu",
-    "supplier_loan",
-    "column_break_onge",
-    "deduction_percent",
-    "deduction_amount",
-    "column_break_jxyl",
-    "total_deduction_amount"
-  ],
-  "fields": [
-    {
-      "fieldname": "supplier",
-      "fieldtype": "Link",
-      "in_filter": 1,
-      "in_global_search": 1,
-      "in_list_view": 1,
-      "in_preview": 1,
-      "in_standard_filter": 1,
-      "label": "Supplier",
-      "options": "Supplier",
-      "read_only": 1,
-      "description": "المورِّد صاحب السجل."
-    },
-    {
-      "default": "0",
-      "fieldname": "total_qty",
-      "fieldtype": "Float",
-      "in_filter": 1,
-      "in_list_view": 1,
-      "in_preview": 1,
-      "in_standard_filter": 1,
-      "label": "Total Qty",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "إجمالي الكمية الأسبوعية (صباح + مساء) لهذا الصف."
-    },
-    {
-      "default": "0",
-      "fieldname": "total_amount",
-      "fieldtype": "Float",
-      "in_filter": 1,
-      "in_list_view": 1,
-      "in_preview": 1,
-      "in_standard_filter": 1,
-      "label": "Total Amount",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "صافي المبلغ بعد خصم القروض والخصومات لهذا الصف."
-    },
-    {
-      "fieldname": "section_break_mzun",
-      "fieldtype": "Section Break"
-    },
-    {
-      "default": "0",
-      "fieldname": "sunday_morning",
-      "fieldtype": "Float",
-      "label": "Sunday Morning",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "كمية الأحد صباحًا."
-    },
-    {
-      "default": "0",
-      "fieldname": "sunday_evening",
-      "fieldtype": "Float",
-      "label": "Sunday Evening",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "كمية الأحد مساءً."
-    },
-    {
-      "fieldname": "column_break_vuxz",
-      "fieldtype": "Column Break"
-    },
-    {
-      "default": "0",
-      "fieldname": "monday_morning",
-      "fieldtype": "Float",
-      "label": "Monday Morning",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "كمية الاثنين صباحًا."
-    },
-    {
-      "default": "0",
-      "fieldname": "monday_evening",
-      "fieldtype": "Float",
-      "label": "Monday Evening",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "كمية الاثنين مساءً."
-    },
-    {
-      "fieldname": "column_break_xhdd",
-      "fieldtype": "Column Break"
-    },
-    {
-      "default": "0",
-      "fieldname": "tuesday_morning",
-      "fieldtype": "Float",
-      "label": "Tuesday Morning",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "كمية الثلاثاء صباحًا."
-    },
-    {
-      "default": "0",
-      "fieldname": "tuesday_evening",
-      "fieldtype": "Float",
-      "label": "Tuesday Evening",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "كمية الثلاثاء مساءً."
-    },
-    {
-      "fieldname": "column_break_xsjv",
-      "fieldtype": "Column Break"
-    },
-    {
-      "default": "0",
-      "fieldname": "wednesday_morning",
-      "fieldtype": "Float",
-      "label": "Wednesday Morning",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "كمية الأربعاء صباحًا."
-    },
-    {
-      "default": "0",
-      "fieldname": "wednesday_evening",
-      "fieldtype": "Float",
-      "label": "Wednesday Evening",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "كمية الأربعاء مساءً."
-    },
-    {
-      "default": "0",
-      "fieldname": "thursday_morning",
-      "fieldtype": "Float",
-      "label": "Thursday Morning",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "كمية الخميس صباحًا."
-    },
-    {
-      "default": "0",
-      "fieldname": "thursday_evening",
-      "fieldtype": "Float",
-      "label": "Thursday Evening",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "كمية الخميس مساءً."
-    },
-    {
-      "default": "0",
-      "fieldname": "friday_morning",
-      "fieldtype": "Float",
-      "label": "Friday Morning",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "كمية الجمعة صباحًا."
-    },
-    {
-      "default": "0",
-      "fieldname": "friday_evening",
-      "fieldtype": "Float",
-      "label": "Friday Evening",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "كمية الجمعة مساءً."
-    },
-    {
-      "default": "0",
-      "fieldname": "saturday_morning",
-      "fieldtype": "Float",
-      "label": "Saturday Morning",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "كمية السبت صباحًا."
-    },
-    {
-      "default": "0",
-      "fieldname": "saturday_evening",
-      "fieldtype": "Float",
-      "label": "Saturday Evening",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "كمية السبت مساءً."
-    },
-    {
-      "fieldname": "milk_type",
-      "fieldtype": "Data",
-      "in_global_search": 1,
-      "in_list_view": 1,
-      "in_preview": 1,
-      "in_standard_filter": 1,
-      "label": "Milk Type",
-      "read_only": 1,
-      "description": "نوع الحليب لهذا الصف (بقري/جاموسي)."
-    },
-    {
-      "fieldname": "column_break_qive",
-      "fieldtype": "Column Break"
-    },
-    {
-      "default": "0",
-      "fieldname": "rate",
-      "fieldtype": "Float",
-      "label": "Rate",
-      "read_only": 1,
-      "description": "سعر اللتر/الوحدة المستخدم لحساب قيمة الأسبوع."
-    },
-    {
-      "default": "0",
-      "fieldname": "total_morning_qty",
-      "fieldtype": "Float",
-      "label": "Total Morning Qty",
-      "read_only": 1,
-      "description": "إجمالي الكميات الصباحية خلال الأسبوع."
-    },
-    {
-      "default": "0",
-      "fieldname": "total_evening_qty",
-      "fieldtype": "Float",
-      "label": "Total Evening Qty",
-      "read_only": 1,
-      "description": "إجمالي الكميات المسائية خلال الأسبوع."
-    },
-    {
-      "fieldname": "section_break_cfzu",
-      "fieldtype": "Section Break"
-    },
-    {
-      "default": "0",
-      "fieldname": "supplier_loan",
-      "fieldtype": "Float",
-      "label": "Supplier Loan",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "قيمة القرض المقتطعة من هذا الصف ضمن توزيع قروض المورد."
-    },
-    {
-      "fieldname": "column_break_onge",
-      "fieldtype": "Column Break"
-    },
-    {
-      "default": "0",
-      "fieldname": "deduction_percent",
-      "fieldtype": "Float",
-      "label": "Deduction Percent",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "مجموع نسب الخصم المطبقة خلال الفترة لهذا النوع (٪)."
-    },
-    {
-      "default": "0",
-      "fieldname": "deduction_amount",
-      "fieldtype": "Float",
-      "label": "Deduction Amount",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "إجمالي الخصومات لهذا الصف = نسبة من قيمة الأسبوع + مبالغ ثابتة."
-    },
-    {
-      "fieldname": "column_break_jxyl",
-      "fieldtype": "Column Break"
-    },
-    {
-      "default": "0",
-      "fieldname": "less_5",
-      "fieldtype": "Float",
-      "label": "Less 5",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "الباقي بعد التقريب لأقرب مضاعف 5 (total_amount % 5)."
-    },
-    {
-      "default": "0",
-      "fieldname": "total_deduction_amount",
-      "fieldtype": "Float",
-      "label": "Total Deduction Amount",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "إجمالي الاقتطاعات في هذا الصف = قرض المورد + الخصومات."
-    },
-    {
-      "default": "0",
-      "fieldname": "total_week_amount",
-      "fieldtype": "Float",
-      "label": "Total Week Amount",
-      "read_only": 1,
-      "description": "قيمة الأسبوع قبل أي خصومات أو قروض."
-    },
-    {
-      "fieldname": "village",
-      "fieldtype": "Link",
-      "in_filter": 1,
-      "in_global_search": 1,
-      "in_list_view": 1,
-      "in_preview": 1,
-      "in_standard_filter": 1,
-      "label": "Village",
-      "options": "Village",
-      "read_only": 1,
-      "description": "قرية المورد لهذا الصف."
-    },
-    {
-      "default": "0",
-      "fieldname": "custom_cow",
-      "fieldtype": "Check",
-      "hidden": 1,
-      "label": "custom_cow",
-      "read_only": 1,
-      "description": "علامة داخلية: الصف خاص بالحليب البقري."
-    },
-    {
-      "default": "0",
-      "fieldname": "custom_buffalo",
-      "fieldtype": "Check",
-      "hidden": 1,
-      "label": "custom_buffalo",
-      "read_only": 1,
-      "description": "علامة داخلية: الصف خاص بالحليب الجاموسي."
-    },
-    {
-      "default": "0",
-      "fieldname": "custom_sort",
-      "fieldtype": "Int",
-      "hidden": 1,
-      "label": "custom_sort",
-      "read_only": 1,
-      "description": "قيمة ترتيب مخصصة للمورد."
-    },
-    {
-      "fieldname": "supplier_name",
-      "fieldtype": "Data",
-      "hidden": 1,
-      "label": "supplier_name",
-      "read_only": 1,
-      "description": "اسم المورد للعرض."
-    },
-    {
-      "default": "0",
-      "fieldname": "total_amount_to_pay",
-      "fieldtype": "Float",
-      "in_filter": 1,
-      "in_list_view": 1,
-      "in_preview": 1,
-      "in_standard_filter": 1,
-      "label": "Total Amount To Pay",
-      "non_negative": 1,
-      "read_only": 1,
-      "description": "المبلغ المستحق للدفع بعد الخصومات والتقريب."
-    }
-  ],
-  "index_web_pages_for_search": 1,
-  "istable": 1,
-  "links": [],
-  "modified": "2025-09-26 18:08:25.094447",
-  "modified_by": "Administrator",
-  "module": "Milk",
-  "name": "Weekly Pay Table",
-  "owner": "Administrator",
-  "permissions": [],
-  "sort_field": "modified",
-  "sort_order": "DESC",
-  "states": []
+ "actions": [],
+ "allow_copy": 1,
+ "allow_rename": 1,
+ "creation": "2025-09-26 12:59:23.542813",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "supplier",
+  "village",
+  "milk_type",
+  "total_qty",
+  "total_amount",
+  "total_amount_to_pay",
+  "less_5",
+  "column_break_qive",
+  "rate",
+  "total_morning_qty",
+  "total_evening_qty",
+  "total_week_amount",
+  "custom_cow",
+  "custom_buffalo",
+  "custom_sort",
+  "supplier_name",
+  "section_break_mzun",
+  "sunday_morning",
+  "sunday_evening",
+  "monday_morning",
+  "monday_evening",
+  "column_break_vuxz",
+  "tuesday_morning",
+  "tuesday_evening",
+  "wednesday_morning",
+  "wednesday_evening",
+  "column_break_xhdd",
+  "thursday_morning",
+  "thursday_evening",
+  "friday_morning",
+  "friday_evening",
+  "column_break_xsjv",
+  "saturday_morning",
+  "saturday_evening",
+  "section_break_cfzu",
+  "supplier_loan",
+  "column_break_onge",
+  "deduction_percent",
+  "deduction_amount",
+  "column_break_jxyl",
+  "total_deduction_amount"
+ ],
+ "fields": [
+  {
+   "description": "\u0627\u0644\u0645\u0648\u0631\u0651\u0650\u062f \u0635\u0627\u062d\u0628 \u0627\u0644\u0633\u062c\u0644.",
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "in_filter": 1,
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Supplier",
+   "options": "Supplier",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0643\u0645\u064a\u0629 \u0627\u0644\u0623\u0633\u0628\u0648\u0639\u064a\u0629 (\u0635\u0628\u0627\u062d + \u0645\u0633\u0627\u0621) \u0644\u0647\u0630\u0627 \u0627\u0644\u0635\u0641.",
+   "fieldname": "total_qty",
+   "fieldtype": "Float",
+   "in_filter": 1,
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Total Qty",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0635\u0627\u0641\u064a \u0627\u0644\u0645\u0628\u0644\u063a \u0628\u0639\u062f \u062e\u0635\u0645 \u0627\u0644\u0642\u0631\u0648\u0636 \u0648\u0627\u0644\u062e\u0635\u0648\u0645\u0627\u062a \u0644\u0647\u0630\u0627 \u0627\u0644\u0635\u0641.",
+   "fieldname": "total_amount",
+   "fieldtype": "Float",
+   "in_filter": 1,
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Total Amount",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_mzun",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "description": "\u0643\u0645\u064a\u0629 \u0627\u0644\u0623\u062d\u062f \u0635\u0628\u0627\u062d\u064b\u0627.",
+   "fieldname": "sunday_morning",
+   "fieldtype": "Float",
+   "label": "Sunday Morning",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0643\u0645\u064a\u0629 \u0627\u0644\u0623\u062d\u062f \u0645\u0633\u0627\u0621\u064b.",
+   "fieldname": "sunday_evening",
+   "fieldtype": "Float",
+   "label": "Sunday Evening",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_vuxz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "\u0643\u0645\u064a\u0629 \u0627\u0644\u0627\u062b\u0646\u064a\u0646 \u0635\u0628\u0627\u062d\u064b\u0627.",
+   "fieldname": "monday_morning",
+   "fieldtype": "Float",
+   "label": "Monday Morning",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0643\u0645\u064a\u0629 \u0627\u0644\u0627\u062b\u0646\u064a\u0646 \u0645\u0633\u0627\u0621\u064b.",
+   "fieldname": "monday_evening",
+   "fieldtype": "Float",
+   "label": "Monday Evening",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_xhdd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "\u0643\u0645\u064a\u0629 \u0627\u0644\u062b\u0644\u0627\u062b\u0627\u0621 \u0635\u0628\u0627\u062d\u064b\u0627.",
+   "fieldname": "tuesday_morning",
+   "fieldtype": "Float",
+   "label": "Tuesday Morning",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0643\u0645\u064a\u0629 \u0627\u0644\u062b\u0644\u0627\u062b\u0627\u0621 \u0645\u0633\u0627\u0621\u064b.",
+   "fieldname": "tuesday_evening",
+   "fieldtype": "Float",
+   "label": "Tuesday Evening",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_xsjv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "\u0643\u0645\u064a\u0629 \u0627\u0644\u0623\u0631\u0628\u0639\u0627\u0621 \u0635\u0628\u0627\u062d\u064b\u0627.",
+   "fieldname": "wednesday_morning",
+   "fieldtype": "Float",
+   "label": "Wednesday Morning",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0643\u0645\u064a\u0629 \u0627\u0644\u0623\u0631\u0628\u0639\u0627\u0621 \u0645\u0633\u0627\u0621\u064b.",
+   "fieldname": "wednesday_evening",
+   "fieldtype": "Float",
+   "label": "Wednesday Evening",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0643\u0645\u064a\u0629 \u0627\u0644\u062e\u0645\u064a\u0633 \u0635\u0628\u0627\u062d\u064b\u0627.",
+   "fieldname": "thursday_morning",
+   "fieldtype": "Float",
+   "label": "Thursday Morning",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0643\u0645\u064a\u0629 \u0627\u0644\u062e\u0645\u064a\u0633 \u0645\u0633\u0627\u0621\u064b.",
+   "fieldname": "thursday_evening",
+   "fieldtype": "Float",
+   "label": "Thursday Evening",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0643\u0645\u064a\u0629 \u0627\u0644\u062c\u0645\u0639\u0629 \u0635\u0628\u0627\u062d\u064b\u0627.",
+   "fieldname": "friday_morning",
+   "fieldtype": "Float",
+   "label": "Friday Morning",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0643\u0645\u064a\u0629 \u0627\u0644\u062c\u0645\u0639\u0629 \u0645\u0633\u0627\u0621\u064b.",
+   "fieldname": "friday_evening",
+   "fieldtype": "Float",
+   "label": "Friday Evening",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0643\u0645\u064a\u0629 \u0627\u0644\u0633\u0628\u062a \u0635\u0628\u0627\u062d\u064b\u0627.",
+   "fieldname": "saturday_morning",
+   "fieldtype": "Float",
+   "label": "Saturday Morning",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0643\u0645\u064a\u0629 \u0627\u0644\u0633\u0628\u062a \u0645\u0633\u0627\u0621\u064b.",
+   "fieldname": "saturday_evening",
+   "fieldtype": "Float",
+   "label": "Saturday Evening",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "description": "\u0646\u0648\u0639 \u0627\u0644\u062d\u0644\u064a\u0628 \u0644\u0647\u0630\u0627 \u0627\u0644\u0635\u0641 (\u0628\u0642\u0631\u064a/\u062c\u0627\u0645\u0648\u0633\u064a).",
+   "fieldname": "milk_type",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Milk Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_qive",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "\u0633\u0639\u0631 \u0627\u0644\u0644\u062a\u0631/\u0627\u0644\u0648\u062d\u062f\u0629 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0644\u062d\u0633\u0627\u0628 \u0642\u064a\u0645\u0629 \u0627\u0644\u0623\u0633\u0628\u0648\u0639.",
+   "fieldname": "rate",
+   "fieldtype": "Float",
+   "label": "Rate",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0643\u0645\u064a\u0627\u062a \u0627\u0644\u0635\u0628\u0627\u062d\u064a\u0629 \u062e\u0644\u0627\u0644 \u0627\u0644\u0623\u0633\u0628\u0648\u0639.",
+   "fieldname": "total_morning_qty",
+   "fieldtype": "Float",
+   "label": "Total Morning Qty",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0643\u0645\u064a\u0627\u062a \u0627\u0644\u0645\u0633\u0627\u0626\u064a\u0629 \u062e\u0644\u0627\u0644 \u0627\u0644\u0623\u0633\u0628\u0648\u0639.",
+   "fieldname": "total_evening_qty",
+   "fieldtype": "Float",
+   "label": "Total Evening Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_cfzu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "description": "\u0642\u064a\u0645\u0629 \u0627\u0644\u0642\u0631\u0636 \u0627\u0644\u0645\u0642\u062a\u0637\u0639\u0629 \u0645\u0646 \u0647\u0630\u0627 \u0627\u0644\u0635\u0641 \u0636\u0645\u0646 \u062a\u0648\u0632\u064a\u0639 \u0642\u0631\u0648\u0636 \u0627\u0644\u0645\u0648\u0631\u062f.",
+   "fieldname": "supplier_loan",
+   "fieldtype": "Float",
+   "label": "Supplier Loan",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_onge",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "\u0645\u062c\u0645\u0648\u0639 \u0646\u0633\u0628 \u0627\u0644\u062e\u0635\u0645 \u0627\u0644\u0645\u0637\u0628\u0642\u0629 \u062e\u0644\u0627\u0644 \u0627\u0644\u0641\u062a\u0631\u0629 \u0644\u0647\u0630\u0627 \u0627\u0644\u0646\u0648\u0639 (\u066a).",
+   "fieldname": "deduction_percent",
+   "fieldtype": "Float",
+   "label": "Deduction Percent",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u062e\u0635\u0648\u0645\u0627\u062a \u0644\u0647\u0630\u0627 \u0627\u0644\u0635\u0641 = \u0646\u0633\u0628\u0629 \u0645\u0646 \u0642\u064a\u0645\u0629 \u0627\u0644\u0623\u0633\u0628\u0648\u0639 + \u0645\u0628\u0627\u0644\u063a \u062b\u0627\u0628\u062a\u0629.",
+   "fieldname": "deduction_amount",
+   "fieldtype": "Float",
+   "label": "Deduction Amount",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_jxyl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "\u0627\u0644\u0628\u0627\u0642\u064a \u0628\u0639\u062f \u0627\u0644\u062a\u0642\u0631\u064a\u0628 \u0644\u0623\u0642\u0631\u0628 \u0645\u0636\u0627\u0639\u0641 5 (total_amount % 5).",
+   "fieldname": "less_5",
+   "fieldtype": "Float",
+   "label": "Less 5",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0627\u0642\u062a\u0637\u0627\u0639\u0627\u062a \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u0635\u0641 = \u0642\u0631\u0636 \u0627\u0644\u0645\u0648\u0631\u062f + \u0627\u0644\u062e\u0635\u0648\u0645\u0627\u062a.",
+   "fieldname": "total_deduction_amount",
+   "fieldtype": "Float",
+   "label": "Total Deduction Amount",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0642\u064a\u0645\u0629 \u0627\u0644\u0623\u0633\u0628\u0648\u0639 \u0642\u0628\u0644 \u0623\u064a \u062e\u0635\u0648\u0645\u0627\u062a \u0623\u0648 \u0642\u0631\u0648\u0636.",
+   "fieldname": "total_week_amount",
+   "fieldtype": "Float",
+   "label": "Total Week Amount",
+   "read_only": 1
+  },
+  {
+   "description": "\u0642\u0631\u064a\u0629 \u0627\u0644\u0645\u0648\u0631\u062f \u0644\u0647\u0630\u0627 \u0627\u0644\u0635\u0641.",
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "in_filter": 1,
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Village",
+   "options": "Village",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0639\u0644\u0627\u0645\u0629 \u062f\u0627\u062e\u0644\u064a\u0629: \u0627\u0644\u0635\u0641 \u062e\u0627\u0635 \u0628\u0627\u0644\u062d\u0644\u064a\u0628 \u0627\u0644\u0628\u0642\u0631\u064a.",
+   "fieldname": "custom_cow",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "custom_cow",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0639\u0644\u0627\u0645\u0629 \u062f\u0627\u062e\u0644\u064a\u0629: \u0627\u0644\u0635\u0641 \u062e\u0627\u0635 \u0628\u0627\u0644\u062d\u0644\u064a\u0628 \u0627\u0644\u062c\u0627\u0645\u0648\u0633\u064a.",
+   "fieldname": "custom_buffalo",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "custom_buffalo",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0642\u064a\u0645\u0629 \u062a\u0631\u062a\u064a\u0628 \u0645\u062e\u0635\u0635\u0629 \u0644\u0644\u0645\u0648\u0631\u062f.",
+   "fieldname": "custom_sort",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "custom_sort",
+   "read_only": 1
+  },
+  {
+   "description": "\u0627\u0633\u0645 \u0627\u0644\u0645\u0648\u0631\u062f \u0644\u0644\u0639\u0631\u0636.",
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "supplier_name",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "\u0627\u0644\u0645\u0628\u0644\u063a \u0627\u0644\u0645\u0633\u062a\u062d\u0642 \u0644\u0644\u062f\u0641\u0639 \u0628\u0639\u062f \u0627\u0644\u062e\u0635\u0648\u0645\u0627\u062a \u0648\u0627\u0644\u062a\u0642\u0631\u064a\u0628.",
+   "fieldname": "total_amount_to_pay",
+   "fieldtype": "Float",
+   "in_filter": 1,
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Total Amount To Pay",
+   "non_negative": 1,
+   "read_only": 1
+  }
+ ],
+ "hide_toolbar": 1,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-10-02 14:04:15.274079",
+ "modified_by": "Administrator",
+ "module": "Milk",
+ "name": "Weekly Pay Table",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
 }

@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_copy": 1,
  "allow_rename": 1,
  "creation": "2025-08-17 09:05:50.456145",
  "doctype": "DocType",
@@ -180,10 +181,11 @@
    "read_only": 1
   }
  ],
+ "hide_toolbar": 1,
  "in_create": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-26 18:11:20.216670",
+ "modified": "2025-10-02 14:04:15.398076",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Milk Entries Log",
@@ -202,6 +204,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

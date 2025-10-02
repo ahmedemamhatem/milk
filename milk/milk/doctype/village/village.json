@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_copy": 1,
  "allow_rename": 1,
  "autoname": "field:village_name",
  "creation": "2025-08-07 09:06:31.708073",
@@ -27,9 +28,10 @@
    "reqd": 1
   }
  ],
+ "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-20 10:33:22.826358",
+ "modified": "2025-10-02 14:04:14.901609",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Village",
@@ -50,6 +52,7 @@
   }
  ],
  "quick_entry": 1,
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

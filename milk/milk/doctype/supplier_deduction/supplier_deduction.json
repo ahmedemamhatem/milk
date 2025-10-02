@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_copy": 1,
  "allow_rename": 1,
  "autoname": "format:SUP-Ded-{YYYY}-{MM}-{####}",
  "creation": "2025-09-26 18:50:34.951068",
@@ -89,10 +90,11 @@
    "label": "\u0628\u0642\u0631\u064a"
   }
  ],
+ "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-26 19:03:44.185897",
+ "modified": "2025-10-02 14:04:15.574904",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Supplier Deduction",
@@ -126,6 +128,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
