@@ -13,153 +13,236 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 	const ui = `
 	<div class="dmq-root" dir="rtl">
 		<style>
-
-		:root {
-	--border:#e5e7eb;
-	--border-strong:#cbd5e1;
-	--muted:#6b7280;
-	--bg:#fff;
-	--soft:#fafafa;
-	--row-hover:#f6f7fb;
-	--row-active-bg:#e0f2fe;
-	--row-active-border:#0ea5e9;
+		
+		/* Root palette and global container */
+:root {
+	--border:#e5e7eb;              /* gray-200 */
+	--border-strong:#cbd5e1;       /* slate-300 */
+	--muted:#6b7280;               /* gray-500 */
+	--ink:#111827;                 /* gray-900 */
+	--bg:#ffffff;                  /* white */
+	--soft:#fafafa;                /* soft background */
+	--row-hover:#f6f7fb;           /* subtle hover */
+	--row-active-bg:#e0f2fe;       /* blue-100 */
+	--row-active-border:#0ea5e9;   /* sky-500 */
 	--row-active-shadow: rgba(14,165,233,.25);
-	--row-filled-stripe:#bbf7d0;
+	--row-filled-stripe:#bbf7d0;   /* green-200 */
+	--radius:12px;
 }
-.dmq-root { margin:-15px; padding:0 12px 16px; background:var(--bg); position:relative; z-index:0; }
+html, body {
+	background: var(--bg);
+	color: var(--ink);
+}
+.dmq-root {
+	margin: -15px;
+	padding: 0 12px 16px;
+	background: var(--bg);
+	position: relative;
+	z-index: 0;
+	font-synthesis-weight: auto;
+}
 
-/* Toolbar */
+/* Toolbar: labels centered, inputs centered, keep Frappe defaults */
 .dmq-toolbar {
-	display:grid; gap:12px;
+	display: grid;
+	gap: 12px;
 	grid-template-columns: repeat(5, minmax(160px, 1fr)) auto;
-	align-items:end; padding:12px 4px;
-	border-bottom:1px solid var(--border);
+	align-items: end;
+	padding: 12px 4px;
+	border-bottom: 1px solid var(--border);
 }
-.dmq-tool { display:flex; flex-direction:column; gap:6px; }
-.dmq-tool .label { font-size:12px; color:var(--muted); font-weight:700; text-align:center; }
+.dmq-tool {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.dmq-tool .label {
+	font-size: 12px;
+	color: var(--muted);
+	font-weight: 700;
+	text-align: center;
+}
 .dmq-tool .body :is(.frappe-control, .control-input, input, select) {
-	height:34px; min-height:34px; padding:6px 10px; font-size:13px; width:100%; text-align:center;
+	height: 34px;
+	min-height: 34px;
+	padding: 6px 10px;
+	font-size: 13px;
+	width: 100%;
+	text-align: center; /* remove if you prefer left-aligned */
 }
-.dmq-tool .frappe-control .control-label { display:none !important; }
-.dmq-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
-@media (max-width:980px){
-	.dmq-toolbar { grid-template-columns: repeat(2, minmax(160px,1fr)); grid-auto-rows:auto; }
+/* Hide internal labels inside Frappe controls to avoid duplicates */
+.dmq-tool .frappe-control .control-label {
+	display: none !important;
+}
+.dmq-actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	justify-content: flex-end;
+}
+@media (max-width: 980px) {
+	.dmq-toolbar {
+		grid-template-columns: repeat(2, minmax(160px, 1fr));
+		grid-auto-rows: auto;
+	}
 }
 
-/* Table */
-.table-card { margin-top:10px; border:1px solid var(--border); border-radius:12px; background:#fff; }
+/* Card shell for the table */
+.table-card {
+	margin-top: 10px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: #fff;
+}
+
+/* Table head: sticky look-alike (not position: sticky to avoid stacking issues) */
 .table-head {
-	display:grid;
+	display: grid;
 	grid-template-columns: 64px minmax(420px,1fr) 140px 140px 140px 140px 140px 84px;
-	padding:10px 8px; border-bottom:1px solid var(--border);
-	background:linear-gradient(180deg, #fafafa, #f5f5f5);
-	font-weight:800; color:#334155; font-size:12px; text-align:center;
-	position:relative; z-index:1;
+	padding: 10px 8px;
+	border-bottom: 1px solid var(--border);
+	background: linear-gradient(180deg, #fafafa, #f5f5f5);
+	font-weight: 800;
+	color: #334155;
+	font-size: 12px;
+	text-align: center;
+	position: relative;
+	z-index: 1;
 }
-.table-head > div { display:flex; align-items:center; justify-content:center; }
-.table-body { display:block; position:relative; z-index:0; }
+.table-head > div {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
 
-/* Row grid + stable full-width highlights */
+/* Body wrapper */
+.table-body {
+	display: block;
+	position: relative;
+	z-index: 0;
+}
+
+/* Row grid with stable full-width highlights behind fields
+   Row height increased to ~1.25x: we raise min-height and input heights slightly */
 .table-row {
-	display:grid;
+	display: grid;
 	grid-template-columns: 64px minmax(420px,1fr) 140px 140px 140px 140px 140px 84px;
-	align-items:center;
-	padding:8px 8px;
-	border-bottom:1px solid var(--border);
-	position:relative; /* stacking for dropdowns and highlight layers */
-	z-index:1;
-	overflow:visible;
-	background:transparent; /* highlight moved to ::before */
+	align-items: center;
+	padding: 10px 8px;                 /* was 8px; add a bit more padding */
+	min-height: 54px;                  /* ensure about 1.25x height */
+	border-bottom: 1px solid var(--border);
+	position: relative;                /* for highlight layers */
+	z-index: 1;
+	overflow: visible;
+	background: transparent;           /* fields use Frappe default backgrounds */
 }
-/* Make each cell sit above highlight layers */
-.table-row > div {
-	border-inline-start:1px solid #f1f5f9;
-	padding-inline:6px;
-	overflow:visible;
-	position:relative;
-	z-index:2; /* content above ::before/::after */
-}
-.table-row > div:first-child { border-inline-start:none; }
 
-/* Base highlight layer (covers 100% of row) */
+/* Make each cell sit above highlight layers; add soft vertical guides */
+.table-row > div {
+	border-inline-start: 1px solid #f1f5f9;
+	padding-inline: 6px;
+	position: relative;
+	z-index: 2;                         /* content above highlights */
+	overflow: visible;
+}
+.table-row > div:first-child {
+	border-inline-start: none;
+}
+
+/* Full-row highlight layer */
 .table-row::before {
-	content:"";
-	position:absolute;
-	inset:0;             /* top:0; right:0; bottom:0; left:0 */
-	background:transparent;
+	content: "";
+	position: absolute;
+	inset: 0;                           /* full coverage */
+	background: transparent;
 	transition: background-color .12s ease, box-shadow .12s ease;
-	z-index:1;           /* behind content */
-	pointer-events:none; /* don't block inputs */
+	z-index: 1;
+	pointer-events: none;
 }
 
 /* Left stripe layer (filled or active) */
 .table-row::after {
-	content:"";
-	position:absolute;
-	inset-inline-start:0;
-	top:0; bottom:0;
-	width:0;                      /* default hidden */
-	background:transparent;
-	border-radius:0 6px 6px 0;
-	z-index:1;
-	pointer-events:none;
+	content: "";
+	position: absolute;
+	inset-inline-start: 0;
+	top: 0; bottom: 0;
+	width: 0;                           /* default hidden */
+	background: transparent;
+	border-radius: 0 6px 6px 0;
+	z-index: 1;
+	pointer-events: none;
 }
 
-/* Hover: clear and full-width */
-.table-row:hover::before { background:var(--row-hover); }
+/* Hover: clean and full-width */
+.table-row:hover::before {
+	background: var(--row-hover);
+}
 
-/* Filled: subtle green stripe only (does not change background) */
+/* Filled: subtle green stripe; fields unchanged */
 .table-row.is-filled::after {
-	width:4px;
+	width: 4px;
 	background: var(--row-filled-stripe);
-	border-radius:0 4px 4px 0;
+	border-radius: 0 4px 4px 0;
 }
 
-/* Active: strong blue full-row layer + thick left bar */
+/* Active: strong blue row tint + outline; fields unchanged */
 .table-row.is-active::before {
 	background: var(--row-active-bg);
 	box-shadow: 0 0 0 1px var(--border-strong) inset, 0 2px 8px var(--row-active-shadow);
 }
 .table-row.is-active::after {
-	width:6px;
+	width: 6px;
 	background: var(--row-active-border);
-	border-radius:0 6px 6px 0;
+	border-radius: 0 6px 6px 0;
 }
 
-/* Inputs and labels inside rows */
-.table-empty { padding:14px; color:var(--muted); text-align:center; }
-
-.table-row .frappe-control .control-label { display:none !important; }
-.table-row :is(.frappe-control, .control-input, input) {
-	text-align:center; height:32px; min-height:32px; font-size:12px; padding:4px 8px;
+/* Inputs inside rows: use Frappe default skins; optional center text for uniform columns */
+.table-row .frappe-control .control-label {
+	display: none !important;
 }
-.table-row .supplier :is(.control-input, input) {
-	height:36px; min-height:36px; font-size:14px; font-weight:800; padding:6px 10px; border-width:2px;
+/* Slightly increase control height to match row height (keeps Frappe look) */
+.table-row :is(.frappe-control, .control-input, input, select, textarea) {
+	height: 36px;           /* up from default ~30–32 */
+	min-height: 36px;
+	line-height: 1.25;      /* readable line height */
+	font-size: 12px;
+	text-align: center;     /* remove if you prefer left alignment */
 }
+/* Do not alter borders/backgrounds; keep Frappe defaults */
 
-/* Focus ring remains on inputs */
-.table-row input:focus,
-.table-row .control-input:focus,
-.table-row .awesomplete input:focus {
-	outline: 2px solid var(--row-active-border);
-	outline-offset: 0;
-	box-shadow: 0 0 0 2px rgba(14,165,233,.15);
-	background:#fff;
-}
-
-/* Delete and footer */
+/* Delete button and footer */
 .btn-del-row { color:#b91c1c; }
 .btn-del-row:hover { color:#7f1d1d; text-decoration:none; }
-.table-bottom { padding:10px; }
+.table-bottom { padding: 10px; }
 
-/* Ensure link dropdowns are above the grid */
+/* Ensure link dropdowns are above the grid (Awesomplete / Selectize) */
 .dmq-root .awesomplete > ul,
 .dmq-root .awesomplete ul,
 .dmq-root .awesomplete,
 .dmq-root .awesomplete > ul > li,
 .dmq-root .link-field .awesomplete > ul,
-.dmq-root .selectize-dropdown { z-index: 9999 !important; }
+.dmq-root .selectize-dropdown {
+	z-index: 9999 !important;
+}
+/* Some builds attach the list to body */
 .awesomplete ul { z-index: 9999 !important; }
+/* Supplier input: slightly larger and bold, keep default borders/background */
+.table-row .supplier :is(input, .control-input) {
+	font-size: 16px;   /* modest bump */
+	font-weight: 700;  /* bold */
+	line-height: 1.25;
+}
+
+/* Make numbers in all measurement fields bold */
+.table-row .water :is(input, .control-input),
+.table-row .protein :is(input, .control-input),
+.table-row .density :is(input, .control-input),
+.table-row .hardness :is(input, .control-input),
+.table-row .pont :is(input, .control-input) {
+	font-weight: 700;   /* bold numbers */
+	/* keep font-size as default; or uncomment next line to bump a bit */
+	/* font-size: 15px; */
+}
 		</style>
 		
 		<!-- Toolbar -->
@@ -330,7 +413,7 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 		rowRefs = [];
 
 		if (!state.rows.length) {
-			$rows.append(`<div class="table-empty">لا توجد بيانات</div>`);
+			$rows.append(`<div class="table-empty"></div>`);
 			return;
 		}
 
