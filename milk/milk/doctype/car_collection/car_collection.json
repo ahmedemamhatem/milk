@@ -2,6 +2,7 @@
  "actions": [],
  "allow_copy": 1,
  "allow_rename": 1,
+ "autoname": "format:MC-{YYYY}-{MM}-{####}",
  "creation": "2025-08-17 09:38:06.686081",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -136,10 +137,11 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-02 14:04:15.747096",
+ "modified": "2025-10-02 15:03:40.281218",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Car Collection",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
