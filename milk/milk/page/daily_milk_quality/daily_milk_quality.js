@@ -13,71 +13,169 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 	const ui = `
 	<div class="dmq-root" dir="rtl">
 		<style>
-			:root { --border:#e5e7eb; --muted:#6b7280; --bg:#fff; --soft:#fafafa; }
-			.dmq-root { margin:-15px; padding:0 12px 16px; background:var(--bg); font-weight:700; }
 
-			/* Toolbar */
-			.dmq-toolbar {
-				display:grid; gap:10px;
-				grid-template-columns: repeat(5, minmax(150px, 1fr)) auto;
-				align-items:end; padding:10px 4px 10px; border-bottom:1px solid var(--border);
-			}
-			.dmq-tool { display:flex; flex-direction:column; gap:4px; }
-			.dmq-tool .label { font-size:11px; color:var(--muted); font-weight:600; padding-inline:2px; }
-			.dmq-tool .body .control-label { display:none !important; }
-			.dmq-tool .body .control-input, .dmq-tool .body input, .dmq-tool .body .input-with-feedback, .dmq-tool .body select {
-				height:30px; min-height:30px; padding:4px 8px; font-size:12px; width:100%;
-			}
-			.dmq-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
-			@media (max-width:860px){
-				.dmq-toolbar { grid-template-columns: repeat(2, minmax(160px,1fr)); grid-auto-rows:auto; }
-			}
+		:root {
+	--border:#e5e7eb;
+	--border-strong:#cbd5e1;
+	--muted:#6b7280;
+	--bg:#fff;
+	--soft:#fafafa;
+	--row-hover:#f6f7fb;
+	--row-active-bg:#e0f2fe;
+	--row-active-border:#0ea5e9;
+	--row-active-shadow: rgba(14,165,233,.25);
+	--row-filled-stripe:#bbf7d0;
+}
+.dmq-root { margin:-15px; padding:0 12px 16px; background:var(--bg); position:relative; z-index:0; }
 
-			/* Table */
-			.table-card { margin-top:8px; border:1px solid var(--border); border-radius:8px; background:#fff; overflow:visible; }
+/* Toolbar */
+.dmq-toolbar {
+	display:grid; gap:12px;
+	grid-template-columns: repeat(5, minmax(160px, 1fr)) auto;
+	align-items:end; padding:12px 4px;
+	border-bottom:1px solid var(--border);
+}
+.dmq-tool { display:flex; flex-direction:column; gap:6px; }
+.dmq-tool .label { font-size:12px; color:var(--muted); font-weight:700; text-align:center; }
+.dmq-tool .body :is(.frappe-control, .control-input, input, select) {
+	height:34px; min-height:34px; padding:6px 10px; font-size:13px; width:100%; text-align:center;
+}
+.dmq-tool .frappe-control .control-label { display:none !important; }
+.dmq-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
+@media (max-width:980px){
+	.dmq-toolbar { grid-template-columns: repeat(2, minmax(160px,1fr)); grid-auto-rows:auto; }
+}
 
-			.dmq-grid {
-				display:grid;
-				grid-template-columns: 48px minmax(340px,1fr) 110px 110px 110px 110px 110px 60px;
-				align-items:center;
-			}
-			@media (max-width:1200px){
-				.dmq-grid { grid-template-columns:48px minmax(280px,1fr) 100px 100px 100px 100px 100px 60px; }
-			}
-			.dmq-head, .dmq-foot { background:var(--soft); }
-			.dmq-head>div, .dmq-row>div, .dmq-foot-row>div {
-				padding:6px 8px; border-bottom:1px solid var(--border); min-height:44px; display:flex; align-items:center;
-			}
-			.th { font-size:12px; font-weight:600; color:var(--muted); }
-			.center { justify-content:center; text-align:center; }
-			.right { justify-content:flex-start; text-align:right; }
-			.dmq-body .dmq-row:nth-child(even) { background:#fbfbfb; }
+/* Table */
+.table-card { margin-top:10px; border:1px solid var(--border); border-radius:12px; background:#fff; }
+.table-head {
+	display:grid;
+	grid-template-columns: 64px minmax(420px,1fr) 140px 140px 140px 140px 140px 84px;
+	padding:10px 8px; border-bottom:1px solid var(--border);
+	background:linear-gradient(180deg, #fafafa, #f5f5f5);
+	font-weight:800; color:#334155; font-size:12px; text-align:center;
+	position:relative; z-index:1;
+}
+.table-head > div { display:flex; align-items:center; justify-content:center; }
+.table-body { display:block; position:relative; z-index:0; }
 
-			/* Supplier cell enhancement */
-			.supplier-cell {
-				display:flex; align-items:center; gap:8px; width:100%;
-			}
-			.supplier-cell .link-wrap { min-width:180px; max-width:280px; flex:0 0 auto; }
-			.supplier-cell .link-wrap .control-input, .supplier-cell .link-wrap input {
-				height:30px; min-height:30px; padding:4px 8px; font-size:12px;
-			}
-			.supplier-chip {
-				display:inline-flex; align-items:center; gap:6px;
-				padding:6px 10px; border:1px solid var(--border); border-radius:999px;
-				background:#f9fafb; color:#111827; font-weight:800; font-size:12px; max-width:100%;
-				white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-			}
-			.supplier-chip .id { color:#6b7280; font-weight:700; }
+/* Row grid + stable full-width highlights */
+.table-row {
+	display:grid;
+	grid-template-columns: 64px minmax(420px,1fr) 140px 140px 140px 140px 140px 84px;
+	align-items:center;
+	padding:8px 8px;
+	border-bottom:1px solid var(--border);
+	position:relative; /* stacking for dropdowns and highlight layers */
+	z-index:1;
+	overflow:visible;
+	background:transparent; /* highlight moved to ::before */
+}
+/* Make each cell sit above highlight layers */
+.table-row > div {
+	border-inline-start:1px solid #f1f5f9;
+	padding-inline:6px;
+	overflow:visible;
+	position:relative;
+	z-index:2; /* content above ::before/::after */
+}
+.table-row > div:first-child { border-inline-start:none; }
 
-			.dmq-row input.form-control { height:30px; min-height:30px; padding:4px 8px; font-size:12px; }
-			.btn-del-row { color:#b91c1c; }
-			.btn-add-row { margin:8px 10px; }
+/* Base highlight layer (covers 100% of row) */
+.table-row::before {
+	content:"";
+	position:absolute;
+	inset:0;             /* top:0; right:0; bottom:0; left:0 */
+	background:transparent;
+	transition: background-color .12s ease, box-shadow .12s ease;
+	z-index:1;           /* behind content */
+	pointer-events:none; /* don't block inputs */
+}
 
-			.input-invalid { border-color:#ef4444 !important; background:#fff1f2; }
+/* Left stripe layer (filled or active) */
+.table-row::after {
+	content:"";
+	position:absolute;
+	inset-inline-start:0;
+	top:0; bottom:0;
+	width:0;                      /* default hidden */
+	background:transparent;
+	border-radius:0 6px 6px 0;
+	z-index:1;
+	pointer-events:none;
+}
+
+/* Hover: clear and full-width */
+.table-row:hover::before { background:var(--row-hover); }
+
+/* Filled: subtle green stripe only (does not change background) */
+.table-row.is-filled::after {
+	width:4px;
+	background: var(--row-filled-stripe);
+	border-radius:0 4px 4px 0;
+}
+
+/* Active: strong blue full-row layer + thick left bar */
+.table-row.is-active::before {
+	background: var(--row-active-bg);
+	box-shadow: 0 0 0 1px var(--border-strong) inset, 0 2px 8px var(--row-active-shadow);
+}
+.table-row.is-active::after {
+	width:6px;
+	background: var(--row-active-border);
+	border-radius:0 6px 6px 0;
+}
+
+/* Inputs and labels inside rows */
+.table-empty { padding:14px; color:var(--muted); text-align:center; }
+
+.table-row .frappe-control .control-label { display:none !important; }
+.table-row :is(.frappe-control, .control-input, input) {
+	text-align:center; height:32px; min-height:32px; font-size:12px; padding:4px 8px;
+}
+.table-row .supplier :is(.control-input, input) {
+	height:36px; min-height:36px; font-size:14px; font-weight:800; padding:6px 10px; border-width:2px;
+}
+
+/* Focus ring remains on inputs */
+.table-row input:focus,
+.table-row .control-input:focus,
+.table-row .awesomplete input:focus {
+	outline: 2px solid var(--row-active-border);
+	outline-offset: 0;
+	box-shadow: 0 0 0 2px rgba(14,165,233,.15);
+	background:#fff;
+}
+
+/* Delete and footer */
+.btn-del-row { color:#b91c1c; }
+.btn-del-row:hover { color:#7f1d1d; text-decoration:none; }
+.table-bottom { padding:10px; }
+
+/* Ensure link dropdowns are above the grid */
+.dmq-root .awesomplete > ul,
+.dmq-root .awesomplete ul,
+.dmq-root .awesomplete,
+.dmq-root .awesomplete > ul > li,
+.dmq-root .link-field .awesomplete > ul,
+.dmq-root .selectize-dropdown { z-index: 9999 !important; }
+.awesomplete ul { z-index: 9999 !important; }
 		</style>
-
+		
 		<!-- Toolbar -->
 		<div class="dmq-toolbar">
+			<div class="dmq-tool" data-tool="animal_type">
+				<div class="label">النوع</div>
+				<div class="body"><div data-field="animal_type"></div></div>
+			</div>
+			<div class="dmq-tool" data-tool="session">
+				<div class="label">الفترة</div>
+				<div class="body"><div data-field="session"></div></div>
+			</div>
+			<div class="dmq-tool" data-tool="date">
+				<div class="label">التاريخ</div>
+				<div class="body"><div data-field="date"></div></div>
+			</div>
 			<div class="dmq-tool" data-tool="driver">
 				<div class="label">الخط</div>
 				<div class="body"><div data-field="driver"></div></div>
@@ -86,64 +184,62 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 				<div class="label">القرية</div>
 				<div class="body"><div data-field="village"></div></div>
 			</div>
-			<div class="dmq-tool" data-tool="date">
-				<div class="label">التاريخ</div>
-				<div class="body"><div data-field="date"></div></div>
-			</div>
-			<div class="dmq-tool" data-tool="session">
-				<div class="label">الفترة</div>
-				<div class="body"><div data-field="session"></div></div>
-			</div>
-			<div class="dmq-tool" data-tool="animal_type">
-				<div class="label">النوع</div>
-				<div class="body"><div data-field="animal_type"></div></div>
-			</div>
 
 			<div class="dmq-actions">
 				<button class="btn btn-default btn-xs" data-action="load">جلب الموردين</button>
 				<button class="btn btn-primary btn-xs" data-action="submit">تأكيد</button>
+				<button class="btn btn-default btn-xs" data-action="print_draft">طباعة مسودة</button>
 				<button class="btn btn-default btn-xs" data-action="clear">مسح</button>
 			</div>
 		</div>
 
-		<!-- Table -->
-		<div class="table-card" role="region" aria-label="جدول جودة اللبن">
-			<div class="dmq-head dmq-grid">
-				<div class="th center">#</div>
-				<div class="th right">المورد</div>
-				<div class="th center">ماء</div>
-				<div class="th center">بروتين</div>
-				<div class="th center">كثافة</div>
-				<div class="th center">صلابة</div>
-				<div class="th center">بنط</div>
-				<div class="th center">حذف</div>
+		<!-- Grid -->
+		<div class="table-card">
+			<div class="table-head">
+				<div>#</div>
+				<div>المورد</div>
+				<div>ماء</div>
+				<div>بروتين</div>
+				<div>كثافة</div>
+				<div>صلابة</div>
+				<div>بنط</div>
+				<div>حذف</div>
 			</div>
-
-			<div class="dmq-body" data-body="rows">
-				<div class="dmq-row dmq-grid"><div class="right" style="grid-column:1 / -1; padding:10px;">لا توجد بيانات</div></div>
-			</div>
-
-			<div class="dmq-foot">
-				<div class="dmq-foot-row dmq-grid" aria-hidden="true">
-					<div></div>
-					<div class="right" style="font-weight:600;"></div>
-					<div class="center"></div>
-					<div class="center"></div>
-					<div class="center"></div>
-					<div class="center"></div>
-					<div class="center"></div>
-					<div></div>
-				</div>
-			</div>
-
-			<div class="table-bottom-actions" style="padding:10px;">
-				<button class="btn btn-default btn-xs btn-add-row" data-action="add_row_bottom">إضافة صف</button>
+			<div class="table-body" data-rows></div>
+			<div class="table-bottom">
+				<button class="btn btn-default btn-xs" data-action="add_row_bottom">إضافة صف</button>
 			</div>
 		</div>
 	</div>`;
 
 	const $ui = $(ui);
 	$section.append($ui);
+
+	// Error helpers
+	function to_text(err) {
+		try {
+			if (!err) return '';
+			if (typeof err === 'string') return err;
+			if (err.exc) {
+				if (Array.isArray(err.exc)) return err.exc.join('\n');
+				if (typeof err.exc === 'string') return err.exc;
+			}
+			if (err.message) {
+				if (typeof err.message === 'string') return err.message;
+				return JSON.stringify(err.message);
+			}
+			return JSON.stringify(err);
+		} catch {
+			return String(err);
+		}
+	}
+	function show_error(title, err) {
+		frappe.msgprint({
+			title: title || __('خطأ'),
+			message: `<div dir="rtl" style="white-space:pre-wrap">${frappe.utils.escape_html(to_text(err))}</div>`,
+			indicator: 'red'
+		});
+	}
 
 	// State
 	const state = {
@@ -152,230 +248,190 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 		date: frappe.datetime.get_today(),
 		session: 'morning',
 		animal_type: 'Buffalo',
-		rows: [] // {supplier, supplier_name, water, protein, density, hardness, pont}
+		rows: []
 	};
 
-	let rowControls = []; // { supplierLink, $chipName }
+	// Refs
+	const $rows = $ui.find('[data-rows]');
+	const $btn_load = $ui.find('[data-action="load"]');
+	const $btn_submit = $ui.find('[data-action="submit"]');
+	const $btn_clear = $ui.find('[data-action="clear"]');
+	const $btn_add_row_bottom = $ui.find('[data-action="add_row_bottom"]');
+	const $btn_print_draft = $ui.find('[data-action="print_draft"]');
 
-	const $body = $ui.find('[data-body="rows"]');
-
-	// Controls factory
+	// Controls
 	const controls = {};
 	function Control(df, sel) {
-		const M = {
+		const C = {
 			Link: frappe.ui.form.ControlLink,
 			Date: frappe.ui.form.ControlDate,
 			Select: frappe.ui.form.ControlSelect,
 			Data: frappe.ui.form.ControlData
-		};
-		const C = M[df.fieldtype] || frappe.ui.form.ControlData;
+		}[df.fieldtype] || frappe.ui.form.ControlData;
 		return new C({ df, parent: $ui.find(sel)[0], render_input: true });
 	}
 
+	controls.animal_type = Control({
+		fieldtype: "Select", fieldname: "animal_type", label: "النوع",
+		options: [{label:"بقر", value:"Cow"}, {label:"جاموس", value:"Buffalo"}],
+		change: () => { state.animal_type = controls.animal_type.get_value(); }
+	}, '[data-field="animal_type"]'); controls.animal_type.set_value(state.animal_type);
+
+	controls.session = Control({
+		fieldtype: "Select", fieldname: "session", label: "الفترة",
+		options: [{label:"صباح", value:"morning"}, {label:"مساء", value:"evening"}],
+		default: "morning", change: () => { state.session = controls.session.get_value(); }
+	}, '[data-field="session"]'); controls.session.set_value(state.session);
+
+	controls.date = Control({
+		fieldtype: "Date", fieldname: "date", label: "التاريخ",
+		default: state.date, change: () => state.date = controls.date.get_value()
+	}, '[data-field="date"]'); controls.date.set_value(state.date);
+
 	controls.driver = Control({
-		fieldtype: "Link",
-		fieldname: "driver",
-		label: "الخط",
-		options: "Driver",
-		change: () => {
-			state.driver = controls.driver.get_value();
-			updateSupplierLinkQueries();
-		}
+		fieldtype: "Link", fieldname: "driver", label: "الخط", options: "Driver",
+		change: () => { state.driver = controls.driver.get_value(); updateSupplierQueries(); }
 	}, '[data-field="driver"]');
 
 	controls.village = Control({
-		fieldtype: "Link",
-		fieldname: "village",
-		label: "القرية",
-		options: "Village",
+		fieldtype: "Link", fieldname: "village", label: "القرية", options: "Village",
 		change: () => { state.village = controls.village.get_value(); }
 	}, '[data-field="village"]');
 
-	controls.date = Control({
-		fieldtype: "Date",
-		fieldname: "date",
-		label: "التاريخ",
-		default: state.date,
-		change: () => state.date = controls.date.get_value()
-	}, '[data-field="date"]');
-	controls.date.set_value(state.date);
-
-	controls.session = Control({
-		fieldtype: "Select",
-		fieldname: "session",
-		label: "الفترة",
-		options: [
-			{ label: "صباح", value: "morning" },
-			{ label: "مساء", value: "evening" }
-		],
-		default: "morning",
-		change: () => { state.session = controls.session.get_value(); }
-	}, '[data-field="session"]');
-	controls.session.set_value(state.session);
-
-	controls.animal_type = Control({
-		fieldtype: "Select",
-		fieldname: "animal_type",
-		label: "النوع",
-		options: [
-			{ label: "بقر", value: "Cow" },
-			{ label: "جاموس", value: "Buffalo" }
-		],
-		change: () => { state.animal_type = controls.animal_type.get_value(); }
-	}, '[data-field="animal_type"]');
-	controls.animal_type.set_value(state.animal_type);
-
-	// Buttons
-	const $btn_load = $ui.find('[data-action="load"]');
-	const $btn_clear = $ui.find('[data-action="clear"]');
-	const $btn_submit = $ui.find('[data-action="submit"]');
-	const $btn_add_row_bottom = $ui.find('[data-action="add_row_bottom"]');
-
-	// Helpers
-	function makeSupplierQuery() {
-		// Use query api to return both name and supplier_name
+	// Utilities
+	function supplier_link_query() {
 		return () => {
-			const filters = {
-				disabled: 0,
-				custom_milk_supplier: 1
-			};
+			const filters = { disabled: 0, custom_milk_supplier: 1 };
 			const drv = controls.driver && controls.driver.get_value();
 			if (drv) filters['custom_driver_in_charge'] = drv;
-
-			return {
-				filters,
-				query: null
-			};
+			return { filters };
 		};
 	}
-	async function fetch_supplier_name(supplier) {
-		if (!supplier) return "";
+	async function get_supplier_name(id) {
+		if (!id) return "";
 		try {
-			const r = await frappe.db.get_value('Supplier', supplier, ['supplier_name']);
-			return (r && r.message && (r.message.supplier_name || supplier)) || supplier;
-		} catch {
-			return supplier;
-		}
+			const r = await frappe.db.get_value('Supplier', id, ['supplier_name']);
+			return r?.message?.supplier_name || id;
+		} catch { return id; }
 	}
-
-	function updateSupplierLinkQueries() {
-		rowControls.forEach(rc => {
-			if (rc && rc.supplierLink) rc.supplierLink.get_query = makeSupplierQuery();
+	function is_filled(rec) {
+		const keys = ['water','protein','density','hardness','pont'];
+		return keys.some(k => {
+			const v = (rec[k] ?? '').toString().trim();
+			return v !== '' && v !== '0' && v !== '0.0' && v !== '0.00';
 		});
 	}
 
-	function set_chip(rc, name, display_name) {
-		// name: supplier ID, display_name: supplier_name or name
-		rc.$chipName.text(display_name || name || '');
-		rc.$chipId.text(name || '');
-	}
+	// Table rendering
+	let rowRefs = [];
 
 	function render_rows() {
-		$body.empty();
-		rowControls = [];
+		$rows.empty();
+		rowRefs = [];
+
 		if (!state.rows.length) {
-			$body.append(`<div class="dmq-row dmq-grid"><div class="right" style="grid-column:1 / -1; padding:10px;">لا توجد بيانات</div></div>`);
+			$rows.append(`<div class="table-empty">لا توجد بيانات</div>`);
 			return;
 		}
-		let idx = 1;
+
 		state.rows.forEach((rec, i) => {
+			const idx = i + 1;
 			const $row = $(`
-				<div class="dmq-row dmq-grid" data-index="${i}">
-					<div class="center"><span>${idx}</span></div>
-
-					<div class="right">
-						<div class="supplier-cell">
-							<div class="link-wrap" data-cell="supplier_link"></div>
-							<div class="supplier-chip" title="">
-								<span class="name" data-chip="name"></span>
-								<span class="id" data-chip="id"></span>
-							</div>
-						</div>
-					</div>
-
-					<div class="center"><input type="text" class="form-control float-only" data-cell="water"    value="${rec.water ?? ''}"    inputmode="decimal" placeholder="0.00"></div>
-					<div class="center"><input type="text" class="form-control float-only" data-cell="protein"  value="${rec.protein ?? ''}"  inputmode="decimal" placeholder="0.00"></div>
-					<div class="center"><input type="text" class="form-control float-only" data-cell="density"  value="${rec.density ?? ''}"  inputmode="decimal" placeholder="0.00"></div>
-					<div class="center"><input type="text" class="form-control float-only" data-cell="hardness" value="${rec.hardness ?? ''}" inputmode="decimal" placeholder="0.00"></div>
-					<div class="center"><input type="text" class="form-control float-only" data-cell="pont"     value="${rec.pont ?? ''}"     inputmode="decimal" placeholder="0.00"></div>
-
+				<div class="table-row" data-index="${i}">
+					<div class="center">${idx}</div>
+					<div class="supplier"></div>
+					<div class="num water"></div>
+					<div class="num protein"></div>
+					<div class="num density"></div>
+					<div class="num hardness"></div>
+					<div class="num pont"></div>
 					<div class="center">
-						<button type="button" class="btn btn-xs btn-link btn-del-row" title="حذف الصف">✕</button>
+						<button class="btn btn-link btn-xs btn-del-row" title="حذف الصف">✕</button>
 					</div>
 				</div>
 			`);
-			$body.append($row);
+			$rows.append($row);
 
-			// Build supplier link
-			const supplier_parent = $row.find('[data-cell="supplier_link"]')[0];
-			const supplierLink = new frappe.ui.form.ControlLink({
-				df: {
-					fieldtype: "Link",
-					fieldname: `supplier_${i}`,
-					label: "المورد",
-					options: "Supplier",
-					reqd: 0,
-					only_select: 1
-				},
-				parent: supplier_parent,
-				render_input: true
+			// Supplier Link
+			const supplierCtrl = new frappe.ui.form.ControlLink({
+				df: { fieldtype:"Link", fieldname:`supplier_${i}`, label:"", options:"Supplier", only_select:1 },
+				parent: $row.find('.supplier')[0], render_input: true
 			});
-			supplierLink.get_query = makeSupplierQuery();
+			supplierCtrl.get_query = supplier_link_query();
+			if (supplierCtrl.$input) {
+				supplierCtrl.$input.css({ 'text-align': 'center' });
+				supplierCtrl.$input.on('focus', () => set_active_row($row));
+			}
 
-			// Chip refs
-			const $chipName = $row.find('[data-chip="name"]');
-			const $chipId = $row.find('[data-chip="id"]');
+			// Numeric cells
+			function mkNumberCell(sel, field) {
+				const c = new frappe.ui.form.ControlData({
+					df: { fieldtype:"Data", fieldname:`${field}_${i}`, label:"" },
+					parent: $row.find(sel)[0], render_input: true
+				});
+				const $inp = c.$input;
+				$inp.attr('inputmode','decimal').attr('placeholder','0.00').val(rec[field] ?? '');
+				$inp.css({ 'text-align':'center' });
+				wireNumeric($inp, rec, field, () => apply_row_state($row, rec));
+				return c;
+			}
+			const ctrl_water    = mkNumberCell('.water','water');
+			const ctrl_protein  = mkNumberCell('.protein','protein');
+			const ctrl_density  = mkNumberCell('.density','density');
+			const ctrl_hardness = mkNumberCell('.hardness','hardness');
+			const ctrl_pont     = mkNumberCell('.pont','pont');
 
-			// Init values
+			// Init Supplier
 			if (rec.supplier) {
-				supplierLink.set_value(rec.supplier);
+				supplierCtrl.set_value(rec.supplier);
 				(async () => {
-					const sname = rec.supplier_name || await fetch_supplier_name(rec.supplier);
-					rec.supplier_name = sname;
-					set_chip({ $chipName, $chipId }, rec.supplier, sname);
+					const full = rec.supplier_name || await get_supplier_name(rec.supplier);
+					rec.supplier_name = full;
+					if (supplierCtrl.$input) supplierCtrl.$input.val(full);
 				})();
-			} else {
-				set_chip({ $chipName, $chipId }, '', '');
 			}
 
-			// Keep rowControls
-			rowControls.push({ supplierLink, $chipName, $chipId });
-
-			// Sync on change
+			// Sync supplier
 			const syncSupplier = async () => {
-				const val = supplierLink.get_value() || "";
-				rec.supplier = val;
-				if (val) {
-					const sname = await fetch_supplier_name(val);
-					rec.supplier_name = sname;
-					set_chip({ $chipName, $chipId }, val, sname);
-					$chipName.parent().attr('title', `${sname} (${val})`);
-				} else {
-					rec.supplier_name = '';
-					set_chip({ $chipName, $chipId }, '', '');
-					$chipName.parent().attr('title', '');
+				const id = supplierCtrl.get_value() || "";
+				rec.supplier = id;
+				if (id && supplierCtrl.$input) {
+					const full = await get_supplier_name(id);
+					rec.supplier_name = full;
+					supplierCtrl.$input.val(full);
 				}
+				apply_row_state($row, rec);
 			};
-			if (supplierLink.$input) {
-				supplierLink.$input.on('change', syncSupplier);
-				supplierLink.$input.on('blur', syncSupplier);
-				supplierLink.$input.on('input', () => { /* typing; leave chip as last confirmed */ });
+			if (supplierCtrl.$input) {
+				supplierCtrl.$input.on('change blur', syncSupplier);
 			}
 
-			// Numeric handling
-			$row.find('input.float-only').each(function() { wireFloatOnly($(this), rec); });
-
-			// Delete row
 			$row.find('.btn-del-row').on('click', () => {
-				state.rows.splice(i, 1);
+				state.rows.splice(i,1);
 				render_rows();
 			});
 
-			idx++;
+			$row.on('mousedown click', () => set_active_row($row));
+			$row.find('input').on('focus', () => set_active_row($row));
+
+			apply_row_state($row, rec);
+
+			rowRefs.push({
+				$row, idx: i,
+				ctrls: { supplier: supplierCtrl, water: ctrl_water, protein: ctrl_protein, density: ctrl_density, hardness: ctrl_hardness, pont: ctrl_pont }
+			});
 		});
 	}
 
-	function wireFloatOnly($input, rec) {
+	function set_active_row($row) {
+		rowRefs.forEach(r => r.$row.removeClass('is-active'));
+		$row.addClass('is-active');
+	}
+	function apply_row_state($row, rec) {
+		$row.toggleClass('is-filled', is_filled(rec));
+	}
+
+	function wireNumeric($input, rec, key, on_change) {
 		$input.on('wheel', e => e.preventDefault(), { passive:false });
 		$input.on('keydown', (e) => {
 			const ok = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'];
@@ -383,51 +439,42 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 			if (['e','E','+'].includes(e.key)) { e.preventDefault(); return; }
 			if (e.key === '-') {
 				const v = e.target.value; const s = e.target.selectionStart || 0;
-				if (s !== 0 || v.includes('-')) e.preventDefault();
-				return;
+				if (s !== 0 || v.includes('-')) e.preventDefault(); return;
 			}
 			if (e.key >= '0' && e.key <= '9') return;
 			if (e.key === '.' || e.key === ',') {
 				const v = e.target.value;
-				if (v.includes('.') || v.includes(',')) e.preventDefault();
-				return;
+				if (v.includes('.') || v.includes(',')) e.preventDefault(); return;
 			}
 			e.preventDefault();
 		});
 		$input.on('input', (e) => {
-			const key = $input.data('cell');
 			let v = (e.target.value || '').replace(',', '.');
-			if (!/^-?\d*\.?\d*$/.test(v)) $input.addClass('input-invalid'); else $input.removeClass('input-invalid');
-			rec[key] = v; e.target.value = v;
+			if (!/^-?\d*\.?\d*$/.test(v)) $input.addClass('is-invalid'); else $input.removeClass('is-invalid');
+			rec[key] = v; e.target.value = v; on_change && on_change();
 		});
 		$input.on('blur', (e) => {
-			const key = $input.data('cell');
 			let v = (e.target.value || '').trim().replace(',', '.');
 			if (v === '.' || v === '-.' || v === '-') v = '';
-			if (v && !/^-?\d*\.?\d+$/.test(v)) $input.addClass('input-invalid'); else $input.removeClass('input-invalid');
-			rec[key] = v; e.target.value = v;
+			if (v && !/^-?\d*\.?\d+$/.test(v)) $input.addClass('is-invalid'); else $input.removeClass('is-invalid');
+			rec[key] = v; e.target.value = v; on_change && on_change();
 		});
 	}
 
 	function add_empty_row() {
-		state.rows.push({
-			supplier: "",
-			supplier_name: "",
-			water: "", protein: "", density: "", hardness: "", pont: ""
-		});
+		state.rows.push({ supplier:"", supplier_name:"", water:"", protein:"", density:"", hardness:"", pont:"" });
 		render_rows();
 	}
 
 	function clear_all(keep_filters=false) {
 		state.rows = [];
-		rowControls = [];
 		render_rows();
 		if (!keep_filters) {
+			controls.animal_type && controls.animal_type.set_value('Buffalo');
+			controls.session && controls.session.set_value('morning');
+			controls.date && controls.date.set_value(frappe.datetime.get_today());
 			controls.driver && controls.driver.set_value("");
 			controls.village && controls.village.set_value("");
-			controls.date && controls.date.set_value(frappe.datetime.get_today());
-			controls.session && controls.session.set_value('morning');
-			controls.animal_type && controls.animal_type.set_value('Buffalo');
 		}
 	}
 
@@ -446,40 +493,122 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 		state.rows.forEach(r => {
 			const supplier = (r.supplier || '').trim();
 			if (!supplier) return;
-
 			const norm = k => (r[k] ?? '').toString().replace(',', '.').trim();
 			const keys = ['water','protein','density','hardness','pont'];
 			const vals = keys.map(norm);
-
 			for (let i=0; i<keys.length; i++) {
 				const v = vals[i];
 				if (v !== '' && !/^-?\d*\.?\d+$/.test(v)) {
-					throw new Error(`قيمة غير صحيحة في "${labelOf(keys[i])}" للمورد "${r.supplier_name || supplier}".`);
+					throw new Error(`قيمة غير صحيحة في "${({water:'ماء', protein:'بروتين', density:'كثافة', hardness:'صلابة', pont:'بنط'})[keys[i]]}" للمورد "${r.supplier_name || supplier}".`);
 				}
 			}
-			const all_blank = vals.every(v => v === '');
-			if (all_blank) return;
-
-			rows.push({
-				supplier,
-				water: vals[0],
-				protein: vals[1],
-				density: vals[2],
-				hardness: vals[3],
-				pont: vals[4]
-			});
+			if (vals.every(v => v === '')) return;
+			rows.push({ supplier, water: vals[0], protein: vals[1], density: vals[2], hardness: vals[3], pont: vals[4] });
 		});
 		return rows;
 	}
-	function labelOf(k) {
-		return ({ water:'ماء', protein:'بروتين', density:'كثافة', hardness:'صلابة', pont:'بنط' })[k] || k;
+
+	// Print Draft: clean table with empty numeric cells
+	function print_draft() {
+		// Collect context labels
+		const session_val = controls.session.get_value();
+		const session_label = session_val === 'evening' ? 'مساء' : 'صباح';
+		const animal_val = controls.animal_type.get_value();
+		const animal_label = animal_val === 'Cow' ? 'بقر' : 'جاموس';
+		const date_label = controls.date.get_value() || '';
+		const driver_label = controls.driver.get_value() || '';
+		const village_label = controls.village.get_value() || '';
+
+		// Build rows from loaded suppliers
+		const rows = (state.rows || []).map((r, idx) => {
+			const name = r.supplier_name || r.supplier || '';
+			return `<tr>
+				<td class="idx">${idx + 1}</td>
+				<td class="supplier">${frappe.utils.escape_html(name)}</td>
+				<td></td><td></td><td></td><td></td><td></td>
+			</tr>`;
+		}).join('');
+
+		const html = `
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>مسودة جودة اللبن</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+	:root {
+		--ink:#111827; --muted:#6b7280; --line:#d1d5db;
+	}
+	html,body { margin:0; padding:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol"; color:var(--ink); }
+	.wrap { padding:24px; }
+	h1 { font-size:18px; margin:0 0 10px; text-align:center; }
+	.meta { display:flex; flex-wrap:wrap; gap:8px 16px; justify-content:center; color:var(--muted); font-weight:700; margin-bottom:14px; }
+	.meta .item { white-space:nowrap; }
+	table { width:100%; border-collapse:collapse; }
+	th, td { border:1px solid var(--line); padding:10px 8px; text-align:center; }
+	th { background:#f7f7f7; font-size:12px; color:#374151; }
+	td { height:36px; }
+	td.supplier, th.supplier { text-align:right; }
+	td.idx { width:48px; }
+	@media print {
+		.wrap { padding:0; }
+		.print-hide { display:none !important; }
+		@page { margin:14mm; }
+	}
+</style>
+</head>
+<body>
+<div class="wrap">
+	<h1>مسودة تسجيل جودة اللبن</h1>
+	<div class="meta">
+		<div class="item">النوع: ${animal_label}</div>
+		<div class="item">الفترة: ${session_label}</div>
+		<div class="item">التاريخ: ${frappe.utils.escape_html(date_label)}</div>
+		${driver_label ? `<div class="item">الخط: ${frappe.utils.escape_html(driver_label)}</div>` : ``}
+		${village_label ? `<div class="item">القرية: ${frappe.utils.escape_html(village_label)}</div>` : ``}
+	</div>
+
+	<table>
+		<thead>
+			<tr>
+				<th>#</th>
+				<th class="supplier">المورد</th>
+				<th>ماء</th>
+				<th>بروتين</th>
+				<th>كثافة</th>
+				<th>صلابة</th>
+				<th>بنط</th>
+			</tr>
+		</thead>
+		<tbody>
+			${rows || ''}
+		</tbody>
+	</table>
+
+	<div class="print-hide" style="margin-top:12px; text-align:center;">
+		<button onclick="window.print()" style="padding:8px 12px; font-weight:700;">طباعة</button>
+	</div>
+</div>
+<script>window.onload = function(){ setTimeout(function(){ window.print(); }, 100); };</script>
+</body>
+</html>`;
+
+		const w = window.open('', '_blank');
+		if (!w) {
+			show_error('خطأ', 'لم يتم فتح نافذة الطباعة. يرجى السماح بالنوافذ المنبثقة (Pop-ups).');
+			return;
+		}
+		w.document.open();
+		w.document.write(html);
+		w.document.close();
 	}
 
+	// Server ops
 	async function load_suppliers() {
 		const driver = controls.driver.get_value();
 		const village = controls.village.get_value();
 		const date = controls.date.get_value();
-
 		if (!date) { frappe.msgprint("يرجى تحديد التاريخ."); return; }
 
 		try {
@@ -489,19 +618,16 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 				args: { driver: driver || "", village: village || "", date }
 			});
 			const msg = r.message || {};
-			// ensure we keep both IDs and names for chips
 			state.rows = await Promise.all((msg.rows || []).map(async x => {
 				const supplier = x.supplier || "";
-				const supplier_name = await fetch_supplier_name(supplier);
+				const supplier_name = await get_supplier_name(supplier);
 				return { supplier, supplier_name, water:"", protein:"", density:"", hardness:"", pont:"" };
 			}));
 			render_rows();
-			if (!state.rows.length) {
-				frappe.show_alert({ message: 'لا توجد بيانات', indicator: 'orange' }, 4);
-			}
+			if (!state.rows.length) frappe.show_alert({ message:'لا توجد بيانات', indicator:'orange' }, 4);
 		} catch (e) {
 			console.error(e);
-			frappe.msgprint({ title:'خطأ', message: e.message || String(e), indicator: 'red' });
+			show_error(__('خطأ'), e);
 		} finally {
 			frappe.dom.unfreeze();
 		}
@@ -512,20 +638,12 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 		const village = controls.village.get_value();
 		const date = controls.date.get_value();
 		const { morning, evening, cow, buffalo } = get_flags_from_controls();
-
 		if (!date) { frappe.msgprint("يرجى تحديد التاريخ."); return; }
 
 		let child_rows;
-		try {
-			child_rows = build_child_rows();
-		} catch (err) {
-			frappe.msgprint({ title:'تنبيه', message: err.message || String(err), indicator: 'orange' });
-			return;
-		}
-		if (!child_rows.length) {
-			frappe.msgprint("لم يتم إدخال صفوف صالحة.");
-			return;
-		}
+		try { child_rows = build_child_rows(); }
+		catch (err) { show_error(__('تنبيه'), err); return; }
+		if (!child_rows.length) { frappe.msgprint("لم يتم إدخال صفوف صالحة."); return; }
 
 		try {
 			frappe.dom.freeze(__('جاري التأكيد...'));
@@ -534,20 +652,27 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 				args: { driver: driver || "", village: village || "", date, morning, evening, cow, buffalo, rows: child_rows }
 			});
 			const msg = r.message || {};
-			frappe.show_alert({ message: `تم التأكيد بنجاح (${msg.docname || ''})`, indicator: 'green' }, 5);
+			frappe.show_alert({ message:`تم التأكيد بنجاح (${msg.docname || ''})`, indicator:'green' }, 5);
 			clear_all(true);
 		} catch (e) {
 			console.error(e);
-			frappe.msgprint({ title:'خطأ', message: e.message || String(e), indicator: 'red' });
+			show_error(__('خطأ'), e);
 		} finally {
 			frappe.dom.unfreeze();
 		}
 	}
 
+	function updateSupplierQueries() {
+		rowRefs.forEach(r => { if (r.ctrls?.supplier) r.ctrls.supplier.get_query = supplier_link_query(); });
+	}
+
+	// Actions
 	$btn_load.on('click', load_suppliers);
 	$btn_submit.on('click', submit_all);
 	$btn_clear.on('click', () => clear_all(false));
 	$btn_add_row_bottom.on('click', add_empty_row);
+	$btn_print_draft.on('click', print_draft);
 
+	// Initial
 	render_rows();
 };
