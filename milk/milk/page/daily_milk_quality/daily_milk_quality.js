@@ -13,9 +13,7 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 	const ui = `
 	<div class="dmq-root" dir="rtl">
 		<style>
-			:root {
-				--border:#e5e7eb; --muted:#6b7280; --bg:#fff; --soft:#fafafa;
-			}
+			:root { --border:#e5e7eb; --muted:#6b7280; --bg:#fff; --soft:#fafafa; }
 			.dmq-root { margin:-15px; padding:0 12px 16px; background:var(--bg); font-weight:700; }
 
 			/* Toolbar */
@@ -31,46 +29,55 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 				height:30px; min-height:30px; padding:4px 8px; font-size:12px; width:100%;
 			}
 			.dmq-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
+			@media (max-width:860px){
+				.dmq-toolbar { grid-template-columns: repeat(2, minmax(160px,1fr)); grid-auto-rows:auto; }
+			}
 
-			/* Table Card */
+			/* Table */
 			.table-card { margin-top:8px; border:1px solid var(--border); border-radius:8px; background:#fff; overflow:visible; }
-			/* We remove the big header and summary per your request */
 
-			/* Grid columns: #, supplier(link), water, protein, density, hardness, pont, delete */
 			.dmq-grid {
 				display:grid;
-				grid-template-columns: 48px minmax(260px,1fr) 110px 110px 110px 110px 110px 60px;
+				grid-template-columns: 48px minmax(340px,1fr) 110px 110px 110px 110px 110px 60px;
 				align-items:center;
+			}
+			@media (max-width:1200px){
+				.dmq-grid { grid-template-columns:48px minmax(280px,1fr) 100px 100px 100px 100px 100px 60px; }
 			}
 			.dmq-head, .dmq-foot { background:var(--soft); }
 			.dmq-head>div, .dmq-row>div, .dmq-foot-row>div {
-				padding:6px 8px; border-bottom:1px solid var(--border); min-height:40px; display:flex; align-items:center;
+				padding:6px 8px; border-bottom:1px solid var(--border); min-height:44px; display:flex; align-items:center;
 			}
 			.th { font-size:12px; font-weight:600; color:var(--muted); }
 			.center { justify-content:center; text-align:center; }
 			.right { justify-content:flex-start; text-align:right; }
-
 			.dmq-body .dmq-row:nth-child(even) { background:#fbfbfb; }
-			.dmq-row { position:relative; overflow:visible; z-index:0; }
 
-			.dmq-row input.form-control {
-				height:28px; min-height:28px; padding:3px 6px; font-size:12px;
+			/* Supplier cell enhancement */
+			.supplier-cell {
+				display:flex; align-items:center; gap:8px; width:100%;
 			}
+			.supplier-cell .link-wrap { min-width:180px; max-width:280px; flex:0 0 auto; }
+			.supplier-cell .link-wrap .control-input, .supplier-cell .link-wrap input {
+				height:30px; min-height:30px; padding:4px 8px; font-size:12px;
+			}
+			.supplier-chip {
+				display:inline-flex; align-items:center; gap:6px;
+				padding:6px 10px; border:1px solid var(--border); border-radius:999px;
+				background:#f9fafb; color:#111827; font-weight:800; font-size:12px; max-width:100%;
+				white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+			}
+			.supplier-chip .id { color:#6b7280; font-weight:700; }
+
+			.dmq-row input.form-control { height:30px; min-height:30px; padding:4px 8px; font-size:12px; }
 			.btn-del-row { color:#b91c1c; }
 			.btn-add-row { margin:8px 10px; }
 
 			.input-invalid { border-color:#ef4444 !important; background:#fff1f2; }
-
-			@media (max-width:1200px){
-				.dmq-grid { grid-template-columns:48px minmax(220px,1fr) 100px 100px 100px 100px 100px 60px; }
-			}
-			@media (max-width:860px){
-				.dmq-toolbar { grid-template-columns: repeat(2, minmax(160px,1fr)); grid-auto-rows:auto; }
-			}
 		</style>
 
-		<!-- Toolbar with compact actions -->
-		<div class="dmq-toolbar" role="region" aria-label="مرشحات وإجراءات">
+		<!-- Toolbar -->
+		<div class="dmq-toolbar">
 			<div class="dmq-tool" data-tool="driver">
 				<div class="label">الخط</div>
 				<div class="body"><div data-field="driver"></div></div>
@@ -143,17 +150,16 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 		driver: "",
 		village: "",
 		date: frappe.datetime.get_today(),
-		session: 'morning', // morning | evening
-		animal_type: 'Buffalo', // default "جاموس"
-		rows: [] // {supplier, water, protein, density, hardness, pont}
+		session: 'morning',
+		animal_type: 'Buffalo',
+		rows: [] // {supplier, supplier_name, water, protein, density, hardness, pont}
 	};
 
-	let rowControls = []; // keep ControlLink refs to update queries
+	let rowControls = []; // { supplierLink, $chipName }
 
-	// Elements
 	const $body = $ui.find('[data-body="rows"]');
 
-	// Controls
+	// Controls factory
 	const controls = {};
 	function Control(df, sel) {
 		const M = {
@@ -182,10 +188,7 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 		fieldname: "village",
 		label: "القرية",
 		options: "Village",
-		change: () => {
-			state.village = controls.village.get_value();
-			updateSupplierLinkQueries();
-		}
+		change: () => { state.village = controls.village.get_value(); }
 	}, '[data-field="village"]');
 
 	controls.date = Control({
@@ -228,6 +231,45 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 	const $btn_submit = $ui.find('[data-action="submit"]');
 	const $btn_add_row_bottom = $ui.find('[data-action="add_row_bottom"]');
 
+	// Helpers
+	function makeSupplierQuery() {
+		// Use query api to return both name and supplier_name
+		return () => {
+			const filters = {
+				disabled: 0,
+				custom_milk_supplier: 1
+			};
+			const drv = controls.driver && controls.driver.get_value();
+			if (drv) filters['custom_driver_in_charge'] = drv;
+
+			return {
+				filters,
+				query: null
+			};
+		};
+	}
+	async function fetch_supplier_name(supplier) {
+		if (!supplier) return "";
+		try {
+			const r = await frappe.db.get_value('Supplier', supplier, ['supplier_name']);
+			return (r && r.message && (r.message.supplier_name || supplier)) || supplier;
+		} catch {
+			return supplier;
+		}
+	}
+
+	function updateSupplierLinkQueries() {
+		rowControls.forEach(rc => {
+			if (rc && rc.supplierLink) rc.supplierLink.get_query = makeSupplierQuery();
+		});
+	}
+
+	function set_chip(rc, name, display_name) {
+		// name: supplier ID, display_name: supplier_name or name
+		rc.$chipName.text(display_name || name || '');
+		rc.$chipId.text(name || '');
+	}
+
 	function render_rows() {
 		$body.empty();
 		rowControls = [];
@@ -240,12 +282,23 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 			const $row = $(`
 				<div class="dmq-row dmq-grid" data-index="${i}">
 					<div class="center"><span>${idx}</span></div>
-					<div class="right"><div data-cell="supplier_link"></div></div>
+
+					<div class="right">
+						<div class="supplier-cell">
+							<div class="link-wrap" data-cell="supplier_link"></div>
+							<div class="supplier-chip" title="">
+								<span class="name" data-chip="name"></span>
+								<span class="id" data-chip="id"></span>
+							</div>
+						</div>
+					</div>
+
 					<div class="center"><input type="text" class="form-control float-only" data-cell="water"    value="${rec.water ?? ''}"    inputmode="decimal" placeholder="0.00"></div>
 					<div class="center"><input type="text" class="form-control float-only" data-cell="protein"  value="${rec.protein ?? ''}"  inputmode="decimal" placeholder="0.00"></div>
 					<div class="center"><input type="text" class="form-control float-only" data-cell="density"  value="${rec.density ?? ''}"  inputmode="decimal" placeholder="0.00"></div>
 					<div class="center"><input type="text" class="form-control float-only" data-cell="hardness" value="${rec.hardness ?? ''}" inputmode="decimal" placeholder="0.00"></div>
 					<div class="center"><input type="text" class="form-control float-only" data-cell="pont"     value="${rec.pont ?? ''}"     inputmode="decimal" placeholder="0.00"></div>
+
 					<div class="center">
 						<button type="button" class="btn btn-xs btn-link btn-del-row" title="حذف الصف">✕</button>
 					</div>
@@ -253,8 +306,8 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 			`);
 			$body.append($row);
 
-			// Supplier Link field
-			const supplier_parent = $row.find('div[data-cell="supplier_link"]')[0];
+			// Build supplier link
+			const supplier_parent = $row.find('[data-cell="supplier_link"]')[0];
 			const supplierLink = new frappe.ui.form.ControlLink({
 				df: {
 					fieldtype: "Link",
@@ -262,67 +315,81 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 					label: "المورد",
 					options: "Supplier",
 					reqd: 0,
-					only_select: 0
+					only_select: 1
 				},
 				parent: supplier_parent,
 				render_input: true
 			});
-			if (rec.supplier) supplierLink.set_value(rec.supplier);
 			supplierLink.get_query = makeSupplierQuery();
 
-			function syncSupplier() {
-				rec.supplier = supplierLink.get_value() || "";
+			// Chip refs
+			const $chipName = $row.find('[data-chip="name"]');
+			const $chipId = $row.find('[data-chip="id"]');
+
+			// Init values
+			if (rec.supplier) {
+				supplierLink.set_value(rec.supplier);
+				(async () => {
+					const sname = rec.supplier_name || await fetch_supplier_name(rec.supplier);
+					rec.supplier_name = sname;
+					set_chip({ $chipName, $chipId }, rec.supplier, sname);
+				})();
+			} else {
+				set_chip({ $chipName, $chipId }, '', '');
 			}
+
+			// Keep rowControls
+			rowControls.push({ supplierLink, $chipName, $chipId });
+
+			// Sync on change
+			const syncSupplier = async () => {
+				const val = supplierLink.get_value() || "";
+				rec.supplier = val;
+				if (val) {
+					const sname = await fetch_supplier_name(val);
+					rec.supplier_name = sname;
+					set_chip({ $chipName, $chipId }, val, sname);
+					$chipName.parent().attr('title', `${sname} (${val})`);
+				} else {
+					rec.supplier_name = '';
+					set_chip({ $chipName, $chipId }, '', '');
+					$chipName.parent().attr('title', '');
+				}
+			};
 			if (supplierLink.$input) {
 				supplierLink.$input.on('change', syncSupplier);
 				supplierLink.$input.on('blur', syncSupplier);
-				supplierLink.$input.on('input', syncSupplier);
+				supplierLink.$input.on('input', () => { /* typing; leave chip as last confirmed */ });
 			}
 
-			// Numeric handling + delete
+			// Numeric handling
 			$row.find('input.float-only').each(function() { wireFloatOnly($(this), rec); });
+
+			// Delete row
 			$row.find('.btn-del-row').on('click', () => {
-				state.rows.splice(i,1);
+				state.rows.splice(i, 1);
 				render_rows();
 			});
 
-			rowControls.push({ supplierLink });
 			idx++;
-		});
-	}
-
-	function makeSupplierQuery() {
-		return () => {
-			const q = { filters: { disabled: 0, custom_milk_supplier: 1 } };
-			const drv = controls.driver && controls.driver.get_value();
-			if (drv) q.filters['custom_driver_in_charge'] = drv;
-			return q;
-		};
-	}
-
-	function updateSupplierLinkQueries() {
-		rowControls.forEach(rc => {
-			if (rc && rc.supplierLink) {
-				rc.supplierLink.get_query = makeSupplierQuery();
-			}
 		});
 	}
 
 	function wireFloatOnly($input, rec) {
 		$input.on('wheel', e => e.preventDefault(), { passive:false });
 		$input.on('keydown', (e) => {
-			const allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'];
-			if (allowed.includes(e.key)) return;
+			const ok = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'];
+			if (ok.includes(e.key)) return;
 			if (['e','E','+'].includes(e.key)) { e.preventDefault(); return; }
 			if (e.key === '-') {
-				const val = e.target.value; const start = e.target.selectionStart || 0;
-				if (start !== 0 || val.includes('-')) e.preventDefault();
+				const v = e.target.value; const s = e.target.selectionStart || 0;
+				if (s !== 0 || v.includes('-')) e.preventDefault();
 				return;
 			}
 			if (e.key >= '0' && e.key <= '9') return;
 			if (e.key === '.' || e.key === ',') {
-				const val = e.target.value;
-				if (val.includes('.') || val.includes(',')) e.preventDefault();
+				const v = e.target.value;
+				if (v.includes('.') || v.includes(',')) e.preventDefault();
 				return;
 			}
 			e.preventDefault();
@@ -331,22 +398,21 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 			const key = $input.data('cell');
 			let v = (e.target.value || '').replace(',', '.');
 			if (!/^-?\d*\.?\d*$/.test(v)) $input.addClass('input-invalid'); else $input.removeClass('input-invalid');
-			rec[key] = v;
-			e.target.value = v;
+			rec[key] = v; e.target.value = v;
 		});
 		$input.on('blur', (e) => {
 			const key = $input.data('cell');
 			let v = (e.target.value || '').trim().replace(',', '.');
 			if (v === '.' || v === '-.' || v === '-') v = '';
 			if (v && !/^-?\d*\.?\d+$/.test(v)) $input.addClass('input-invalid'); else $input.removeClass('input-invalid');
-			rec[key] = v;
-			e.target.value = v;
+			rec[key] = v; e.target.value = v;
 		});
 	}
 
 	function add_empty_row() {
 		state.rows.push({
 			supplier: "",
+			supplier_name: "",
 			water: "", protein: "", density: "", hardness: "", pont: ""
 		});
 		render_rows();
@@ -388,7 +454,7 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 			for (let i=0; i<keys.length; i++) {
 				const v = vals[i];
 				if (v !== '' && !/^-?\d*\.?\d+$/.test(v)) {
-					throw new Error(`قيمة غير صحيحة في "${labelOf(keys[i])}" للمورد "${supplier}".`);
+					throw new Error(`قيمة غير صحيحة في "${labelOf(keys[i])}" للمورد "${r.supplier_name || supplier}".`);
 				}
 			}
 			const all_blank = vals.every(v => v === '');
@@ -423,9 +489,11 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 				args: { driver: driver || "", village: village || "", date }
 			});
 			const msg = r.message || {};
-			state.rows = (msg.rows || []).map(x => ({
-				supplier: x.supplier || "",
-				water: "", protein: "", density: "", hardness: "", pont: ""
+			// ensure we keep both IDs and names for chips
+			state.rows = await Promise.all((msg.rows || []).map(async x => {
+				const supplier = x.supplier || "";
+				const supplier_name = await fetch_supplier_name(supplier);
+				return { supplier, supplier_name, water:"", protein:"", density:"", hardness:"", pont:"" };
 			}));
 			render_rows();
 			if (!state.rows.length) {
