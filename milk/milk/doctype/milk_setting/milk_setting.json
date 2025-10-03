@@ -8,6 +8,7 @@
  "field_order": [
   "buffalo_item",
   "cow_item",
+  "pont_rate",
   "column_break_ulcb",
   "company",
   "supplier_loan_account",
@@ -54,13 +55,19 @@
    "label": "Supplier Deduction Account",
    "options": "Account",
    "reqd": 1
+  },
+  {
+   "default": "4",
+   "fieldname": "pont_rate",
+   "fieldtype": "Float",
+   "label": "\u0633\u0639\u0631 \u0627\u0644\u0628\u0646\u0637 \u0644\u0644\u0633\u0639\u0631 \u0627\u0644\u0639\u0627\u062f\u0644"
   }
  ],
  "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-10-02 14:04:15.662510",
+ "modified": "2025-10-03 03:03:16.203742",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Milk Setting",

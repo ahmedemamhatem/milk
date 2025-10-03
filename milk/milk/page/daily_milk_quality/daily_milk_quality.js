@@ -243,6 +243,7 @@ html, body {
 	/* keep font-size as default; or uncomment next line to bump a bit */
 	/* font-size: 15px; */
 }
+	
 		</style>
 		
 		<!-- Toolbar -->
