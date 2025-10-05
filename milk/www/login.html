@@ -7,36 +7,39 @@
   <meta name="theme-color" content="#0ea5e9">
   <style>
     :root{
+      /* Solid blue palette */
       --ink:#0b1324;
       --body:#1f2937;
-      --muted:#667085;
+      --muted:#64748b;
       --line:#e5e7eb;
 
       --blue-50:#eff6ff;
       --blue-100:#dbeafe;
       --blue-200:#bfdbfe;
       --blue-300:#93c5fd;
-      --blue-400:#60a5fa;
       --blue-500:#3b82f6;
       --blue-600:#2563eb;
       --blue-700:#1d4ed8;
       --blue-800:#1e40af;
 
-      --glass: rgba(255,255,255,0.9);
+      --red-50:#fef2f2;
+      --red-200:#fecaca;
+      --red-600:#dc2626;
+
+      --glass: rgba(255,255,255,0.92);
       --glass-bd: rgba(15,23,42,0.08);
       --ring: rgba(37,99,235,0.22);
 
-      --fs-hero: clamp(22px, 2.6vw, 30px);
-      --fs-title: clamp(16px, 1.2vw, 18px);
+      --fs-hero: clamp(20px, 2vw, 26px);
+      --fs-title: 18px;
       --fs-body: 14.5px;
       --fs-caption: 12.5px;
 
       --radius-lg: 22px;
       --radius-md: 14px;
 
-      --shadow-lg: 0 28px 80px rgba(2,6,23,0.16), 0 8px 22px rgba(2,6,23,0.08);
-      --shadow-md: 0 20px 56px rgba(2,6,23,0.12), 0 6px 14px rgba(2,6,23,0.06);
-      --shadow-sm: 0 10px 24px rgba(2,6,23,0.08), 0 4px 10px rgba(2,6,23,0.06);
+      --shadow-md: 0 20px 56px rgba(2,6,23,0.10), 0 6px 14px rgba(2,6,23,0.04);
+      --shadow-sm: 0 10px 24px rgba(2,6,23,0.06), 0 4px 10px rgba(2,6,23,0.04);
     }
 
     html, body { height:100%; }
@@ -47,12 +50,11 @@
       background:
         radial-gradient(60% 60% at 75% 30%, rgba(191,219,254,0.28) 0%, rgba(191,219,254,0) 60%) no-repeat,
         linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
-      overflow: hidden;
-      letter-spacing: 0.1px;
       -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
     }
 
-    /* Background logo (kept) */
+    /* Background kept */
     .bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
     .bg::before {
       content:""; position:absolute; inset:0;
@@ -66,43 +68,30 @@
       filter: saturate(1.05); opacity: 0.85; transform: translateZ(0);
     }
 
-    /* Top bar with login button */
+    /* Top bar – one-line brand, no icon */
     .topbar {
       position: sticky; top: 0; z-index: 5;
       display: flex; align-items: center; justify-content: space-between;
       padding: 10px clamp(14px, 3vw, 24px);
-      background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.7));
+      background: #ffffff;
       border-bottom: 1px solid var(--line);
-      backdrop-filter: blur(8px);
     }
-    .brand-mark {
-      display: inline-flex; align-items:center; gap:10px;
-      font-weight: 900; color: var(--blue-700);
+    .brand-line {
+      font-weight: 1000;
+      color: var(--blue-800);
+      font-size: clamp(16px, 1.6vw, 20px);
+      white-space: nowrap;
     }
-    .brand-logo {
-      width: 36px; height: 36px; border-radius: 10px; background:#fff; border:1px solid var(--line);
-      display:flex; align-items:center; justify-content:center; font-size: 20px;
-      box-shadow: var(--shadow-sm);
-    }
-    .brand-name {
-      display:grid; gap: 2px; line-height: 1.05;
-    }
-    .brand-name .ar { font-size: 18px; color: var(--ink); }
-    .brand-name .en { font-size: 12px; color: var(--muted); font-weight:800; }
-
     .btn-login-top {
       appearance: none; border:1px solid var(--blue-300);
-      background: linear-gradient(135deg, var(--blue-600), var(--blue-500));
+      background: var(--blue-600);
       color:#fff; font-weight:1000; border-radius: 12px; height:40px; padding: 0 14px; cursor:pointer;
-      box-shadow: 0 10px 24px rgba(37,99,235,0.22);
-      transition: transform 90ms ease, filter 160ms ease, box-shadow 160ms ease;
+      box-shadow: 0 10px 24px rgba(37,99,235,0.18);
     }
-    .btn-login-top:hover { filter:brightness(1.04); box-shadow: 0 14px 30px rgba(37,99,235,0.26); }
-    .btn-login-top:active { transform: translateY(1px) scale(0.996); }
 
-    /* Frame: left/right layout */
+    /* Keep your old left/right grid */
     .frame {
-      position: relative; z-index: 1; height: calc(100vh - 62px); width: 100%;
+      position: relative; z-index: 1; min-height: calc(100vh - 62px); width: 100%;
       display: grid;
       grid-template-columns: minmax(360px, 520px) 1fr minmax(360px, 480px);
       gap: clamp(18px, 4vw, 60px);
@@ -112,7 +101,7 @@
     .edge-left  { grid-column: 1; justify-self: start; align-self: center; }
     .edge-right { grid-column: 3; justify-self: end;   align-self: stretch; }
 
-    /* Card base */
+    /* Cards */
     .card {
       border-radius: var(--radius-lg);
       background: var(--glass);
@@ -123,158 +112,128 @@
       overflow: hidden;
     }
 
-    /* LEFT: Image (centered text) with enhanced colors */
-    .left-card {
-      width: min(520px, 94vw);
-      display: grid;
-      grid-template-rows: auto auto 1fr;
-      text-align: center;
-    }
+    /* Left card – use blue fonts */
+    .left-card { width: min(520px, 94vw); display:grid; grid-template-rows: auto auto 1fr; text-align: center; }
     .left-head{
       display:grid; grid-template-columns: 1fr; justify-items: center; gap:8px;
-      padding:18px; border-bottom:1px solid var(--line);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,255,255,0.78)),
-        radial-gradient(150% 70% at 0% 0%, rgba(191,219,254,0.32), rgba(191,219,254,0) 60%);
+      padding:16px 18px 10px; border-bottom:1px solid var(--line);
+      background:#ffffff;
     }
-    /* Enhanced title: blue gradient text with subtle shadow */
-    .left-title{
-      font-weight:1000; font-size: var(--fs-hero);
-      background: linear-gradient(90deg, var(--blue-800), var(--blue-500));
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-      letter-spacing: 0.2px;
-      text-shadow: 0 1px 0 rgba(255,255,255,0.9);
-    }
-    /* Enhanced subtitle: pill badge style */
+    .left-title{ font-weight:1000; font-size: var(--fs-hero); color: var(--blue-800); }
     .left-sub{
-      display: inline-flex; align-items:center; gap:8px;
-      padding: 6px 12px; border-radius: 999px;
-      background: linear-gradient(180deg, var(--blue-100), #ffffff);
-      border: 1px solid var(--blue-200);
-      color: var(--blue-800);
-      font-size: var(--fs-caption); font-weight: 900;
-      box-shadow: 0 6px 14px rgba(30,64,175,0.08);
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 6px 12px; border-radius:999px;
+      background:#f0f6ff; border:1px solid var(--blue-200); color: var(--blue-800);
+      font-weight:900; font-size: var(--fs-caption);
     }
-
     .left-body{
       padding: 12px;
       display:flex; flex-direction: column; gap: 12px; align-items: center;
-      background: linear-gradient(180deg, var(--blue-50), rgba(255,255,255,0.6));
-      text-align: center;
+      background: #f9fbff;
     }
     .brand-image{
       max-width: 100%; height: auto; max-height: 36vh; object-fit: contain;
-      border-radius: 16px; border: 1px solid var(--blue-100); background:#fff;
+      border-radius: 14px; border: 1px solid var(--line); background:#fff;
       box-shadow: var(--shadow-sm);
-      transition: transform 160ms ease;
     }
-    .brand-image:hover { transform: translateY(-2px); }
     .brand-image.secondary{ max-height: 22vh; }
 
-    /* RIGHT: Brand/Data */
+    /* Right card – solid blue titles; scroll only this data area if needed */
     .brand { height:100%; width:min(480px,96vw); display:flex; flex-direction:column; padding:0; }
     .brand-head{
       display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center;
-      padding:14px 14px 10px 14px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.75)),
-        radial-gradient(140% 80% at 100% 0%, rgba(147,197,253,0.28), rgba(147,197,253,0) 60%);
-      border-bottom:1px solid var(--line);
-      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding:12px 14px; background:#ffffff; border-bottom:1px solid var(--line);
     }
     .brand-ico-right{
       width:46px; height:46px; border-radius:12px; background:#fff; border:1px solid var(--glass-bd);
       display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(2,6,23,0.06);
       font-size:24px; line-height:1;
     }
-    .brand-title .ar{ font-weight:1000; font-size: 20px; color: var(--blue-800); text-shadow: 0 1px 0 rgba(255,255,255,0.85); }
+    .brand-title .ar{ font-weight:1000; font-size: 18px; color: var(--blue-800); }
 
     .brand-desc{
       padding: 10px 16px 12px 16px;
-      background: linear-gradient(180deg, var(--blue-50), rgba(255,255,255,0.75));
-      border-bottom:1px solid var(--blue-200);
-      color: var(--ink);
-      font-weight: 1000; font-size: 15px; line-height: 1.7;
+      background: #f9fbff;
+      border-bottom:1px solid var(--line);
+      color: var(--blue-800);
+      font-weight: 900; font-size: 15px; line-height: 1.7;
     }
 
-    .cards{ flex:1 1 auto; overflow:auto; padding:12px; display:grid; gap:14px; scrollbar-width:thin; scrollbar-color:#cbd5e1 transparent; background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.45)); border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    .cards{ flex:1 1 auto; min-height:0; overflow:auto; padding:12px; display:grid; gap:12px; background:#fff; }
     .cards::-webkit-scrollbar{ width:8px; } .cards::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:8px; }
 
     .info{
       border-radius: var(--radius-md); padding:14px; display:grid; gap:8px;
-      border:1px solid var(--blue-200);
-      background: linear-gradient(180deg, var(--blue-50), #ffffff);
+      border:1px solid var(--line);
+      background: #ffffff;
       box-shadow: var(--shadow-sm);
-      transition: transform 160ms ease, box-shadow 160ms ease;
     }
-    .info:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(2,6,23,0.08); }
     .info .top{ display:grid; grid-template-columns: 1fr auto; align-items:center; gap:10px; }
     .info h3{ margin:0; font-size: var(--fs-title); font-weight:1000; color: var(--blue-800); }
     .info p{ margin:0; font-size: var(--fs-body); font-weight:800; line-height:1.65; color:#334155; }
-
     .chip{
       display:inline-flex; align-items:center; gap:6px;
       height:28px; padding:0 10px; border-radius:999px; font-weight:900; font-size:12.5px;
-      background: var(--blue-100); border:1px solid var(--blue-200); color: var(--blue-800);
+      background:#f0f6ff; border:1px solid var(--blue-200); color: var(--blue-800);
     }
-    .chip .dot{ width:8px; height:8px; border-radius:50%; background: var(--blue-600); box-shadow: 0 0 0 3px rgba(59,130,246,0.18); }
+    .chip .dot{ width:8px; height:8px; border-radius:50%; background: var(--blue-600); }
 
-    .emoji{ font-size:14px; margin-inline-start: 6px; }
-
-    /* Modal login popup */
-    .modal-backdrop {
-      position: fixed; inset: 0; display: none;
-      align-items: center; justify-content: center;
-      background: rgba(2,6,23,0.38);
-      z-index: 50; padding: 16px;
-    }
-    .modal {
-      width: min(520px, 96vw);
-      border-radius: var(--radius-lg);
-      background: var(--glass);
-      border: 1px solid var(--glass-bd);
-      box-shadow: var(--shadow-lg);
-      transform: translateY(10px) scale(0.98);
-      opacity: 0;
-      transition: transform 220ms ease, opacity 220ms ease;
-      overflow: hidden;
-    }
-    .modal.show { transform: translateY(0) scale(1); opacity: 1; }
-    .modal-head {
-      display:flex; align-items:center; gap:10px;
-      padding: 14px 16px; border-bottom: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.7));
-    }
-    .modal-title { font-weight:1000; font-size:18px; color: var(--ink); }
-    .ico { width: 36px; height: 36px; border-radius: 10px; background:#fff; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size: 20px; }
-    .modal-body { padding: 12px 16px 16px; }
-    .modal-actions { display:flex; gap:10px; justify-content: space-between; align-items:center; margin-top: 10px; }
-
-    .in-wrap{ position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--line); background:#eef2ff; transition: box-shadow 140ms ease, border-color 140ms ease, background-color 140ms ease; }
-    .in{ width:100%; height:50px; border:0; background:transparent; padding:12px 14px; font-size: var(--fs-body); outline:none; color:var(--ink); }
-    .in-wrap:focus-within{ border-color: var(--blue-500); box-shadow: 0 0 0 6px var(--ring); background:#fff; }
-    label{ display:block; font-weight:900; font-size: var(--fs-caption); margin:10px 0 6px; color:#0b1220; }
-
-    .btn-submit{
-      flex: 1 1 auto; height:48px; border-radius:12px; border:1px solid var(--blue-300);
-      color:#fff; background: linear-gradient(135deg, var(--blue-600) 0%, var(--blue-500) 55%, var(--blue-400) 100%);
-      font-weight:1000; letter-spacing:0.2px; box-shadow:0 12px 28px rgba(37,99,235,0.24); cursor:pointer;
-    }
-    .btn-cancel{
-      height:48px; border-radius:12px; border:1px solid var(--line); background:#fff; color: var(--blue-800);
-      font-weight:900; padding: 0 14px; cursor:pointer;
-    }
-
-    /* Responsive */
     @media (max-width: 980px){
-      body { overflow:auto; }
-      .frame{ height:auto; min-height:100vh; grid-template-columns: 1fr; grid-template-rows: auto 18px auto; }
+      .frame{ min-height:auto; grid-template-columns: 1fr; grid-template-rows: auto 18px auto; }
       .edge-left, .edge-right{ justify-self: stretch; align-self: auto; }
       .brand{ width:100%; }
       .brand-image{ max-height: 32vh; }
       .brand-image.secondary{ max-height: 20vh; }
       .cards{ max-height: 60vh; }
       .bg-logo img{ width: min(92vw, 720px); max-height: 60vh; opacity: 0.9; }
+    }
+
+    /* Modal login (solid) */
+    .modal-backdrop {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(17,24,39,0.45);
+      z-index: 50; padding: 16px;
+    }
+    .modal {
+      width: min(520px, 96vw);
+      border-radius: var(--radius-lg);
+      background: #ffffff;
+      border: 1px solid var(--line);
+      box-shadow: 0 24px 64px rgba(2,6,23,0.25);
+      transform: translateY(10px) scale(0.98);
+      opacity: 0;
+      transition: transform 200ms ease, opacity 200ms ease;
+      overflow: hidden;
+    }
+    .modal.show { transform: translateY(0) scale(1); opacity: 1; }
+    .modal-head { display:flex; align-items:center; gap:10px; padding: 14px 16px; border-bottom: 1px solid var(--line); background:#fff; }
+    .modal-title { font-weight:1000; font-size:18px; color: var(--blue-800); }
+    .ico { width: 36px; height: 36px; border-radius: 10px; background:#fff; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size: 20px; }
+    .modal-body { padding: 12px 16px 16px; }
+    .modal-actions { display:flex; gap:10px; justify-content: space-between; align-items:center; margin-top: 10px; }
+
+    .alert {
+      display:none; margin: 8px 0 10px; padding: 10px 12px; border-radius: 12px;
+      font-size: var(--fs-caption); font-weight: 900;
+      border: 1px solid var(--red-200); background: var(--red-50); color: var(--red-600);
+    }
+    .alert.show { display:block; }
+
+    .label{ display:block; font-weight:900; font-size: var(--fs-caption); margin:10px 0 6px; color: var(--blue-800); }
+    .in-wrap{ position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--line); background:#fff; }
+    .in{ width:100%; height:50px; border:0; background:transparent; padding:12px 14px; font-size: var(--fs-body); outline:none; color:var(--ink); }
+    .in-wrap:focus-within{ border-color: var(--blue-600); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+    .in-wrap.error { border-color: var(--red-600); box-shadow: 0 0 0 3px rgba(220,38,38,0.18); }
+
+    .btn-submit{
+      flex: 1 1 auto; height:48px; border-radius:12px; border:1px solid var(--blue-600);
+      color:#fff; background: var(--blue-600);
+      font-weight:1000; letter-spacing:0.2px; box-shadow:0 10px 24px rgba(37,99,235,0.18); cursor:pointer;
+    }
+    .btn-cancel{
+      height:48px; border-radius:12px; border:1px solid var(--line); background:#fff; color: var(--ink);
+      font-weight:900; padding: 0 14px; cursor:pointer;
     }
   </style>
 </head>
@@ -286,27 +245,21 @@
     </div>
   </div>
 
-  <!-- Top bar -->
+  <!-- Top bar: one line, no icon -->
   <header class="topbar">
-    <div class="brand-mark">
-      <div class="brand-logo" aria-hidden="true">🥛</div>
-      <div class="brand-name">
-        <div class="ar">ميلك اند تشيز</div>
-        <div class="en">Milk & Cheese</div>
-      </div>
-    </div>
+    <div class="brand-line">ميلك اند تشيز — Milk & Cheese</div>
     <button id="openLoginTop" class="btn-login-top" type="button">تسجيل الدخول</button>
   </header>
 
+  <!-- Left/Right kept the same -->
   <div class="frame">
-    <!-- Left: Images (no login button here) -->
+    <!-- Left -->
     <section class="edge-left">
       <div class="card left-card" role="region" aria-label="ميلك اند تشيز — بطاقة اليسار">
         <div class="left-head">
           <div class="left-title">ميلك اند تشيز - Milk & Cheese</div>
           <div class="left-sub">مرحباً بك</div>
         </div>
-
         <div class="left-body">
           <img class="brand-image" src="/assets/milk/immages/logoo.png" alt="شعار ميلك اند تشيز">
           <img class="brand-image secondary" src="/assets/milk/immages/car.png" alt="سيارة نقل — ميلك اند تشيز">
@@ -314,7 +267,7 @@
       </div>
     </section>
 
-    <!-- Right: Brand/Data -->
+    <!-- Right (data area scrolls if needed) -->
     <section class="edge-right">
       <div class="card brand" role="region" aria-label="معلومات — ميلك اند تشيز">
         <div class="brand-head">
@@ -324,13 +277,13 @@
         </div>
 
         <div class="brand-desc">
-          <strong>مرجع</strong> في تصنيع <strong>أنواع متعددة</strong> من <strong>الحليب</strong> و<strong>الأجبان</strong> بجودة عالية.
+          مرجع في تصنيع أنواع متعددة من الحليب والأجبان بجودة عالية.
         </div>
 
         <div class="cards" aria-label="معلومات وميزات">
           <article class="info">
             <div class="top">
-              <h3>جودة يومية موثوقة <span class="emoji">🥛</span></h3>
+              <h3>جودة يومية موثوقة</h3>
               <span class="chip"><span class="dot"></span> QA</span>
             </div>
             <p>سجّل جودة اللبن صباحاً ومساءً مع تتبّع الأنواع والقرى والسائقين ومراقبة نتائج التحاليل المخبرية.</p>
@@ -338,15 +291,15 @@
 
           <article class="info">
             <div class="top">
-              <h3>فواتير وإجراءات أسرع <span class="emoji">🧾</span></h3>
+              <h3>فواتير وإجراءات أسرع</h3>
               <span class="chip"><span class="dot"></span> ERP</span>
             </div>
-              <p>إنشاء فواتير الموردين والعملاء والمصاريف بسرعة، مع أرشفة المرفقات وتتبع الموافقات والتقارير الدقيقة.</p>
+            <p>إنشاء فواتير الموردين والعملاء والمصاريف بسرعة، مع أرشفة المرفقات وتتبع الموافقات والتقارير الدقيقة.</p>
           </article>
 
           <article class="info">
             <div class="top">
-              <h3>إنتاج الأجبان المتنوع <span class="emoji">🧀</span></h3>
+              <h3>إنتاج الأجبان المتنوع</h3>
               <span class="chip"><span class="dot"></span> MFG</span>
             </div>
             <p>تحويل اللبن إلى أنواع متعددة من الأجبان بمراحل معيارية، مع مراقبة المخزون وخطط الإنتاج وتكاليف التشغيل.</p>
@@ -354,7 +307,7 @@
 
           <article class="info">
             <div class="top">
-              <h3>جمع وتوريد اللبن <span class="emoji">🚚</span></h3>
+              <h3>جمع وتوريد اللبن</h3>
               <span class="chip"><span class="dot"></span> LOG</span>
             </div>
             <p>تسجيل الكميات حسب القرى والسائقين والنقاط، مع تتبّع درجات الحرارة وأزمنة التسليم وتفريغ الحمولات.</p>
@@ -362,7 +315,7 @@
 
           <article class="info">
             <div class="top">
-              <h3>المخزون وتتبع الدُفعات <span class="emoji">📦</span></h3>
+              <h3>المخزون وتتبع الدُفعات</h3>
               <span class="chip"><span class="dot"></span> INV</span>
             </div>
             <p>إدارة دقيقة للدُفعات وتواريخ الانتهاء مع تنبيهات المخزون ورسوم بيانية لانسيابية المواد.</p>
@@ -370,7 +323,7 @@
 
           <article class="info">
             <div class="top">
-              <h3>الجودة والسلامة الغذائية <span class="emoji">✅</span></h3>
+              <h3>الجودة والسلامة الغذائية</h3>
               <span class="chip"><span class="dot"></span> QMS</span>
             </div>
             <p>سجلات HACCP، فحوصات معيارية، تقارير انحراف، وإجراءات تصحيحية موثّقة وقابلة للتتبّع.</p>
@@ -388,12 +341,13 @@
         <div class="modal-title" id="loginTitle">تسجيل الدخول</div>
       </header>
       <div class="modal-body">
+        <div id="loginError" class="alert" role="alert" aria-live="assertive"></div>
         <form id="loginForm" novalidate>
-          <label for="email">اسم المستخدم أو البريد</label>
-          <div class="in-wrap"><input id="email" name="usr" type="text" class="in" autocomplete="username" required /></div>
+          <label class="label" for="email">اسم المستخدم أو البريد</label>
+          <div class="in-wrap" id="wrapEmail"><input id="email" name="usr" type="text" class="in" autocomplete="username" required /></div>
 
-          <label for="pwd">كلمة المرور</label>
-          <div class="in-wrap"><input id="pwd" name="pwd" type="password" class="in" autocomplete="current-password" required /></div>
+          <label class="label" for="pwd">كلمة المرور</label>
+          <div class="in-wrap" id="wrapPwd"><input id="pwd" name="pwd" type="password" class="in" autocomplete="current-password" required /></div>
 
           <div class="modal-actions">
             <button class="btn-cancel" id="cancelLogin" type="button">إلغاء</button>
@@ -406,19 +360,23 @@
 
   <script>
     (function(){
-      // Openers: top bar button only
       const opener = document.getElementById('openLoginTop');
       const backdrop = document.getElementById('loginModalBackdrop');
       const modal = backdrop.querySelector('.modal');
       const cancelBtn = document.getElementById('cancelLogin');
       const form = document.getElementById('loginForm');
+      const errorBox = document.getElementById('loginError');
+      const wrapEmail = document.getElementById('wrapEmail');
+      const wrapPwd = document.getElementById('wrapPwd');
+      const email = document.getElementById('email');
+      const pwd = document.getElementById('pwd');
 
       function openModal(){
         backdrop.style.display = 'flex';
         requestAnimationFrame(()=>{
           modal.classList.add('show');
           backdrop.setAttribute('aria-hidden', 'false');
-          setTimeout(()=> document.getElementById('email')?.focus(), 160);
+          setTimeout(()=> email?.focus(), 140);
         });
       }
       function closeModal(){
@@ -426,7 +384,15 @@
         setTimeout(()=>{
           backdrop.style.display = 'none';
           backdrop.setAttribute('aria-hidden', 'true');
-        }, 200);
+        }, 180);
+        showError('');
+        wrapEmail.classList.remove('error');
+        wrapPwd.classList.remove('error');
+        form.reset();
+      }
+      function showError(msg){
+        errorBox.textContent = msg || '';
+        errorBox.classList.toggle('show', Boolean(msg));
       }
 
       opener.addEventListener('click', openModal);
@@ -434,31 +400,50 @@
       backdrop.addEventListener('click', (e)=> { if (e.target === backdrop) closeModal(); });
       document.addEventListener('keydown', (e)=> { if (e.key === 'Escape' && backdrop.style.display === 'flex') closeModal(); });
 
-      // ERPNext login
+      function markInvalid(fields = []){
+        wrapEmail.classList.toggle('error', fields.includes('usr'));
+        wrapPwd.classList.toggle('error', fields.includes('pwd'));
+      }
+
       async function loginERPNext(usr, pwd){
         const body = new URLSearchParams({ usr, pwd });
-        const res = await fetch('/api/method/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body
-        });
-        const data = await res.json().catch(()=> ({}));
-        if (res.ok && (data?.message === 'Logged In' || data?.home_page)) {
-          window.location.href = data?.home_page || '/app';
-          return;
+        try {
+          const res = await fetch('/api/method/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body
+          });
+          const data = await res.json().catch(()=> ({}));
+          if (res.ok && (data?.message === 'Logged In' || data?.home_page)) {
+            window.location.href = data?.home_page || '/app';
+            return;
+          }
+          const raw = (data?._error_message || data?.exception || data?.message || '').toString();
+          let msg = 'بيانات الدخول غير صحيحة. تأكد من اسم المستخدم وكلمة المرور.';
+          if (/disabled|not\s*allowed/i.test(raw)) msg = 'تم تعطيل الحساب أو لا يسمح بتسجيل الدخول.';
+          if (/too many|rate/i.test(raw)) msg = 'محاولات كثيرة. يرجى المحاولة لاحقاً.';
+          showError(msg);
+          markInvalid(['usr','pwd']);
+        } catch {
+          showError('تعذر الاتصال بالخادم. تحقق من الشبكة وحاول مجدداً.');
         }
-        alert(data?._error_message || data?.exception || data?.message || 'بيانات الدخول غير صحيحة.');
       }
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const usr = (form.usr.value || '').trim();
-        const pwd = (form.pwd.value || '').trim();
-        if (!usr || !pwd) { alert('من فضلك أدخل اسم المستخدم وكلمة المرور.'); return; }
-        try { await loginERPNext(usr, pwd); } catch (ex) { alert('تعذر تسجيل الدخول.'); }
+        const pw = (form.pwd.value || '').trim();
+        showError(''); markInvalid([]);
+        if (!usr || !pw) {
+          showError('من فضلك أدخل اسم المستخدم وكلمة المرور.');
+          markInvalid([!usr ? 'usr' : '', !pw ? 'pwd' : ''].filter(Boolean));
+          (!usr ? email : pwd).focus();
+          return;
+        }
+        await loginERPNext(usr, pw);
       });
 
-      // If already logged in, skip to /app
+      // If already logged in, go to /app
       try {
         fetch('/api/method/frappe.auth.get_logged_user')
           .then(r => r.json())
