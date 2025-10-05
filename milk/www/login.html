@@ -7,7 +7,6 @@
   <meta name="theme-color" content="#0ea5e9">
   <style>
     :root{
-      /* Solid blue palette */
       --ink:#0b1324;
       --body:#1f2937;
       --muted:#64748b;
@@ -26,20 +25,24 @@
       --red-200:#fecaca;
       --red-600:#dc2626;
 
-      --glass: rgba(255,255,255,0.92);
+      --glass: rgba(255,255,255,0.96);
       --glass-bd: rgba(15,23,42,0.08);
-      --ring: rgba(37,99,235,0.22);
 
-      --fs-hero: clamp(20px, 2vw, 26px);
+      --fs-hero: clamp(20px, 2vw, 28px);
       --fs-title: 18px;
       --fs-body: 14.5px;
       --fs-caption: 12.5px;
 
-      --radius-lg: 22px;
+      --radius-xl: 22px;
+      --radius-lg: 18px;
       --radius-md: 14px;
 
-      --shadow-md: 0 20px 56px rgba(2,6,23,0.10), 0 6px 14px rgba(2,6,23,0.04);
+      --shadow-2xl: 0 40px 120px rgba(2,6,23,0.24), 0 12px 28px rgba(2,6,23,0.10);
+      --shadow-xl: 0 26px 64px rgba(2,6,23,0.14), 0 8px 18px rgba(2,6,23,0.06);
+      --shadow-lg: 0 18px 48px rgba(2,6,23,0.10), 0 6px 14px rgba(2,6,23,0.05);
       --shadow-sm: 0 10px 24px rgba(2,6,23,0.06), 0 4px 10px rgba(2,6,23,0.04);
+
+      --focus: 0 0 0 3px rgba(37,99,235,0.22);
     }
 
     html, body { height:100%; }
@@ -48,54 +51,59 @@
       font-family:"Cairo","Tajawal",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans Arabic","Noto Sans",sans-serif;
       color:var(--body);
       background:
-        radial-gradient(60% 60% at 75% 30%, rgba(191,219,254,0.28) 0%, rgba(191,219,254,0) 60%) no-repeat,
-        linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+        radial-gradient(60% 60% at 80% 0%, rgba(37,99,235,0.14) 0%, rgba(37,99,235,0) 55%) no-repeat,
+        radial-gradient(50% 42% at 0% 20%, rgba(191,219,254,0.30) 0%, rgba(191,219,254,0) 65%) no-repeat,
+        linear-gradient(180deg, #f7fafc 0%, #eef2f7 100%);
       -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
+      accent-color: var(--blue-600);
     }
 
-    /* Background kept */
+    /* Background brand image: visible */
     .bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
     .bg::before {
       content:""; position:absolute; inset:0;
-      background:
-        radial-gradient(52% 52% at 50% 35%, rgba(59,130,246,0.10) 0%, rgba(59,130,246,0) 60%) no-repeat,
-        linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.78));
+      background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.92));
     }
     .bg-logo { position:absolute; inset:0; display:grid; place-items:center; }
     .bg-logo img {
       width: min(1200px, 72vw); height: auto; max-height: 78vh; object-fit: contain;
-      filter: saturate(1.05); opacity: 0.85; transform: translateZ(0);
+      opacity: 0.98; filter: saturate(1.08) contrast(1.02);
+      transform: translateY(2px);
     }
 
-    /* Top bar – one-line brand, no icon */
+    /* Top bar */
     .topbar {
       position: sticky; top: 0; z-index: 5;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px clamp(14px, 3vw, 24px);
+      display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+      padding: 12px clamp(14px, 3vw, 24px);
       background: #ffffff;
       border-bottom: 1px solid var(--line);
     }
     .brand-line {
       font-weight: 1000;
       color: var(--blue-800);
-      font-size: clamp(16px, 1.6vw, 20px);
-      white-space: nowrap;
+      font-size: clamp(17px, 1.8vw, 22px);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      letter-spacing:.2px;
     }
     .btn-login-top {
       appearance: none; border:1px solid var(--blue-300);
-      background: var(--blue-600);
-      color:#fff; font-weight:1000; border-radius: 12px; height:40px; padding: 0 14px; cursor:pointer;
-      box-shadow: 0 10px 24px rgba(37,99,235,0.18);
+      background: linear-gradient(180deg, var(--blue-600), var(--blue-700));
+      color:#fff; font-weight:1000; border-radius: 12px; height:42px; padding: 0 16px; cursor:pointer;
+      box-shadow: 0 12px 26px rgba(37,99,235,0.20);
+      transition: transform .08s ease, box-shadow .2s ease, filter .2s ease;
     }
+    .btn-login-top:active { transform: translateY(1px); }
+    .btn-login-top:hover { filter: brightness(1.03); }
 
-    /* Keep your old left/right grid */
+    /* Main layout */
     .frame {
-      position: relative; z-index: 1; min-height: calc(100vh - 62px); width: 100%;
+      position: relative; z-index: 1; min-height: calc(100vh - 66px); width: 100%;
       display: grid;
-      grid-template-columns: minmax(360px, 520px) 1fr minmax(360px, 480px);
+      grid-template-columns: minmax(360px, 540px) 1fr minmax(380px, 540px);
       gap: clamp(18px, 4vw, 60px);
-      padding: clamp(10px, 2.2vw, 28px);
+      padding: clamp(12px, 2.4vw, 28px);
       align-items: stretch; box-sizing: border-box; max-width: 1680px; margin: 0 auto;
     }
     .edge-left  { grid-column: 1; justify-self: start; align-self: center; }
@@ -103,23 +111,23 @@
 
     /* Cards */
     .card {
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-xl);
       background: var(--glass);
       border: 1px solid var(--glass-bd);
-      backdrop-filter: blur(10px) saturate(1.06);
-      -webkit-backdrop-filter: blur(10px) saturate(1.06);
-      box-shadow: var(--shadow-md);
+      box-shadow: var(--shadow-xl);
       overflow: hidden;
     }
 
-    /* Left card – use blue fonts */
-    .left-card { width: min(520px, 94vw); display:grid; grid-template-rows: auto auto 1fr; text-align: center; }
+    /* Left card */
+    .left-card { width: min(540px, 96vw); display:grid; grid-template-rows: auto auto 1fr; text-align: center; }
     .left-head{
       display:grid; grid-template-columns: 1fr; justify-items: center; gap:8px;
-      padding:16px 18px 10px; border-bottom:1px solid var(--line);
-      background:#ffffff;
+      padding:18px 18px 12px; border-bottom:1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(37,99,235,0.10), rgba(37,99,235,0) 55%) no-repeat,
+        #ffffff;
     }
-    .left-title{ font-weight:1000; font-size: var(--fs-hero); color: var(--blue-800); }
+    .left-title{ font-weight:900; font-size: var(--fs-hero); color: var(--blue-800); }
     .left-sub{
       display:inline-flex; align-items:center; gap:8px;
       padding: 6px 12px; border-radius:999px;
@@ -127,19 +135,31 @@
       font-weight:900; font-size: var(--fs-caption);
     }
     .left-body{
-      padding: 12px;
+      padding: 14px;
       display:flex; flex-direction: column; gap: 12px; align-items: center;
-      background: #f9fbff;
+      background:
+        linear-gradient(180deg, #f9fbff 0%, #ffffff 100%);
     }
-    .brand-image{
-      max-width: 100%; height: auto; max-height: 36vh; object-fit: contain;
-      border-radius: 14px; border: 1px solid var(--line); background:#fff;
-      box-shadow: var(--shadow-sm);
-    }
-    .brand-image.secondary{ max-height: 22vh; }
 
-    /* Right card – solid blue titles; scroll only this data area if needed */
-    .brand { height:100%; width:min(480px,96vw); display:flex; flex-direction:column; padding:0; }
+    /* Image sizes unified */
+    .brand-image{
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      max-height: 36vh;
+      object-fit: contain;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+      box-shadow: var(--shadow-lg);
+      cursor: zoom-in;
+    }
+    .brand-image.secondary{
+      max-height: 22vh; /* same for all secondary images */
+    }
+
+    /* Right card */
+    .brand { height:100%; width:min(540px,96vw); display:flex; flex-direction:column; padding:0; }
     .brand-head{
       display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center;
       padding:12px 14px; background:#ffffff; border-bottom:1px solid var(--line);
@@ -152,25 +172,37 @@
     .brand-title .ar{ font-weight:1000; font-size: 18px; color: var(--blue-800); }
 
     .brand-desc{
-      padding: 10px 16px 12px 16px;
-      background: #f9fbff;
+      padding: 12px 16px;
+      background:
+        linear-gradient(90deg, rgba(191,219,254,0.32), rgba(191,219,254,0) 60%) no-repeat,
+        #f9fbff;
       border-bottom:1px solid var(--line);
       color: var(--blue-800);
-      font-weight: 900; font-size: 15px; line-height: 1.7;
+      font-weight: 900; font-size: 15px; line-height: 1.8;
     }
 
-    .cards{ flex:1 1 auto; min-height:0; overflow:auto; padding:12px; display:grid; gap:12px; background:#fff; }
-    .cards::-webkit-scrollbar{ width:8px; } .cards::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:8px; }
+    /* Feature cards grid */
+    .cards{ flex:1 1 auto; min-height:0; overflow:auto; padding:14px; display:grid; gap:12px; background:#fff; }
+    .cards::-webkit-scrollbar{ width:10px; } .cards::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:8px; }
 
     .info{
-      border-radius: var(--radius-md); padding:14px; display:grid; gap:8px;
+      position: relative;
+      border-radius: var(--radius-lg); padding:16px; display:grid; gap:10px;
       border:1px solid var(--line);
-      background: #ffffff;
-      box-shadow: var(--shadow-sm);
+      background: linear-gradient(180deg, #ffffff, #fbfdff);
+      box-shadow: var(--shadow-lg);
+      transition: transform .12s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+      cursor: pointer;
+    }
+    .info:hover{
+      transform: translateY(-2px);
+      box-shadow: 0 18px 34px rgba(2,6,23,0.12);
+      border-color: var(--blue-200);
+      background: linear-gradient(180deg, #ffffff, #f7fbff);
     }
     .info .top{ display:grid; grid-template-columns: 1fr auto; align-items:center; gap:10px; }
     .info h3{ margin:0; font-size: var(--fs-title); font-weight:1000; color: var(--blue-800); }
-    .info p{ margin:0; font-size: var(--fs-body); font-weight:800; line-height:1.65; color:#334155; }
+    .info p{ margin:0; font-size: var(--fs-body); font-weight:800; line-height:1.7; color:#334155; }
     .chip{
       display:inline-flex; align-items:center; gap:6px;
       height:28px; padding:0 10px; border-radius:999px; font-weight:900; font-size:12.5px;
@@ -185,33 +217,34 @@
       .brand-image{ max-height: 32vh; }
       .brand-image.secondary{ max-height: 20vh; }
       .cards{ max-height: 60vh; }
-      .bg-logo img{ width: min(92vw, 720px); max-height: 60vh; opacity: 0.9; }
+      .bg-logo img{ width: min(92vw, 720px); max-height: 60vh; opacity: 0.98; }
     }
 
-    /* Modal login (solid) */
+    /* Modal login (enhanced) */
     .modal-backdrop {
       position: fixed; inset: 0; display: none;
       align-items: center; justify-content: center;
-      background: rgba(17,24,39,0.45);
+      background: rgba(17,24,39,0.50);
       z-index: 50; padding: 16px;
     }
     .modal {
-      width: min(520px, 96vw);
-      border-radius: var(--radius-lg);
+      width: min(560px, 96vw);
+      border-radius: 22px;
       background: #ffffff;
       border: 1px solid var(--line);
-      box-shadow: 0 24px 64px rgba(2,6,23,0.25);
+      box-shadow: 0 26px 72px rgba(2,6,23,0.26);
       transform: translateY(10px) scale(0.98);
       opacity: 0;
       transition: transform 200ms ease, opacity 200ms ease;
       overflow: hidden;
     }
     .modal.show { transform: translateY(0) scale(1); opacity: 1; }
-    .modal-head { display:flex; align-items:center; gap:10px; padding: 14px 16px; border-bottom: 1px solid var(--line); background:#fff; }
+    .modal-head { display:flex; align-items:center; gap:10px; padding: 14px 16px; border-bottom: 1px solid var(--line); background:
+      linear-gradient(90deg, rgba(191,219,254,0.35), rgba(191,219,254,0) 60%), #fff; }
     .modal-title { font-weight:1000; font-size:18px; color: var(--blue-800); }
     .ico { width: 36px; height: 36px; border-radius: 10px; background:#fff; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size: 20px; }
     .modal-body { padding: 12px 16px 16px; }
-    .modal-actions { display:flex; gap:10px; justify-content: space-between; align-items:center; margin-top: 10px; }
+    .modal-actions { display:flex; gap:10px; justify-content: space-between; align-items:center; margin-top: 12px; }
 
     .alert {
       display:none; margin: 8px 0 10px; padding: 10px 12px; border-radius: 12px;
@@ -221,20 +254,97 @@
     .alert.show { display:block; }
 
     .label{ display:block; font-weight:900; font-size: var(--fs-caption); margin:10px 0 6px; color: var(--blue-800); }
-    .in-wrap{ position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--line); background:#fff; }
-    .in{ width:100%; height:50px; border:0; background:transparent; padding:12px 14px; font-size: var(--fs-body); outline:none; color:var(--ink); }
-    .in-wrap:focus-within{ border-color: var(--blue-600); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+    .in-wrap{ position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--line); background:#fff; transition: box-shadow .2s ease, border-color .2s ease; }
+    .in{ width:100%; height:50px; border:0; background:transparent; padding:12px 44px 12px 14px; font-size: var(--fs-body); outline:none; color:var(--ink); }
+    .in-wrap:focus-within{ border-color: var(--blue-600); box-shadow: var(--focus); }
     .in-wrap.error { border-color: var(--red-600); box-shadow: 0 0 0 3px rgba(220,38,38,0.18); }
+
+    .in-icon{
+      position:absolute; inset-inline-start: 12px; inset-block-start: 50%; transform: translateY(-50%);
+      width: 22px; height: 22px; display:grid; place-items:center; color: var(--muted); pointer-events:none;
+    }
+    .toggle-pwd{
+      position:absolute; inset-inline-end: 8px; inset-block-start: 50%; transform: translateY(-50%);
+      width: 36px; height: 36px; border-radius: 10px; border:1px solid var(--line); background:#fff; cursor:pointer;
+      display:grid; place-items:center; color: var(--muted);
+    }
 
     .btn-submit{
       flex: 1 1 auto; height:48px; border-radius:12px; border:1px solid var(--blue-600);
-      color:#fff; background: var(--blue-600);
+      color:#fff; background: linear-gradient(180deg, var(--blue-600), var(--blue-700));
       font-weight:1000; letter-spacing:0.2px; box-shadow:0 10px 24px rgba(37,99,235,0.18); cursor:pointer;
+      transition: transform .08s ease, filter .2s ease;
+      display:flex; align-items:center; justify-content:center; gap:8px;
     }
+    .btn-submit:hover{ filter: brightness(1.03); }
+    .btn-submit:active{ transform: translateY(1px); }
     .btn-cancel{
       height:48px; border-radius:12px; border:1px solid var(--line); background:#fff; color: var(--ink);
       font-weight:900; padding: 0 14px; cursor:pointer;
     }
+
+    /* Centered Feature Popup */
+    .feature-center {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(2,6,23,0.50);
+      z-index: 40; padding: 16px;
+    }
+    .feature-modal {
+      width: min(880px, 96vw);
+      max-height: 86vh;
+      border-radius: 22px;
+      background: #0b2447; color: #fff;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: var(--shadow-2xl);
+      transform: translateY(8px) scale(0.98);
+      opacity: 0;
+      transition: transform .18s ease, opacity .18s ease;
+      display: grid; grid-template-rows: auto 1fr auto; overflow: hidden;
+    }
+    .feature-modal.show{ transform: translateY(0) scale(1); opacity: 1; }
+    .f-head{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding: 14px 16px;
+      background: linear-gradient(90deg, rgba(59,130,246,0.32), rgba(59,130,246,0.05));
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+    .f-title{ font-size: clamp(22px, 3.2vw, 30px); font-weight: 1000; color:#e7f0ff; display:flex; align-items:center; gap:10px; }
+    .f-badge{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background: rgba(255,255,255,0.10); border:1px solid rgba(255,255,255,0.20); font-weight:900; }
+    .f-body{ padding: 16px; overflow: auto; display: grid; gap: 16px; }
+    .f-grid{ display:grid; grid-template-columns: 1fr; gap: 16px; }
+    .f-text{ line-height: 1.9; font-size: clamp(15px, 1.4vw, 18px); color:#f5f8ff; }
+    .f-list{ margin:0; padding-inline-start: 18px; }
+    .f-list li{ margin: 6px 0; }
+    .f-metrics{ display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:10px; }
+    .metric{ border-radius: 12px; padding: 10px 12px; background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.18); display:grid; gap:6px; }
+    .metric .k{ font-size: 18px; font-weight: 1000; color:#ffffff; }
+    .metric .v{ font-size: 13px; color:#cfe0ff; }
+    .f-actions{ padding: 12px 16px; display:flex; justify-content:flex-end; gap:10px; background: rgba(255,255,255,0.04); border-top:1px solid rgba(255,255,255,0.12); }
+    .f-close{ height:42px; padding:0 14px; border-radius: 12px; border:1px solid rgba(255,255,255,0.24); background: transparent; color:#fff; font-weight:900; cursor:pointer; }
+
+    /* Image Lightbox */
+    .lightbox {
+      position: fixed; inset: 0; display: none;
+      background: rgba(2,6,23,0.65);
+      z-index: 60;
+      align-items: center; justify-content: center; padding: 18px;
+    }
+    .lightbox-content{
+      width: min(1200px, 92vw); max-height: 92vh;
+      background: #ffffff; border: 1px solid var(--line);
+      border-radius: 18px; box-shadow: var(--shadow-2xl);
+      display: grid; grid-template-rows: auto 1fr; overflow: hidden;
+      transform: translateY(8px) scale(0.98); opacity: 0; transition: transform .2s ease, opacity .2s ease;
+    }
+    .lightbox.show .lightbox-content{ transform: translateY(0) scale(1); opacity: 1; }
+    .lightbox-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding: 10px 12px; border-bottom:1px solid var(--line); background:#f8fafc; }
+    .lightbox-title{ font-weight:1000; color: var(--blue-800); }
+    .lightbox-body{ background:#000; display:grid; place-items:center; }
+    .lightbox-body img{ max-width: 100%; max-height: 86vh; object-fit: contain; display:block; }
+
+    /* Utility */
+    .hidden{ display:none !important; }
   </style>
 </head>
 <body>
@@ -245,29 +355,30 @@
     </div>
   </div>
 
-  <!-- Top bar: one line, no icon -->
+  <!-- Top bar -->
   <header class="topbar">
     <div class="brand-line">ميلك اند تشيز — Milk & Cheese</div>
     <button id="openLoginTop" class="btn-login-top" type="button">تسجيل الدخول</button>
   </header>
 
-  <!-- Left/Right kept the same -->
+  <!-- Left/Right -->
   <div class="frame">
     <!-- Left -->
     <section class="edge-left">
       <div class="card left-card" role="region" aria-label="ميلك اند تشيز — بطاقة اليسار">
         <div class="left-head">
           <div class="left-title">ميلك اند تشيز - Milk & Cheese</div>
-          <div class="left-sub">مرحباً بك</div>
         </div>
         <div class="left-body">
-          <img class="brand-image" src="/assets/milk/immages/logoo.png" alt="شعار ميلك اند تشيز">
-          <img class="brand-image secondary" src="/assets/milk/immages/car.png" alt="سيارة نقل — ميلك اند تشيز">
+          <!-- ترتيب الصور المطلوب: أولاً السيارة، ثانياً 12345.png (المصنع)، ثم الشعار -->
+          <img class="brand-image secondary" src="/assets/milk/immages/car.png" alt="سيارة نقل — ميلك اند تشيز" data-lightbox="شاحنة النقل">
+          <img class="brand-image secondary" src="/assets/milk/immages/12345.png" alt="مصنع — ميلك اند تشيز" data-lightbox="مصنع ميلك اند تشيز">
+          <img class="brand-image" src="/assets/milk/immages/logoo.png" alt="منتجات ميلك اند تشيز" data-lightbox="منتجات ميلك اند تشيز">
         </div>
       </div>
     </section>
 
-    <!-- Right (data area scrolls if needed) -->
+    <!-- Right -->
     <section class="edge-right">
       <div class="card brand" role="region" aria-label="معلومات — ميلك اند تشيز">
         <div class="brand-head">
@@ -280,8 +391,13 @@
           مرجع في تصنيع أنواع متعددة من الحليب والأجبان بجودة عالية.
         </div>
 
-        <div class="cards" aria-label="معلومات وميزات">
-          <article class="info">
+        <div class="cards" aria-label="معلومات وميزات" id="featuresGrid">
+          <article class="info"
+                   data-title="جودة يومية موثوقة"
+                   data-badge="QA — Quality Assurance"
+                   data-desc="سجّل جودة اللبن صباحاً ومساءً مع إدارة عينات دورية وتقارير تحليلية تلقائية."
+                   data-points='["سجل العينات مع صور ومرفقات","مقارنات بين القرى والسائقين","تنبيهات عند تجاوز الحدود","لوحات تحكم يومية"]'
+                   data-metrics='[{"k":"+120","v":"اختبار يومي"},{"k":"98.6%","v":"توافق مع المعايير"},{"k":"< 2%","v":"انحرافات شهرية"}]'>
             <div class="top">
               <h3>جودة يومية موثوقة</h3>
               <span class="chip"><span class="dot"></span> QA</span>
@@ -289,7 +405,12 @@
             <p>سجّل جودة اللبن صباحاً ومساءً مع تتبّع الأنواع والقرى والسائقين ومراقبة نتائج التحاليل المخبرية.</p>
           </article>
 
-          <article class="info">
+          <article class="info"
+                   data-title="فواتير وإجراءات أسرع"
+                   data-badge="ERP — Enterprise Resource Planning"
+                   data-desc="أتمتة دورة المشتريات والمبيعات والمصروفات مع أرشفة رقمية وسير موافقات مرن."
+                   data-points='["تحصيلات ومطابقات بنكية","نِسَب خصم وضرائب مخصصة","فواتير مجمعة للسائقين","تقارير هوامش الربحية"]'
+                   data-metrics='[{"k":"3x","v":"سرعة إنشاء الفاتورة"},{"k":"-35%","v":"أخطاء الإدخال"},{"k":"+99%","v":"تطابق القيود"}]'>
             <div class="top">
               <h3>فواتير وإجراءات أسرع</h3>
               <span class="chip"><span class="dot"></span> ERP</span>
@@ -297,7 +418,12 @@
             <p>إنشاء فواتير الموردين والعملاء والمصاريف بسرعة، مع أرشفة المرفقات وتتبع الموافقات والتقارير الدقيقة.</p>
           </article>
 
-          <article class="info">
+          <article class="info"
+                   data-title="إنتاج الأجبان المتنوع"
+                   data-badge="MFG — Manufacturing"
+                   data-desc="تحويل اللبن إلى أصناف أجبان متعددة عبر أوامر إنتاج قياسية وتتبع تكاليف آني."
+                   data-points='["مراحل إنتاج قابلة للتخصيص","صياغات ونِسَب عائد","تخطيط موارد وقدرات","هدر وإعادة تدوير مراقَب"]'
+                   data-metrics='[{"k":"+22%","v":"تحسن العائد"},{"k":"-15%","v":"هدر المواد"},{"k":"实时","v":"تكاليف مباشرة"}]'>
             <div class="top">
               <h3>إنتاج الأجبان المتنوع</h3>
               <span class="chip"><span class="dot"></span> MFG</span>
@@ -305,7 +431,12 @@
             <p>تحويل اللبن إلى أنواع متعددة من الأجبان بمراحل معيارية، مع مراقبة المخزون وخطط الإنتاج وتكاليف التشغيل.</p>
           </article>
 
-          <article class="info">
+          <article class="info"
+                   data-title="جمع وتوريد اللبن"
+                   data-badge="LOG — Logistics"
+                   data-desc="شبكة توريد ميدانية مع تتبع درجات الحرارة ومسارات السائقين ونِقاط التجميع."
+                   data-points='["تسجيل كميات حسب القرى","قياس حرارة لحظي","تتبّع التفريغ والاستلام","إخطارات التأخير"]'
+                   data-metrics='[{"k":"+140","v":"نقطة تجميع"},{"k":"<30m","v":"متوسط زمن التسليم"},{"k":"24/7","v":"رصد مسارات"}]'>
             <div class="top">
               <h3>جمع وتوريد اللبن</h3>
               <span class="chip"><span class="dot"></span> LOG</span>
@@ -313,7 +444,12 @@
             <p>تسجيل الكميات حسب القرى والسائقين والنقاط، مع تتبّع درجات الحرارة وأزمنة التسليم وتفريغ الحمولات.</p>
           </article>
 
-          <article class="info">
+          <article class="info"
+                   data-title="المخزون وتتبع الدُفعات"
+                   data-badge="INV — Inventory"
+                   data-desc="مستودعات ذكية بتتبّع الدُفعات وتواريخ الانتهاء والتنبيهات الوقائية."
+                   data-points='["مخططات تدفّق المواد","فواصل إعادة الطلب","جرد دوري متنقل","تتبع باركود متعدد"]'
+                   data-metrics='[{"k":"-18%","v":"نفاد مفاجئ"},{"k":"+99.2%","v":"دقة الجرد"},{"k":"SLA","v":"تنبيهات مسبقة"}]'>
             <div class="top">
               <h3>المخزون وتتبع الدُفعات</h3>
               <span class="chip"><span class="dot"></span> INV</span>
@@ -321,7 +457,12 @@
             <p>إدارة دقيقة للدُفعات وتواريخ الانتهاء مع تنبيهات المخزون ورسوم بيانية لانسيابية المواد.</p>
           </article>
 
-          <article class="info">
+          <article class="info"
+                   data-title="الجودة والسلامة الغذائية"
+                   data-badge="QMS — Quality Management"
+                   data-desc="إدارة منظومة HACCP مع الفحوصات والانحرافات والإجراءات التصحيحية."
+                   data-points='["نماذج فحص معيارية","سجل انحرافات وتحقيقات","CAPA تلقائي","أثر رجعي قابل للتتبّع"]'
+                   data-metrics='[{"k":"+100%","v":"توثيق الفحوصات"},{"k":"-25%","v":"تكرار الانحراف"},{"k":"Audit","v":"جاهزية كاملة"}]'>
             <div class="top">
               <h3>الجودة والسلامة الغذائية</h3>
               <span class="chip"><span class="dot"></span> QMS</span>
@@ -331,6 +472,39 @@
         </div>
       </div>
     </section>
+  </div>
+
+  <!-- Feature Center Popup -->
+  <div class="feature-center" id="featureCenter" aria-hidden="true">
+    <section class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="fcTitle">
+      <header class="f-head">
+        <div class="f-title" id="fcTitle">العنوان</div>
+        <div class="f-badge" id="fcBadge">TAG</div>
+      </header>
+      <div class="f-body">
+        <div class="f-grid">
+          <div class="f-text" id="fcDesc">وصف تفصيلي للميزة.</div>
+          <ul class="f-list" id="fcList"></ul>
+          <div class="f-metrics" id="fcMetrics"></div>
+        </div>
+      </div>
+      <div class="f-actions">
+        <button class="f-close" id="fcClose" type="button">إغلاق</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Image Lightbox -->
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <div class="lightbox-content">
+      <div class="lightbox-head">
+        <div class="lightbox-title" id="lightboxTitle">عرض الصورة</div>
+        <button class="f-close" id="lbClose" type="button">إغلاق</button>
+      </div>
+      <div class="lightbox-body">
+        <img id="lightboxImg" src="" alt="">
+      </div>
+    </div>
   </div>
 
   <!-- Login modal -->
@@ -344,14 +518,23 @@
         <div id="loginError" class="alert" role="alert" aria-live="assertive"></div>
         <form id="loginForm" novalidate>
           <label class="label" for="email">اسم المستخدم أو البريد</label>
-          <div class="in-wrap" id="wrapEmail"><input id="email" name="usr" type="text" class="in" autocomplete="username" required /></div>
+          <div class="in-wrap" id="wrapEmail">
+            <div class="in-icon" aria-hidden="true">👤</div>
+            <input id="email" name="usr" type="text" class="in" autocomplete="username" required placeholder="example@company.com أو user123" />
+          </div>
 
           <label class="label" for="pwd">كلمة المرور</label>
-          <div class="in-wrap" id="wrapPwd"><input id="pwd" name="pwd" type="password" class="in" autocomplete="current-password" required /></div>
+          <div class="in-wrap" id="wrapPwd">
+            <div class="in-icon" aria-hidden="true">🔒</div>
+            <input id="pwd" name="pwd" type="password" class="in" autocomplete="current-password" required placeholder="••••••••" />
+            <button type="button" class="toggle-pwd" id="togglePwd" aria-label="إظهار/إخفاء كلمة المرور">👁️</button>
+          </div>
 
           <div class="modal-actions">
             <button class="btn-cancel" id="cancelLogin" type="button">إلغاء</button>
-            <button class="btn-submit" type="submit">دخول</button>
+            <button class="btn-submit" id="submitLogin" type="submit">
+              <span>دخول</span>
+            </button>
           </div>
         </form>
       </div>
@@ -360,6 +543,7 @@
 
   <script>
     (function(){
+      // Login modal
       const opener = document.getElementById('openLoginTop');
       const backdrop = document.getElementById('loginModalBackdrop');
       const modal = backdrop.querySelector('.modal');
@@ -370,6 +554,7 @@
       const wrapPwd = document.getElementById('wrapPwd');
       const email = document.getElementById('email');
       const pwd = document.getElementById('pwd');
+      const togglePwd = document.getElementById('togglePwd');
 
       function openModal(){
         backdrop.style.display = 'flex';
@@ -405,8 +590,18 @@
         wrapPwd.classList.toggle('error', fields.includes('pwd'));
       }
 
-      async function loginERPNext(usr, pwd){
-        const body = new URLSearchParams({ usr, pwd });
+      // Show/Hide password
+      togglePwd.addEventListener('click', ()=>{
+        const show = pwd.type === 'password';
+        pwd.type = show ? 'text' : 'password';
+        togglePwd.textContent = show ? '🙈' : '👁️';
+        togglePwd.setAttribute('aria-label', show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
+        pwd.selectionStart = pwd.selectionEnd = pwd.value.length;
+        pwd.focus();
+      });
+
+      async function loginERPNext(usr, pwdVal){
+        const body = new URLSearchParams({ usr, pwd: pwdVal });
         try {
           const res = await fetch('/api/method/login', {
             method: 'POST',
@@ -443,13 +638,110 @@
         await loginERPNext(usr, pw);
       });
 
-      // If already logged in, go to /app
-      try {
-        fetch('/api/method/frappe.auth.get_logged_user')
-          .then(r => r.json())
-          .then(d => { const u = d && (d.message || d.user); if (u && u !== 'Guest') location.replace('/app'); })
-          .catch(()=>{});
-      } catch(e){}
+      // Feature Center Popup
+      const centerBackdrop = document.getElementById('featureCenter');
+      const centerModal = centerBackdrop.querySelector('.feature-modal');
+      const fcTitle = document.getElementById('fcTitle');
+      const fcBadge = document.getElementById('fcBadge');
+      const fcDesc = document.getElementById('fcDesc');
+      const fcList = document.getElementById('fcList');
+      const fcMetrics = document.getElementById('fcMetrics');
+      const fcClose = document.getElementById('fcClose');
+
+      function openFeatureModal(card){
+        const title = card.dataset.title || card.querySelector('h3')?.textContent || 'الميزة';
+        const badge = card.dataset.badge || '';
+        const desc  = card.dataset.desc  || card.querySelector('p')?.textContent || '';
+        const points = safeJSON(card.dataset.points, []);
+        const metrics = safeJSON(card.dataset.metrics, []);
+
+        fcTitle.textContent = title;
+        fcBadge.textContent = badge;
+        fcDesc.textContent = desc;
+
+        fcList.innerHTML = '';
+        points.forEach(pt=>{
+          const li = document.createElement('li');
+          li.textContent = pt;
+          fcList.appendChild(li);
+        });
+
+        fcMetrics.innerHTML = '';
+        metrics.forEach(m=>{
+          const el = document.createElement('div');
+          el.className = 'metric';
+          el.innerHTML = `<div class="k">${m.k}</div><div class="v">${m.v}</div>`;
+          fcMetrics.appendChild(el);
+        });
+
+        centerBackdrop.style.display = 'flex';
+        requestAnimationFrame(()=>{
+          centerModal.classList.add('show');
+          centerBackdrop.setAttribute('aria-hidden','false');
+        });
+      }
+      function closeFeatureModal(){
+        centerModal.classList.remove('show');
+        setTimeout(()=>{
+          centerBackdrop.style.display = 'none';
+          centerBackdrop.setAttribute('aria-hidden','true');
+        },180);
+      }
+      fcClose.addEventListener('click', closeFeatureModal);
+      centerBackdrop.addEventListener('click', (e)=> { if(e.target === centerBackdrop) closeFeatureModal(); });
+      document.addEventListener('keydown', (e)=> { if (e.key === 'Escape' && centerBackdrop.style.display === 'flex') closeFeatureModal(); });
+
+      // Click or focus/Enter on feature cards
+      const grid = document.getElementById('featuresGrid');
+      grid.addEventListener('click', (e)=>{
+        const card = e.target.closest('.info');
+        if(card) openFeatureModal(card);
+      });
+      grid.querySelectorAll('.info').forEach(c=>{
+        c.tabIndex = 0;
+        c.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFeatureModal(c); } });
+      });
+
+      // Image Lightbox (semi full page)
+      const lb = document.getElementById('lightbox');
+      const lbImg = document.getElementById('lightboxImg');
+      const lbTitle = document.getElementById('lightboxTitle');
+      const lbClose = document.getElementById('lbClose');
+
+      function openLightbox(src, title){
+        lbImg.src = src;
+        lbImg.alt = title || '';
+        lbTitle.textContent = title || 'عرض الصورة';
+        lb.style.display = 'flex';
+        requestAnimationFrame(()=>{
+          lb.classList.add('show');
+          lb.setAttribute('aria-hidden','false');
+        });
+      }
+      function closeLightbox(){
+        lb.classList.remove('show');
+        setTimeout(()=>{
+          lb.style.display = 'none';
+          lb.setAttribute('aria-hidden','true');
+          lbImg.src = '';
+        }, 180);
+      }
+      lbClose.addEventListener('click', closeLightbox);
+      lb.addEventListener('click', (e)=> { if(e.target === lb) closeLightbox(); });
+      document.addEventListener('keydown', (e)=> { if (e.key === 'Escape' && lb.style.display === 'flex') closeLightbox(); });
+
+      document.querySelectorAll('.brand-image').forEach(img=>{
+        img.addEventListener('click', ()=>{
+          const src = img.getAttribute('src');
+          const title = img.getAttribute('data-lightbox') || img.getAttribute('alt') || 'الصورة';
+          openLightbox(src, title);
+        });
+      });
+
+      // Helpers
+      function safeJSON(str, fallback){
+        try{ return JSON.parse(str); }catch{ return fallback; }
+      }
     })();
   </script>
 </body>

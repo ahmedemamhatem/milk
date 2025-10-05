@@ -4,8 +4,12 @@
   const BTN_HOME_ID = 'mw-btn-home';
   const BTN_QUAL_ID = 'mw-btn-qual';
   const BTN_COLL_ID = 'mw-btn-coll';
-  const BTN_SALES_ID = 'mw-btn-sales'; // NEW: Sales blank print
+  const BTN_SALES_ID = 'mw-btn-sales';
   const ROUTE_HOME = 'app/milk-work';
+
+  const MENU_ID = 'mw-actions-menu';
+  const MENU_BTN_ID = 'mw-actions-trigger';
+  const MOBILE_BREAKPOINT = 768; // px
 
   function isAdmin() {
     try {
@@ -14,6 +18,10 @@
     } catch {
       return false;
     }
+  }
+
+  function isMobile() {
+    return window.innerWidth <= MOBILE_BREAKPOINT;
   }
 
   function go(route) {
@@ -25,6 +33,7 @@
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
 
+    // Keep default search visible for admin; hide for others (as in your original)
     const hideSearchCss = isAdmin()
       ? ''
       : `
@@ -39,81 +48,130 @@
 
     const css = `
       ${hideSearchCss}
-      header.navbar, .navbar { position: relative; }
-      #${WRAP_ID} {
-        position: absolute; left: 50%; transform: translateX(-50%);
-        display: flex; align-items: center; gap: 10px;
-        pointer-events: none; z-index: 5;
-      }
-      #${WRAP_ID} .mw-group {
-        display: flex; align-items: center; gap: 8px;
-        pointer-events: auto; padding: 4px; border-radius: 9999px;
-        background: rgba(255,255,255,0.65);
-        box-shadow: 0 6px 18px rgba(0,0,0,0.10);
-        backdrop-filter: saturate(1.1) blur(6px);
-        -webkit-backdrop-filter: saturate(1.1) blur(6px);
-        border: 1px solid rgba(15,23,42,0.06);
+
+      :root{
+        --mw-gap: 8px;
+        --mw-radius: 9999px;
+        --mw-shadow: 0 6px 18px rgba(0,0,0,0.10);
+        --mw-bg: rgba(255,255,255,0.72);
+        --mw-border: 1px solid rgba(15,23,42,0.08);
+        --mw-blur: saturate(1.1) blur(6px);
       }
 
-      #${WRAP_ID} .mw-btn {
+      header.navbar, .navbar{ position: relative; }
+
+      /* We place our wrapper inline next to search (desktop), absolute fallback; mobile uses the action menu */
+      #${WRAP_ID}{
+        display: inline-flex;
+        align-items: center;
+        gap: var(--mw-gap);
+        pointer-events: none;
+        z-index: 5;
+      }
+
+      /* When we need to absolutely position as a fallback, we add .fallback-pos */
+      #${WRAP_ID}.fallback-pos{
+        position: absolute;
+        top: 50%;
+        right: 12px;
+        transform: translateY(-50%);
+      }
+
+      #${WRAP_ID} .mw-group{
+        display: flex; align-items: center; gap: 8px;
+        pointer-events: auto; padding: 4px; border-radius: var(--mw-radius);
+        background: var(--mw-bg);
+        box-shadow: var(--mw-shadow);
+        backdrop-filter: var(--mw-blur);
+        -webkit-backdrop-filter: var(--mw-blur);
+        border: var(--mw-border);
+      }
+
+      #${WRAP_ID} .mw-btn{
         display: inline-flex; align-items: center; gap: 8px;
-        padding: 9px 14px; border-radius: 9999px;
+        padding: 8px 12px; border-radius: var(--mw-radius);
         font-weight: 800; font-size: 13px; line-height: 1;
         border: 1px solid transparent; text-decoration: none; cursor: pointer;
         transition: transform 90ms ease, box-shadow 150ms ease, filter 160ms ease, opacity 160ms ease;
+        white-space: nowrap;
       }
-      #${WRAP_ID} .mw-ico { font-size: 16px; line-height: 1; }
-      /* صور الأيقونات */
-      #${WRAP_ID} .mw-ico img {
-        width: 18px; height: 18px; display: block; object-fit: contain;
-      }
+      #${WRAP_ID} .mw-ico{ font-size: 16px; line-height: 1; }
+      #${WRAP_ID} .mw-ico img{ width: 18px; height: 18px; display: block; object-fit: contain; }
 
       /* Colors */
-      #${BTN_HOME_ID} {
+      #${BTN_HOME_ID}{
         color: #ffffff;
         background: linear-gradient(135deg, #16a34a 0%, #0ea5e9 100%);
         border-color: rgba(14,165,233,0.35);
         box-shadow: 0 2px 6px rgba(16,185,129,0.25), 0 6px 16px rgba(14,165,233,0.25);
       }
-      #${BTN_HOME_ID}:hover { filter: brightness(1.03); box-shadow: 0 4px 14px rgba(14,165,233,0.28); }
-      #${BTN_HOME_ID}:active { transform: translateY(1px) scale(0.99); }
+      #${BTN_HOME_ID}:hover{ filter: brightness(1.03); box-shadow: 0 4px 14px rgba(14,165,233,0.28); }
+      #${BTN_HOME_ID}:active{ transform: translateY(1px) scale(0.99); }
 
-      #${BTN_QUAL_ID} {
+      #${BTN_QUAL_ID}{
         color: #0f172a;
         background: linear-gradient(135deg, #f59e0b 0%, #fef3c7 100%);
         border-color: rgba(245,158,11,0.35);
         box-shadow: 0 2px 6px rgba(245,158,11,0.20), 0 6px 16px rgba(245,158,11,0.18);
       }
-      #${BTN_QUAL_ID}:hover { filter: brightness(1.03); box-shadow: 0 4px 14px rgba(245,158,11,0.25); }
-      #${BTN_QUAL_ID}:active { transform: translateY(1px) scale(0.99); }
+      #${BTN_QUAL_ID}:hover{ filter: brightness(1.03); box-shadow: 0 4px 14px rgba(245,158,11,0.25); }
+      #${BTN_QUAL_ID}:active{ transform: translateY(1px) scale(0.99); }
 
-      #${BTN_COLL_ID} {
+      #${BTN_COLL_ID}{
         color: #0f172a;
         background: linear-gradient(135deg, #6366f1 0%, #e0e7ff 100%);
         border-color: rgba(99,102,241,0.35);
         box-shadow: 0 2px 6px rgba(99,102,241,0.22), 0 6px 16px rgba(99,102,241,0.20);
       }
-      #${BTN_COLL_ID}:hover { filter: brightness(1.03); box-shadow: 0 4px 14px rgba(99,102,241,0.26); }
-      #${BTN_COLL_ID}:active { transform: translateY(1px) scale(0.99); }
+      #${BTN_COLL_ID}:hover{ filter: brightness(1.03); box-shadow: 0 4px 14px rgba(99,102,241,0.26); }
+      #${BTN_COLL_ID}:active{ transform: translateY(1px) scale(0.99); }
 
-      /* NEW: Sales button color (teal -> sky) */
-      #${BTN_SALES_ID} {
+      #${BTN_SALES_ID}{
         color: #0f172a;
         background: linear-gradient(135deg, #14b8a6 0%, #38bdf8 100%);
         border-color: rgba(20,184,166,0.35);
         box-shadow: 0 2px 6px rgba(20,184,166,0.22), 0 6px 16px rgba(56,189,248,0.20);
       }
-      #${BTN_SALES_ID}:hover { filter: brightness(1.03); box-shadow: 0 4px 14px rgba(56,189,248,0.26); }
-      #${BTN_SALES_ID}:active { transform: translateY(1px) scale(0.99); }
+      #${BTN_SALES_ID}:hover{ filter: brightness(1.03); box-shadow: 0 4px 14px rgba(56,189,248,0.26); }
+      #${BTN_SALES_ID}:active{ transform: translateY(1px) scale(0.99); }
 
-      header.navbar .container, .navbar .container {
+      /* Actions trigger (mobile only) */
+      #${MENU_BTN_ID}{
+        pointer-events: auto;
+        display: none;
+        align-items: center; gap: 8px;
+        padding: 9px 12px; border-radius: var(--mw-radius);
+        font-weight: 800; font-size: 13px; line-height: 1; cursor: pointer;
+        background: linear-gradient(135deg, #0ea5e9 0%, #22c55e 100%);
+        color: #fff; border: 1px solid rgba(14,165,233,0.35);
+        box-shadow: 0 2px 6px rgba(14,165,233,0.25), 0 6px 16px rgba(34,197,94,0.22);
+      }
+      #${MENU_BTN_ID}:hover{ filter: brightness(1.03); }
+
+      /* Floating menu (popover) */
+      #${MENU_ID}{
+        position: absolute; inset: auto 12px 8px auto; transform: translateY(10px);
+        background: #fff; border: 1px solid rgba(15,23,42,0.10);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.14);
+        border-radius: 12px; padding: 8px; min-width: 220px;
+        display: none; z-index: 9999;
+      }
+      #${MENU_ID}.open{ display: block; }
+      #${MENU_ID} .menu-item{
+        width: 100%; display: flex; align-items: center; gap: 10px;
+        padding: 10px 12px; border-radius: 10px; cursor: pointer; border: none; background: transparent;
+        font-weight: 700; font-size: 13px; color: #0f172a; text-align: start;
+      }
+      #${MENU_ID} .menu-item:hover{ background: #f3f4f6; }
+      #${MENU_ID} .ico{ width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; }
+
+      header.navbar .container, .navbar .container{
         display: flex; align-items: center; justify-content: space-between; gap: 8px;
       }
 
-      @media (max-width: 768px) {
-        #${WRAP_ID} { position: static; transform: none; width: 100%; justify-content: center; padding: 6px 0 0; }
-        #${WRAP_ID} .mw-group { gap: 6px; flex-wrap: wrap; }
-        #${WRAP_ID} .mw-btn { padding: 8px 12px; font-size: 12.5px; }
+      /* Mobile: we will show only the actions button via JS */
+      @media (max-width: ${MOBILE_BREAKPOINT}px){
+        #${WRAP_ID}.fallback-pos{ right: 8px; }
       }
     `;
     const style = document.createElement('style');
@@ -132,17 +190,38 @@
     );
   }
 
+  function findSearchContainer(navbar) {
+    // Try typical Frappe search containers, prefer the outer wrapper to append after it
+    const order = [
+      '.navbar .navbar-search',
+      'header.navbar .navbar-search',
+      '.navbar .global-search',
+      'header.navbar .global-search',
+      '.navbar .search-bar',
+      'header.navbar .search-bar',
+      '.navbar .navbar-form',
+      'header.navbar .navbar-form'
+    ];
+    for (const sel of order) {
+      const el = document.querySelector(sel);
+      if (el && navbar.contains(el)) return el;
+    }
+    return null;
+  }
+
   function ensureCenterBundle() {
     const navbar = findNavbar();
     if (!navbar) return;
     injectStyles();
 
+    // Ensure wrapper
     let wrap = document.getElementById(WRAP_ID);
     if (!wrap) {
       wrap = document.createElement('div');
       wrap.id = WRAP_ID;
-      navbar.appendChild(wrap);
     }
+
+    // Ensure button group
     let group = wrap.querySelector('.mw-group');
     if (!group) {
       group = document.createElement('div');
@@ -150,7 +229,7 @@
       wrap.appendChild(group);
     }
 
-    // Home
+    // Buttons
     if (!document.getElementById(BTN_HOME_ID)) {
       const btn = document.createElement('button');
       btn.id = BTN_HOME_ID; btn.className = 'mw-btn'; btn.type = 'button';
@@ -159,7 +238,6 @@
       group.appendChild(btn);
     }
 
-    // Quality Draft
     if (!document.getElementById(BTN_QUAL_ID)) {
       const btn = document.createElement('button');
       btn.id = BTN_QUAL_ID; btn.className = 'mw-btn'; btn.type = 'button';
@@ -168,7 +246,6 @@
       group.appendChild(btn);
     }
 
-    // Collection Draft (uses flaticon PNG)
     if (!document.getElementById(BTN_COLL_ID)) {
       const btn = document.createElement('button');
       btn.id = BTN_COLL_ID; btn.className = 'mw-btn'; btn.type = 'button';
@@ -176,13 +253,12 @@
         <span class="mw-ico" aria-hidden="true">
           <img src="/assets/milk/immages/259397.png" alt="">
         </span>
-        <span>طباعة مسودة التجميع</span>
+        <span>طباعة مسودة اللم</span>
       `;
       btn.addEventListener('click', (e) => { e.preventDefault(); openCollectionDialog(); });
       group.appendChild(btn);
     }
 
-    // NEW: Sales Blank
     if (!document.getElementById(BTN_SALES_ID)) {
       const btn = document.createElement('button');
       btn.id = BTN_SALES_ID; btn.className = 'mw-btn'; btn.type = 'button';
@@ -190,6 +266,118 @@
       btn.addEventListener('click', (e) => { e.preventDefault(); openSalesDialog(); });
       group.appendChild(btn);
     }
+
+    // Actions trigger button (mobile only)
+    let menuBtn = document.getElementById(MENU_BTN_ID);
+    if (!menuBtn) {
+      menuBtn = document.createElement('button');
+      menuBtn.id = MENU_BTN_ID;
+      menuBtn.type = 'button';
+      menuBtn.innerHTML = `<span class="mw-ico">⚡</span><span>إجراءات</span>`;
+      menuBtn.addEventListener('click', toggleMenu);
+      wrap.appendChild(menuBtn);
+    }
+
+    // Actions menu
+    let menu = document.getElementById(MENU_ID);
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = MENU_ID;
+      menu.setAttribute('dir', 'rtl');
+      menu.innerHTML = `
+        <button class="menu-item" data-act="home"><span class="ico">🏠</span><span>الصفحة الرئيسية</span></button>
+        <button class="menu-item" data-act="qual"><span class="ico">🧪</span><span>طباعة مسودة الجوده</span></button>
+        <button class="menu-item" data-act="coll"><span class="ico"><img src="/assets/milk/immages/259397.png" alt="" style="width:18px;height:18px;object-fit:contain"></span><span>طباعة مسودة التجميع</span></button>
+        <button class="menu-item" data-act="sales"><span class="ico">🧾</span><span>طباعة نموذج مبيعات</span></button>
+      `;
+      menu.addEventListener('click', (e) => {
+        const btn = e.target.closest('.menu-item');
+        if (!btn) return;
+        const act = btn.getAttribute('data-act');
+        closeMenu();
+        if (act === 'home') go(ROUTE_HOME);
+        if (act === 'qual') openQualityDialog();
+        if (act === 'coll') openCollectionDialog();
+        if (act === 'sales') openSalesDialog();
+      });
+      document.body.appendChild(menu);
+      document.addEventListener('click', (e) => {
+        const inside = e.target.closest('#' + MENU_ID) || e.target.closest('#' + MENU_BTN_ID);
+        if (!inside) closeMenu();
+      });
+      window.addEventListener('resize', closeMenu);
+      window.addEventListener('scroll', closeMenu, true);
+    }
+
+    placeNearSearch(navbar, wrap);
+
+    // Mobile vs desktop visibility
+    if (isMobile()) {
+      // Mobile: menu only
+      wrap.classList.add('fallback-pos');
+      wrap.style.position = 'absolute';
+      // Show only actions button
+      wrap.querySelector('.mw-group').style.display = 'none';
+      document.getElementById(MENU_BTN_ID).style.display = 'inline-flex';
+    } else {
+      // Desktop: show full group near search; hide actions trigger
+      wrap.querySelector('.mw-group').style.display = 'flex';
+      document.getElementById(MENU_BTN_ID).style.display = 'none';
+    }
+  }
+
+  // Place wrapper near the default search bar.
+  function placeNearSearch(navbar, wrap) {
+    // Remove from any previous parent
+    if (wrap.parentElement && wrap.parentElement !== document.body) {
+      wrap.parentElement.removeChild(wrap);
+    }
+
+    const searchContainer = findSearchContainer(navbar);
+
+    if (searchContainer && searchContainer.parentElement) {
+      // Insert wrap right before the search (for RTL it will appear to the left visually),
+      // or after the search based on preference. We'll use before to keep it immediately adjacent.
+      const parent = searchContainer.parentElement;
+
+      // Insert just before the search element so it's visually near it
+      parent.insertBefore(wrap, searchContainer);
+
+      // Ensure wrapper is inline with navbar content, not absolutely positioned
+      wrap.classList.remove('fallback-pos');
+      wrap.style.position = 'relative';
+      wrap.style.top = '';
+      wrap.style.right = '';
+      wrap.style.transform = '';
+    } else {
+      // Fallback: attach to navbar and absolutely position to the right
+      navbar.appendChild(wrap);
+      wrap.classList.add('fallback-pos');
+    }
+  }
+
+  function toggleMenu() {
+    const menu = document.getElementById(MENU_ID);
+    if (!menu) return;
+    if (menu.classList.contains('open')) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
+  }
+  function openMenu() {
+    const menu = document.getElementById(MENU_ID);
+    const btn = document.getElementById(MENU_BTN_ID);
+    if (!menu || !btn) return;
+    const r = btn.getBoundingClientRect();
+    menu.style.top = (window.scrollY + r.bottom + 8) + 'px';
+    menu.style.left = 'auto';
+    menu.style.right = Math.max(8, window.innerWidth - (r.right)) + 'px';
+    menu.classList.add('open');
+  }
+  function closeMenu() {
+    const menu = document.getElementById(MENU_ID);
+    if (menu) menu.classList.remove('open');
   }
 
   // Dialogs
@@ -227,7 +415,6 @@
     dlg.show();
   }
 
-  // NEW: Sales dialog
   function openSalesDialog() {
     if (!window.frappe) return;
     const dlg = new frappe.ui.Dialog({
@@ -247,10 +434,9 @@
     dlg.show();
   }
 
-  // Helper
   function openPrintHTML(html) {
     const w = window.open('', '_blank');
-    if (!w) { frappe.msgprint(__('فضلاً فعّل النوافذ المنبثقة للسماح بالطباعة.')); return; }
+    if (!w) { frappe?.msgprint?.(__('فضلاً فعّل النوافذ المنبثقة للسماح بالطباعة.')); return; }
     w.document.open(); w.document.write(html); w.document.close(); w.focus();
   }
 
@@ -341,7 +527,7 @@
     }
   }
 
-  // Print: Collection (A4 two-column) with taller rows
+  // Print: Collection (same as before, omitted for brevity)
   async function printCollection(values) {
     const esc = (window.frappe?.utils?.escape_html || ((x)=>x));
     const selectedDriver = values.driver || '';
@@ -529,7 +715,7 @@
     }
   }
 
-  // NEW: Print Sales Blank from dialog
+  // Print Sales Blank
   async function printSalesBlank(values) {
     try {
       const date = values.posting_date || '';
@@ -633,15 +819,16 @@
 
   function boot() {
     const run = () => setTimeout(ensureCenterBundle, 0);
-    [0, 100, 300, 800].forEach(t => setTimeout(ensureCenterBundle, t));
+    [0, 100, 300, 800, 1500].forEach(t => setTimeout(ensureCenterBundle, t));
     window.addEventListener('resize', run);
     window.addEventListener('hashchange', run);
     document.addEventListener('frappe.router.change', run);
     if (window.frappe && frappe.after_ajax) frappe.after_ajax(run);
 
+    // Observe navbar changes
     const nav = document.querySelector('header.navbar') || document.querySelector('.navbar');
-    if (nav && !nav._mwCenterObserved) {
-      nav._mwCenterObserved = true;
+    if (nav && !nav._mwObserved) {
+      nav._mwObserved = true;
       new MutationObserver(() => ensureCenterBundle()).observe(nav, { childList: true, subtree: true });
     }
   }
