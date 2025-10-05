@@ -778,9 +778,9 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
   .village{ margin: 3mm 0; page-break-inside: avoid; }
   .village-title{ font-weight:800; margin:0 0 1.5mm 0; font-size:11px; }
   .grid{ width:100%; border:1.2px solid var(--border); border-radius:0; overflow:hidden; box-sizing: border-box; }
-  .row{ display:grid; grid-template-columns: 8mm 45mm 12mm 16mm 16mm 8mm 45mm 12mm 16mm 16mm; align-items: stretch; border-top:1px solid var(--border); min-height: 6.8mm; }
+  .row{ display:grid; grid-template-columns: 8mm 45mm 12mm 16mm 16mm 8mm 45mm 12mm 16mm 16mm; align-items: stretch; border-top:1px solid var(--border); min-height: 9.5mm; }
   .row:first-child{ border-top:none; }
-  .cell{ padding:1.4mm 1.2mm; font-size:9.8px; border-inline-start:1px solid var(--border); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center; box-sizing: border-box; }
+  .cell{ padding:2.2mm 1.2mm; font-size:9.8px; border-inline-start:1px solid var(--border); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center; box-sizing: border-box; }
   .cell:first-child{ border-inline-start:none; }
   .start{ text-align:start; }
 </style>
@@ -790,7 +790,6 @@ frappe.pages['milk_collection'].on_page_load = function (wrapper) {
   <div id="fitwrap" class="fitwrap scale-100">
     <div class="hdr">
       <div class="title">${__('مسودة تسجيل اللبن')} -- ${rows[0]?.driver || __('غير محدد')}</div>
-      <div class="meta">${getArabicDayName(today)} • ${today}</div>
     </div>
 `;
 

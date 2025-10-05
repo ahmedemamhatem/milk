@@ -7,7 +7,18 @@ app_license = "mit"
 
 # Apps
 # ------------------
+# Include your auto-collapse script globally on Desk
+app_include_js = [
+    "assets/milk/js/mw_force_home_to_milk_work.js",
+    "assets/milk/js/mw_navbar_milk_button.js",
+    "assets/milk/js/mw_sidebar_autocollapse.js",
+]
 
+
+# Optional: include fallback CSS used only if core toggle isn't found
+app_include_css = [
+    "assets/milk/css/mw_sidebar_autocollapse.css",
+]
 # required_apps = []
 doc_events = {
     "Supplier": {

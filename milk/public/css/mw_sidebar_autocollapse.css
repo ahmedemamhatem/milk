@@ -1,0 +1,24 @@
+/* Used only if the script couldn't click the native toggle and added mw-sidebar-collapsed */
+
+body.mw-sidebar-collapsed .desk-sidebar,
+body.mw-sidebar-collapsed .standard-sidebar,
+body.mw-sidebar-collapsed .layout-side-section,
+body.mw-sidebar-collapsed .page-content .sidebar-section {
+  display: none !important;
+}
+
+body.mw-sidebar-collapsed .desk-container,
+body.mw-sidebar-collapsed .layout-main,
+body.mw-sidebar-collapsed .page-container {
+  grid-template-columns: 0px 1fr !important;
+}
+
+body.mw-sidebar-collapsed .layout-main-section,
+body.mw-sidebar-collapsed .page-content,
+body.mw-sidebar-collapsed .page-body,
+body.mw-sidebar-collapsed .desk-main,
+body.mw-sidebar-collapsed .container,
+body.mw-sidebar-collapsed .container.page-body {
+  width: 100% !important;
+  max-width: 100% !important;
+}
