@@ -39,11 +39,12 @@ def insert_car_collection(data):
       - evening (0|1) [required if morning is 0]
       - driver_name (Data) [optional]
       - driver_helper_name (Data) [optional]
-      - density (Float) [optional]
-      - hardness (Float) [optional]
-      - protein (Float, 0-100) [optional]
-      - pont (Float) [optional]
-      - water (Float, 0-100) [optional]
+      - quality_enabled (0|1) [optional; when 1, quality fields are mandatory]
+      - density (Float) [optional or required if quality_enabled=1]
+      - hardness (Float) [optional or required if quality_enabled=1]
+      - protein (Float, 0-100) [optional or required if quality_enabled=1]
+      - pont (Float) [optional or required if quality_enabled=1]
+      - water (Float, 0-100) [optional or required if quality_enabled=1]
     """
     try:
         data = json.loads(data or "{}")
@@ -86,14 +87,28 @@ def insert_car_collection(data):
         if len(driver_helper_name) > 140:
             frappe.throw(_("اسم مساعد السائق طويل جدًا (أقصى حد 140 حرف) ✂️"))
 
-        # Optional numeric quality fields
+        # Quality flag
+        quality_enabled = int(data.get("quality_enabled") or 0)
+
+        # Parse quality fields
         density = _to_float_or_none(data.get("density"))
         hardness = _to_float_or_none(data.get("hardness"))
         protein = _to_float_or_none(data.get("protein"))
         pont = _to_float_or_none(data.get("pont"))
         water = _to_float_or_none(data.get("water"))
 
-        # Ranges if provided
+        # If enabled, they are mandatory
+        if quality_enabled:
+            missing = []
+            if density is None: missing.append("الكثافة")
+            if hardness is None: missing.append("الصلابة")
+            if protein is None: missing.append("البروتين")
+            if pont is None: missing.append("Pont")
+            if water is None: missing.append("الماء")
+            if missing:
+                frappe.throw(_("الحقول التالية مطلوبة عند تفعيل الجودة: {0}").format("، ".join(missing)))
+
+        # Range checks (apply when provided; also apply when enabled)
         if protein is not None and not (0 <= protein <= 100):
             frappe.throw(_("قيمة البروتين يجب أن تكون بين 0 و 100"))
         if water is not None and not (0 <= water <= 100):
@@ -135,7 +150,8 @@ def insert_car_collection(data):
             "milk_type": data["milk_type"],
             "driver_name": driver_name,
             "driver_helper_name": driver_helper_name,
-            # New fields
+            "quality_enabled": quality_enabled,  # ensure this field exists (Check) in DocType
+            # Quality fields
             "density": density,
             "hardness": hardness,
             "protein": protein,

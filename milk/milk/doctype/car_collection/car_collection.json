@@ -27,7 +27,8 @@
   "protein",
   "column_break_pdpn",
   "pont",
-  "water"
+  "water",
+  "quality_enabled"
  ],
  "fields": [
   {
@@ -176,13 +177,20 @@
   {
    "fieldname": "column_break_pdpn",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "quality_enabled",
+   "fieldtype": "Check",
+   "label": "Quality details",
+   "read_only": 1
   }
  ],
  "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-06 13:38:05.616155",
+ "modified": "2025-10-06 21:31:43.395262",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Car Collection",
