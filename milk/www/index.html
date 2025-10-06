@@ -1,166 +1,333 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ميلك اند تشيز — الصفحة الرئيسية</title>
-  <meta name="theme-color" content="#0ea5e9">
-  <link rel="stylesheet" href="/assets/milk/milk/page.css">
-</head>
-<body>
-  <!-- Background -->
-  <div class="bg" aria-hidden="true">
-    <div class="bg-logo">
-      <img src="/assets/milk/images/bg.png" alt="">
-    </div>
-  </div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ميلك اند تشيز — الصفحة الرئيسية</title>
+    <meta name="theme-color" content="#0ea5e9" />
+    <link rel="stylesheet" href="/assets/milk/milk/page.css" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="site-header" role="banner">
+      <div class="nav-inner">
+        <a class="nav-brand" href="/" aria-label="الصفحة الرئيسية">
+          ميلك اند تشيز — Milk & Cheese
+        </a>
 
-  <!-- Main layout (images first on mobile) -->
-  <main class="frame">
-    <!-- Images -->
-    <section class="edge-left mobile-first">
-      <div class="card left-card" role="region" aria-label="ميلك اند تشيز — صور">
-        <div class="left-head">
-          <div class="left-title">ميلك اند تشيز - Milk & Cheese</div>
-        </div>
-        <div class="left-body hero-grid">
-          <img class="brand-image secondary hero-shot" src="/assets/milk/images/car.png" alt="سيارة نقل — ميلك اند تشيز" data-lightbox="شاحنة النقل" width="1200" height="700" loading="lazy" decoding="async">
-          <img class="brand-image secondary hero-shot" src="/assets/milk/images/12345.png" alt="مصنع — ميلك اند تشيز" data-lightbox="مصنع ميلك اند تشيز" width="1200" height="700" loading="lazy" decoding="async">
-          <img class="brand-image hero-shot wide" src="/assets/milk/images/logoo.png" alt="منتجات ميلك اند تشيز" data-lightbox="منتجات ميلك اند تشيز" width="1400" height="900" loading="lazy" decoding="async">
-        </div>
-      </div>
-    </section>
+        <nav class="nav-links" aria-label="روابط الموقع">
+          <a href="/about" class="nav-btn">من نحن</a>
+          <a href="/products" class="nav-btn">المنتجات</a>
+          <a href="/locations" class="nav-btn">فروعنا</a>
+          <a href="/contact" class="nav-btn">تواصل</a>
+        </nav>
 
-    <!-- Brand + vertical stack of feature cards -->
-    <section class="edge-right">
-      <div class="card brand" role="region" aria-label="ميزات — ميلك اند تشيز">
-        <div class="brand-head">
-          <div class="brand-ico-right" aria-hidden="true">🧀</div>
-          <div class="brand-title"><div class="ar">منظومة صناعة الحليب والأجبان</div></div>
-          <div aria-hidden="true" style="width:10px;"></div>
-        </div>
-
-        <div class="brand-desc">
-          مرجع متكامل لإدارة الجودة والإنتاج والتوزيع والمخزون والفوترة — مصمم خصيصاً لصناعة الحليب والأجبان.
-        </div>
-
-        <div class="stack" id="featuresStack" aria-label="قائمة الميزات">
-          <article class="info info-line"
-                   data-title="جودة يومية موثوقة"
-                   data-badge="QA — Quality Assurance"
-                   data-desc="سجّل جودة اللبن صباحاً ومساءً مع إدارة عينات دورية وتقارير تحليلية تلقائية."
-                   data-points='["سجل العينات مع صور ومرفقات","مقارنات بين القرى والسائقين","تنبيهات عند تجاوز الحدود","لوحات تحكم يومية"]'
-                   data-metrics='[{"k":"+120","v":"اختبار يومي"},{"k":"98.6%","v":"توافق مع المعايير"},{"k":"< 2%","v":"انحرافات شهرية"}]'>
-            <div class="top"><h3>جودة يومية موثوقة</h3><span class="chip"><span class="dot"></span> QA</span></div>
-            <p>جودة صباحاً ومساءً مع تتبّع القرى والسائقين والمخبر.</p>
-          </article>
-
-          <article class="info info-line"
-                   data-title="فواتير وإجراءات أسرع"
-                   data-badge="ERP — Enterprise Resource Planning"
-                   data-desc="أتمتة دورة المشتريات والمبيعات والمصروفات مع أرشفة رقمية وسير موافقات مرن."
-                   data-points='["تحصيلات ومطابقات بنكية","نِسَب خصم وضرائب مخصصة","فواتير مجمعة للسائقين","تقارير هوامش الربحية"]'
-                   data-metrics='[{"k":"3x","v":"سرعة الفوترة"},{"k":"-35%","v":"أخطاء الإدخال"},{"k":"+99%","v":"تطابق القيود"}]'>
-            <div class="top"><h3>فواتير وإجراءات أسرع</h3><span class="chip"><span class="dot"></span> ERP</span></div>
-            <p>فواتير وموافقات وأرشيف رقمي سريع.</p>
-          </article>
-
-          <article class="info info-line"
-                   data-title="إنتاج الأجبان المتنوع"
-                   data-badge="MFG — Manufacturing"
-                   data-desc="تحويل اللبن إلى أصناف أجبان متعددة عبر أوامر إنتاج قياسية وتتبع تكاليف آني."
-                   data-points='["مراحل إنتاج قابلة للتخصيص","صياغات ونِسَب عائد","تخطيط موارد وقدرات","هدر وإعادة تدوير مراقَب"]'
-                   data-metrics='[{"k":"+22%","v":"تحسن العائد"},{"k":"-15%","v":"هدر المواد"},{"k":"实时","v":"تكاليف مباشرة"}]'>
-            <div class="top"><h3>إنتاج الأجبان المتنوع</h3><span class="chip"><span class="dot"></span> MFG</span></div>
-            <p>أوامر إنتاج معيارية وتتبع تكاليف ومخزون.</p>
-          </article>
-
-          <article class="info info-line"
-                   data-title="جمع وتوريد اللبن"
-                   data-badge="LOG — Logistics"
-                   data-desc="شبكة توريد ميدانية مع تتبع درجات الحرارة ومسارات السائقين ونِقاط التجميع."
-                   data-points='["تسجيل كميات حسب القرى","قياس حرارة لحظي","تتبّع التفريغ والاستلام","إخطارات التأخير"]'
-                   data-metrics='[{"k":"+140","v":"نقطة تجميع"},{"k":"<30m","v":"متوسط زمن التسليم"},{"k":"24/7","v":"رصد مسارات"}]'>
-            <div class="top"><h3>جمع وتوريد اللبن</h3><span class="chip"><span class="dot"></span> LOG</span></div>
-            <p>مسارات، حرارة، نقاط تجميع وتسليم.</p>
-          </article>
-
-          <article class="info info-line"
-                   data-title="المخزون وتتبع الدُفعات"
-                   data-badge="INV — Inventory"
-                   data-desc="مستودعات ذكية بتتبّع الدُفعات وتواريخ الانتهاء والتنبيهات الوقائية."
-                   data-points='["مخططات تدفّق المواد","فواصل إعادة الطلب","جرد دوري متنقل","تتبع باركود متعدد"]'
-                   data-metrics='[{"k":"-18%","v":"نفاد مفاجئ"},{"k":"+99.2%","v":"دقة الجرد"},{"k":"SLA","v":"تنبيهات مسبقة"}]'>
-            <div class="top"><h3>المخزون وتتبع الدُفعات</h3><span class="chip"><span class="dot"></span> INV</span></div>
-            <p>دُفعات وصلاحيات وتنبيهات وقائية.</p>
-          </article>
-
-          <article class="info info-line"
-                   data-title="الجودة والسلامة الغذائية"
-                   data-badge="QMS — Quality Management"
-                   data-desc="إدارة منظومة HACCP مع الفحوصات والانحرافات والإجراءات التصحيحية."
-                   data-points='["نماذج فحص معيارية","سجل انحرافات وتحقيقات","CAPA تلقائي","أثر رجعي قابل للتتبّع"]'
-                   data-metrics='[{"k":"+100%","v":"توثيق الفحوصات"},{"k":"-25%","v":"تكرار الانحراف"},{"k":"Audit","v":"جاهزية كاملة"}]'>
-            <div class="top"><h3>الجودة والسلامة الغذائية</h3><span class="chip"><span class="dot"></span> QMS</span></div>
-            <p>HACCP، انحرافات، CAPA قابلة للتتبّع.</p>
-          </article>
+        <div class="nav-actions">
+          
+          <a class="btn-login-icon" href="/login" aria-label="تسجيل الدخول" title="تسجيل الدخول">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M15 3h3a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-3" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 17l5-5-5-5" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M15 12H3" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <button class="nav-toggle" type="button" aria-label="فتح القائمة" aria-expanded="false" aria-controls="mobileNav">
+            <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+          </button>
         </div>
       </div>
-    </section>
-  </main>
 
-  <!-- Centered feature modal (opens on hover/tap, closes on leave/outside) -->
-  <div class="feature-center" id="featureCenter" aria-hidden="true">
-    <section class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="fcTitle">
-      <header class="f-head">
-        <div class="f-title" id="fcTitle">العنوان</div>
-        <div class="f-badge" id="fcBadge">TAG</div>
-      </header>
-      <div class="f-body">
-        <div class="f-grid">
-          <div class="f-text" id="fcDesc">وصف تفصيلي للميزة.</div>
-          <ul class="f-list" id="fcList"></ul>
-          <div class="f-metrics" id="fcMetrics"></div>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <!-- Image Lightbox -->
-  <div class="lightbox" id="lightbox" aria-hidden="true">
-    <div class="lightbox-content">
-      <div class="lightbox-head">
-        <div class="lightbox-title" id="lightboxTitle">عرض الصورة</div>
-        <button class="f-close" id="lbClose" type="button">إغلاق</button>
-      </div>
-      <div class="lightbox-body">
-        <img id="lightboxImg" src="" alt="">
-      </div>
-    </div>
-  </div>
-
-  <!-- Footer with login + links -->
-  <footer class="site-footer">
-    <div class="footer-inner">
-      <div class="footer-brand">ميلك اند تشيز — Milk & Cheese</div>
-      <nav class="footer-links" aria-label="روابط">
+      <!-- Mobile Drawer -->
+      <nav id="mobileNav" class="nav-drawer" aria-label="القائمة الجوال">
         <a href="/about">من نحن</a>
+        <a href="/products">المنتجات</a>
+        <a href="/locations">فروعنا</a>
         <a href="/contact">تواصل</a>
-        <a href="/privacy">الخصوصية</a>
-        <a href="/terms">الشروط</a>
       </nav>
-      <div class="footer-actions">
-        <a class="btn-login-foot" href="/login">تسجيل الدخول</a>
-        <div class="social">
-          <a aria-label="واتساب" href="https://wa.me/" target="_blank" rel="noopener">🟢</a>
-          <a aria-label="فيسبوك" href="https://facebook.com/" target="_blank" rel="noopener">📘</a>
-          <a aria-label="لينكدإن" href="https://linkedin.com/" target="_blank" rel="noopener">🔷</a>
-          <a aria-label="يوتيوب" href="https://youtube.com/" target="_blank" rel="noopener">▶️</a>
+    </header>
+
+    <!-- Main -->
+    <main class="frame">
+      <!-- Left: Images -->
+      <section class="edge-left">
+        <div class="card left-card" role="region" aria-label="ميلك اند تشيز — صور">
+          <div class="left-head">
+            <div class="left-title">ميلك اند تشيز - Milk & Cheese</div>
+          </div>
+          <div class="left-body">
+            <img
+              class="brand-image hero-shot"
+              src="/assets/milk/images/car.jpg"
+              alt="سيارة نقل — ميلك اند تشيز"
+              data-lightbox="شاحنة النقل"
+              width="1200"
+              height="700"
+              loading="lazy"
+              decoding="async"
+            />
+            <img
+              class="brand-image hero-shot"
+              src="/assets/milk/images/logoo.jpg"
+              alt="منتجات ميلك اند تشيز"
+              data-lightbox="منتجات ميلك اند تشيز"
+              width="1400"
+              height="900"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+        </div>
+      </section>
+
+      <!-- Center: Background image column on desktop -->
+      <div class="bg" aria-hidden="true">
+        <div class="bg-logo">
+          <img src="/assets/milk/images/bg.png" alt="" />
+        </div>
+      </div>
+
+      <!-- Right: Features + expandable overview card -->
+      <section class="edge-right">
+        <div class="card brand" role="region" aria-label="ميزات — ميلك اند تشيز">
+          <div class="brand-head">
+            <div class="brand-ico-right" aria-hidden="true">🧀</div>
+            <div class="brand-title">
+              <div class="ar">منظومة صناعة الحليب والأجبان</div>
+            </div>
+            <div aria-hidden="true" style="width: 10px"></div>
+          </div>
+
+          <!-- Overview as small-titled card; click to show full in modal -->
+          <div class="stack" id="featuresStack" aria-label="قائمة الميزات">
+            <article
+              class="info info-line"
+              data-title="نبذة سريعة"
+              data-badge="About"
+              data-desc="نحن في ميلك اند تشيز نجمع الألبان يوميًا من المزارع خلال زمن قياسي لا يتجاوز ساعة عبر أسطول سيارات مجهّزة ومبرّدة. يتم التسليم في المعامل دون تدخل يدوي، مع نقل أوتوماتيكي من الخزانات، وتقليب وحفظ وفق معايير الجودة العالمية. بعدها تُحوَّل الألبان إلى معامل الإنتاج لتصنيع تشكيلة واسعة من الأجبان والألبان المعبأة داخل معامل مطابقة لمتطلبات الجودة والسلامة. نوصل منتجاتنا طازجة يوميًا إلى عملائنا عبر شبكة توزيع تغطي القاهرة والمحافظات، وتشمل منتجاتنا: لبن بقري، لبن جاموسي، جبن أبيض، جبن رومي، وغيرها الكثير."
+              data-points='[]'
+              data-metrics='[]'
+            >
+              <div class="top">
+                <h3>نبذة سريعة</h3>
+                <span class="chip"><span class="dot"></span> About</span>
+              </div>
+              <p style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                نحن في ميلك اند تشيز نجمع الألبان يوميًا من المزارع خلال زمن قياسي لا يتجاوز ساعة عبر أسطول سيارات مجهّزة ومبرّدة...
+              </p>
+            </article>
+
+            <!-- Existing feature cards (unchanged) -->
+            <article
+              class="info info-line"
+              data-title="جودة يومية موثوقة"
+              data-badge="QA — Quality Assurance"
+              data-desc="سجّل جودة اللبن صباحاً ومساءً مع إدارة عينات دورية وتقارير تحليلية تلقائية."
+              data-points='["سجل العينات مع صور ومرفقات","مقارنات بين القرى والسائقين","تنبيهات عند تجاوز الحدود","لوحات تحكم يومية"]'
+              data-metrics='[{"k":"+120","v":"اختبار يومي"},{"k":"98.6%","v":"توافق مع المعايير"},{"k":"< 2%","v":"انحرافات شهرية"}]'
+            >
+              <div class="top">
+                <h3>جودة يومية موثوقة</h3>
+                <span class="chip"><span class="dot"></span> QA</span>
+              </div>
+              <p>جودة صباحاً ومساءً مع تتبّع القرى والسائقين والمخبر.</p>
+            </article>
+
+            <article
+              class="info info-line"
+              data-title="فواتير وإجراءات أسرع"
+              data-badge="ERP — Enterprise Resource Planning"
+              data-desc="أتمتة دورة المشتريات والمبيعات والمصروفات مع أرشفة رقمية وسير موافقات مرن."
+              data-points='["تحصيلات ومطابقات بنكية","نِسَب خصم وضرائب مخصصة","فواتير مجمعة للسائقين","تقارير هوامش الربحية"]'
+              data-metrics='[{"k":"3x","v":"سرعة الفوترة"},{"k":"-35%","v":"أخطاء الإدخال"},{"k":"+99%","v":"تطابق القيود"}]'
+            >
+              <div class="top">
+                <h3>فواتير وإجراءات أسرع</h3>
+                <span class="chip"><span class="dot"></span> ERP</span>
+              </div>
+              <p>فواتير وموافقات وأرشيف رقمي سريع.</p>
+            </article>
+
+            <article
+              class="info info-line"
+              data-title="إنتاج الأجبان المتنوع"
+              data-badge="MFG — Manufacturing"
+              data-desc="تحويل اللبن إلى أصناف أجبان متعددة عبر أوامر إنتاج قياسية وتتبع تكاليف آني."
+              data-points='["مراحل إنتاج قابلة للتخصيص","صياغات ونِسَب عائد","تخطيط موارد وقدرات","هدر وإعادة تدوير مراقَب"]'
+              data-metrics='[{"k":"+22%","v":"تحسن العائد"},{"k":"-15%","v":"هدر المواد"},{"k":"实时","v":"تكاليف مباشرة"}]'
+            >
+              <div class="top">
+                <h3>إنتاج الأجبان المتنوع</h3>
+                <span class="chip"><span class="dot"></span> MFG</span>
+              </div>
+              <p>أوامر إنتاج معيارية وتتبع تكاليف ومخزون.</p>
+            </article>
+
+            <article
+              class="info info-line"
+              data-title="جمع وتوريد اللبن"
+              data-badge="LOG — Logistics"
+              data-desc="شبكة توريد ميدانية مع تتبع درجات الحرارة ومسارات السائقين ونِقاط التجميع."
+              data-points='["تسجيل كميات حسب القرى","قياس حرارة لحظي","تتبّع التفريغ والاستلام","إخطارات التأخير"]'
+              data-metrics='[{"k":"+140","v":"نقطة تجميع"},{"k":"<30m","v":"متوسط زمن التسليم"},{"k":"24/7","v":"رصد مسارات"}]'
+            >
+              <div class="top">
+                <h3>جمع وتوريد اللبن</h3>
+                <span class="chip"><span class="dot"></span> LOG</span>
+              </div>
+              <p>مسارات، حرارة، نقاط تجميع وتسليم.</p>
+            </article>
+
+            <article
+              class="info info-line"
+              data-title="المخزون وتتبع الدُفعات"
+              data-badge="INV — Inventory"
+              data-desc="مستودعات ذكية بتتبّع الدُفعات وتواريخ الانتهاء والتنبيهات الوقائية."
+              data-points='["مخططات تدفّق المواد","فواصل إعادة الطلب","جرد دوري متنقل","تتبع باركود متعدد"]'
+              data-metrics='[{"k":"-18%","v":"نفاد مفاجئ"},{"k":"+99.2%","v":"دقة الجرد"},{"k":"SLA","v":"تنبيهات مسبقة"}]'
+            >
+              <div class="top">
+                <h3>المخزون وتتبع الدُفعات</h3>
+                <span class="chip"><span class="dot"></span> INV</span>
+              </div>
+              <p>دُفعات وصلاحيات وتنبيهات وقائية.</p>
+            </article>
+
+            
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Feature Modal -->
+    <div class="feature-center" id="featureCenter" aria-hidden="true">
+      <section class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="fcTitle">
+        <header class="f-head">
+          <div class="f-title" id="fcTitle">العنوان</div>
+          <div class="f-badge" id="fcBadge">TAG</div>
+        </header>
+        <div class="f-body">
+          <div class="f-grid">
+            <div class="f-text" id="fcDesc">وصف تفصيلي للميزة.</div>
+            <ul class="f-list" id="fcList"></ul>
+            <div class="f-metrics" id="fcMetrics"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox" aria-hidden="true">
+      <div class="lightbox-content">
+        <div class="lightbox-head">
+          <div class="lightbox-title" id="lightboxTitle">عرض الصورة</div>
+          <button class="f-close" id="lbClose" type="button">X</button>
+        </div>
+        <div class="lightbox-body">
+          <img id="lightboxImg" src="" alt="" />
         </div>
       </div>
     </div>
-  </footer>
 
-  <script src="/assets/milk/milk/page.js"></script>
-</body>
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-brand">ميلك اند تشيز — Milk & Cheese</div>
+        <nav class="footer-links" aria-label="روابط">
+          <a href="/about">من نحن</a>
+          <a href="/contact">تواصل</a>
+        </nav>
+        <div class="footer-actions">
+          <a class="btn-login-icon" href="/login" aria-label="تسجيل الدخول" title="تسجيل الدخول">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M15 3h3a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-3" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 17l5-5-5-5" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M15 12H3" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <div class="social">
+            <a aria-label="واتساب" href="https://wa.me/" target="_blank" rel="noopener">
+              <img src="/assets/milk/images/whatsapp-logo.png" alt="whatsapp logo" width="30" height="30" />
+            </a>
+            <a aria-label="فيسبوك" href="https://facebook.com/" target="_blank" rel="noopener">
+              <img src="/assets/milk/images/facebook-logo.png" alt="facebook logo" width="30" height="30" />
+            </a>
+            <a aria-label="لينكدإن" href="https://linkedin.com/" target="_blank" rel="noopener">
+              <img src="/assets/milk/images/linkedin-logo.png" alt="linkedin logo" width="30" height="30" />
+            </a>
+            <a aria-label="يوتيوب" href="https://youtube.com/" target="_blank" rel="noopener">
+              <img src="/assets/milk/images/youtube-logo.png" alt="youtube logo" width="30" height="30" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script src="/assets/milk/milk/page.js" defer></script>
+
+    <!-- Minimal enhancer: opens modal with full text when any .info in #featuresStack is clicked -->
+    <script>
+      (function () {
+        const center = document.getElementById('featureCenter');
+        const t = document.getElementById('fcTitle');
+        const b = document.getElementById('fcBadge');
+        const d = document.getElementById('fcDesc');
+        const list = document.getElementById('fcList');
+        const metrics = document.getElementById('fcMetrics');
+
+        function openModal(from) {
+          if (!center) return;
+          const title = from.getAttribute('data-title') || '';
+          const badge = from.getAttribute('data-badge') || '';
+          const desc = from.getAttribute('data-desc') || '';
+          let points = [];
+          let mets = [];
+          try { points = JSON.parse(from.getAttribute('data-points') || '[]'); } catch {}
+          try { mets = JSON.parse(from.getAttribute('data-metrics') || '[]'); } catch {}
+
+          if (t) t.textContent = title;
+          if (b) b.textContent = badge || '—';
+          if (d) d.textContent = desc;
+
+          if (list) {
+            list.innerHTML = '';
+            points.forEach(p => {
+              const li = document.createElement('li');
+              li.textContent = p;
+              list.appendChild(li);
+            });
+          }
+
+          if (metrics) {
+            metrics.innerHTML = '';
+            mets.forEach(m => {
+              const div = document.createElement('div');
+              div.className = 'm';
+              div.innerHTML = '<strong>' + (m.k || '') + '</strong> ' + (m.v || '');
+              metrics.appendChild(div);
+            });
+          }
+
+          center.removeAttribute('aria-hidden');
+          center.classList.add('open');
+          document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+          center?.setAttribute('aria-hidden','true');
+          center?.classList.remove('open');
+          document.body.style.overflow = '';
+        }
+
+        document.addEventListener('click', (e) => {
+          const art = e.target.closest('.info');
+          if (art && art.closest('#featuresStack')) openModal(art);
+          if (e.target === center) closeModal();
+        });
+
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') closeModal();
+        });
+      })();
+    </script>
+  </body>
 </html>

@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ميلك اند تشيز — منظومة صناعة الحليب والأجبان</title>
+  <meta name="description" content="منظومة صناعية متكاملة للحليب والأجبان بأعلى معايير الجودة" />
+  <meta name="theme-color" content="#0ea5e9" />
+  <style>
+    :root{
+      --primary:#0ea5e9; --primary-dark:#0284c7; --primary-light:#7dd3fc;
+      --dark:#0f172a; --gray:#334155; --muted:#475569; --light:#f8fafc; --white:#ffffff;
+      --line:#e2e8f0;
+      --shadow-xs:0 1px 2px rgba(0,0,0,.05);
+      --shadow-sm:0 6px 18px rgba(14,165,233,.14);
+      --shadow:0 12px 34px rgba(2,132,199,.18);
+      --shadow-lg:0 20px 60px rgba(2,132,199,.22);
+      --glass:rgba(255,255,255,.86);
+      --glass-border: rgba(255,255,255,.3);
+      --transition: all .28s cubic-bezier(.4,0,.2,1);
+      --content-max: 1200px;
+      --accent:#22c55e;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{font-family:'Cairo','Tajawal',system-ui,-apple-system,sans-serif;color:var(--dark);background:#edf2f7;line-height:1.65;overflow-x:hidden;position:relative}
+
+    /* Background */
+    .bg-wrapper{position:fixed;inset:0;z-index:0;overflow:hidden}
+    .bg-wrapper::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(14,165,233,.06) 0%,rgba(59,130,246,.08) 100%);z-index:1}
+    .bg-wrapper img{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(70vw,720px);height:auto;opacity:.07;filter:blur(1px);object-fit:contain;pointer-events:none}
+    .bg-gradient{position:absolute;inset:0;background:
+      radial-gradient(60% 60% at 85% 10%, rgba(14,165,233,.16) 0%, transparent 55%),
+      radial-gradient(60% 60% at 10% 85%, rgba(59,130,246,.14) 0%, transparent 55%);z-index:2}
+
+    /* Container */
+    .container{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+
+    /* Header */
+    .header{position:sticky;top:0;z-index:100;background:var(--glass);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--glass-border);box-shadow:var(--shadow-xs);transition:var(--transition)}
+    .header.scrolled{background:rgba(255,255,255,.96);box-shadow:var(--shadow-sm)}
+    .nav{max-width:1400px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+    .brand-logos{display:flex;align-items:center;gap:10px}
+    .brand-logos img{width:32px;height:32px;object-fit:contain;border-radius:8px;background:#fff;box-shadow:0 4px 12px rgba(2,132,199,.15)}
+    .brand-name{font-size:18px;font-weight:1000;background:linear-gradient(135deg,#0f172a,#334155);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.25px;white-space:nowrap}
+
+    .nav-menu{display:flex;gap:10px;align-items:center}
+    .nav-link{padding:10px 16px;border-radius:12px;text-decoration:none;font-weight:800;font-size:15px;color:var(--muted);background:transparent;border:1px solid transparent;transition:var(--transition);position:relative;overflow:hidden}
+    .nav-link::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--primary-light),var(--primary));opacity:0;transition:opacity .25s}
+    .nav-link:hover{color:#fff;border-color:var(--primary)}
+    .nav-link:hover::before{opacity:1}
+    .nav-link span{position:relative;z-index:1}
+
+    /* Login icon (new) */
+    .login-btn{
+      position:relative;display:grid;place-items:center;width:46px;height:46px;border-radius:50%;border:none;cursor:pointer;outline:none;
+      color:#fff;background: radial-gradient(120% 120% at 0% 0%, var(--primary) 0%, var(--primary-dark) 60%, #0369a1 100%);
+      box-shadow: 0 8px 22px rgba(14,165,233,.4), inset 0 0 0 2px rgba(255,255,255,.25);
+      transition: transform .18s ease, box-shadow .18s ease;overflow:hidden;
+    }
+    .login-btn:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(14,165,233,.5), inset 0 0 0 2px rgba(255,255,255,.3)}
+    .login-btn:focus-visible{box-shadow:0 0 0 3px rgba(14,165,233,.5), inset 0 0 0 2px rgba(255,255,255,.35)}
+    .login-btn .ico{width:22px;height:22px;display:block}
+    .login-btn .pulse{content:'';position:absolute;inset:0;border-radius:50%;background: radial-gradient(60% 60% at 50% 50%, rgba(125,211,252,.25), transparent 60%);opacity:.0;animation:pulse 2.2s infinite ease-in-out;pointer-events:none}
+    @keyframes pulse{0%{opacity:.0} 40%{opacity:.55} 100%{opacity:.0}}
+    .ripple{position:absolute;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;background:rgba(255,255,255,.45);width:12px;height:12px;opacity:.8;animation:ripple .6s ease-out forwards}
+    @keyframes ripple{to{width:140px;height:140px;opacity:0}}
+
+    .menu-toggle{display:none;background:none;border:none;cursor:pointer;padding:8px}
+    .hamburger{width:28px;height:20px;position:relative}
+    .hamburger span{position:absolute;width:100%;height:3px;background:var(--primary);border-radius:3px;transition:var(--transition)}
+    .hamburger span:nth-child(1){top:0}.hamburger span:nth-child(2){top:50%;transform:translateY(-50%)}.hamburger span:nth-child(3){bottom:0}
+
+    /* Main */
+    main{flex:1;max-width:1400px;margin:0 auto;padding:50px 20px;width:100%}
+
+    /* Hero */
+    .hero{text-align:center;margin-bottom:42px;animation:fadeInUp .8s ease}
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:var(--glass);backdrop-filter:blur(10px);border:1px solid var(--glass-border);border-radius:999px;margin-bottom:16px;font-weight:800;color:var(--primary);font-size:14px;box-shadow:var(--shadow-xs)}
+    .hero-badge::before{content:'🧀';font-size:20px}
+    .hero h1{font-size:clamp(30px,5vw,58px);font-weight:1000;line-height:1.1;margin-bottom:12px;background:linear-gradient(135deg,#0f172a,#334155);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.8px}
+    .hero p{font-size:clamp(16px,2vw,19px);color:var(--muted);max-width:820px;margin:0 auto 16px;font-weight:700}
+    .hero-cta{display:inline-flex;gap:12px;flex-wrap:wrap;justify-content:center}
+    .btn-primary,.btn-secondary{padding:12px 28px;border-radius:12px;font-weight:900;font-size:15px;cursor:pointer;transition:var(--transition);text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+    .btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border:none;box-shadow:0 10px 30px rgba(14,165,233,.35)}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(14,165,233,.45)}
+    .btn-secondary{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+    .btn-secondary:hover{background:var(--primary);color:#fff}
+
+    /* Center helper */
+    .centered{max-width:var(--content-max);margin:0 auto;padding:0 6px}
+
+    /* Reveal on scroll */
+    .reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease, transform .6s ease}
+    .reveal.revealed{opacity:1;transform:translateY(0)}
+
+    /* Clickable ripple */
+    .clickable{position:relative;overflow:hidden}
+
+    /* Features */
+    .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;margin-bottom:36px}
+    .feature-card{background:rgba(255,255,255,.95);border:1px solid var(--glass-border);border-radius:18px;padding:22px;transition:var(--transition);cursor:pointer;position:relative;overflow:hidden;box-shadow:var(--shadow-xs)}
+    .feature-card::before{content:'';position:absolute;top:0;right:0;width:100%;height:4px;background:linear-gradient(90deg,var(--primary),var(--primary-light));transform:scaleX(0);transform-origin:right;transition:transform .28s}
+    .feature-card:hover{transform:translateY(-6px);box-shadow:var(--shadow);border-color:rgba(14,165,233,.35)}
+    .feature-card:hover::before{transform:scaleX(1)}
+    .feature-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:10px}
+    .feature-icon{width:52px;height:52px;background:linear-gradient(135deg,var(--primary-light),var(--primary));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 6px 20px rgba(14,165,233,.25)}
+    .feature-title h3{font-size:18px;font-weight:1000;color:var(--dark)}
+    .feature-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:rgba(14,165,233,.1);border-radius:999px;font-size:12px;font-weight:800;color:#0369a1;margin-top:6px}
+    .feature-badge::before{content:'';width:6px;height:6px;background:var(--primary);border-radius:50%}
+    .feature-card p{color:var(--muted);font-size:14.5px;font-weight:700}
+
+    /* Products */
+    .products{margin:14px 0 56px;background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;padding:18px 12px 22px;backdrop-filter:blur(20px);box-shadow:var(--shadow)}
+    .products h2{text-align:center;font-size:clamp(22px,3.5vw,28px);font-weight:1000;color:var(--dark);margin-bottom:12px}
+    .products-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+    .p-card{background:#fff;border:1px solid var(--glass-border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-xs);transition:var(--transition);display:grid;grid-template-rows:auto 1fr;cursor:pointer}
+    .p-card:hover{transform:translateY(-6px);box-shadow:var(--shadow)}
+    .p-img{width:100%;height:220px;object-fit:cover;display:block;background:#f8fafc;transition:transform .6s}
+    .p-card:hover .p-img{transform:scale(1.04)}
+    .p-body{padding:12px 14px;display:grid;gap:6px}
+    .p-title{font-weight:1000;color:#1e3a8a;font-size:15.5px}
+    .p-desc{font-size:13.5px;color:var(--muted);font-weight:800}
+
+    /* Locations */
+    .locations{margin:0 0 56px}
+    .locations h2{text-align:center;font-size:clamp(22px,3.5vw,28px);font-weight:1000;margin-bottom:12px;color:var(--dark)}
+    .loc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+    .loc-card{background:rgba(255,255,255,.96);backdrop-filter:blur(16px);border:1px solid var(--glass-border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-xs);transition:var(--transition)}
+    .loc-card:hover{transform:translateY(-6px);box-shadow:var(--shadow)}
+    .loc-media{height:200px;overflow:hidden;background:#f8fafc}
+    .loc-media img{width:100%;height:100%;object-fit:cover;transition:transform .6s}
+    .loc-card:hover .loc-media img{transform:scale(1.05)}
+    .loc-body{padding:12px 14px}
+    .loc-title{font-weight:1000;color:#0f172a}
+    .loc-address{color:#334155;font-weight:800;font-size:13.5px;margin-top:4px}
+
+    /* Gallery */
+    .gallery{margin-bottom:64px}
+    .section-title{text-align:center;font-size:clamp(24px,4vw,32px);font-weight:1000;margin-bottom:12px;color:var(--dark)}
+    .gallery-controls{display:flex;justify-content:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+    .g-btn{padding:8px 14px;border-radius:999px;border:1px solid var(--glass-border);background:var(--glass);cursor:pointer;font-weight:900;color:#0f172a;transition:var(--transition)}
+    .g-btn.active{border-color:var(--primary);color:#0369a1;background:rgba(14,165,233,.12)}
+    .gallery-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+    .gallery-item{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:4/3;cursor:pointer;box-shadow:var(--shadow-xs);transition:var(--transition)}
+    .gallery-item::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.35) 100%);opacity:0;transition:opacity .28s;z-index:1}
+    .gallery-item:hover{transform:translateY(-6px);box-shadow:var(--shadow)}
+    .gallery-item:hover::before{opacity:1}
+    .gallery-item img{width:100%;height:100%;object-fit:cover;transition:transform .6s}
+    .gallery-item:hover img{transform:scale(1.06)}
+    .gallery-caption{position:absolute;bottom:0;right:0;left:0;padding:14px;color:#fff;font-weight:900;font-size:14px;z-index:2;transform:translateY(100%);transition:transform .28s}
+    .gallery-item:hover .gallery-caption{transform:translateY(0)}
+
+    /* Modal (features + zoom + product details) */
+    .modal-zoom{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:1000;padding:20px}
+    .modal-zoom.open{display:flex}
+    .modal-box{background:#fff;border-radius:24px;padding:0;max-width:min(1000px,95vw);max-height:90vh;overflow:auto;position:relative;box-shadow:var(--shadow-lg);animation:slideUp .28s ease}
+    @keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+    .modal-headx{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:2}
+    .modal-titlex{font-weight:1000;color:#0f172a;font-size:18px}
+    .btn-close{width:40px;height:40px;background:#ef4444;color:#fff;border:none;border-radius:50%;font-size:20px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition)}
+    .btn-close:hover{background:#dc2626;transform:rotate(90deg) scale(1.06)}
+    .modal-bodyx{padding:16px}
+
+    /* Product details layout in modal */
+    .pd-wrap{display:grid;grid-template-columns:1fr;gap:16px}
+    @media(min-width:900px){ .pd-wrap{grid-template-columns:1.1fr .9fr} }
+    .pd-media{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#f8fafc}
+    .pd-media img{width:100%;height:auto;display:block;object-fit:cover}
+    .pd-meta{display:grid;gap:10px}
+    .pd-desc{color:#334155;font-weight:800}
+    .pd-tags{display:flex;gap:8px;flex-wrap:wrap}
+    .pd-tag{padding:6px 10px;border-radius:999px;background:rgba(14,165,233,.12);color:#0369a1;font-size:12px;font-weight:900}
+    .pd-specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:6px}
+    .spec{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-weight:900;color:#0f172a}
+    .pd-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+    .btn-mini{padding:10px 14px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border:none;font-weight:900;cursor:pointer;box-shadow:0 6px 18px rgba(14,165,233,.35)}
+    .btn-ghost{padding:10px 14px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;color:#0369a1;font-weight:900;cursor:pointer}
+
+    /* Login modal */
+    .login-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:1100;padding:16px}
+    .login-backdrop.show{display:flex}
+    .login-modal{background:#fff;border-radius:20px;max-width:520px;width:100%;overflow:hidden;box-shadow:var(--shadow-lg);transform:translateY(18px);opacity:0;transition:opacity .18s ease, transform .18s ease}
+    .login-modal.show{transform:translateY(0);opacity:1}
+    .modal-head{display:flex;align-items:center;gap:10px;padding:16px;border-bottom:1px solid var(--line)}
+    .modal-head .ico{font-size:20px}
+    .modal-title{font-weight:1000}
+    .modal-body{padding:16px;display:grid;gap:12px}
+    .alert{display:none;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:10px 12px;border-radius:10px;font-weight:900}
+    .alert.show{display:block}
+    .label{font-weight:1000;color:#0f172a;font-size:14px}
+    .in-wrap{display:flex;align-items:center;gap:8px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;padding:10px 12px}
+    .in-wrap.error{border-color:#ef4444;background:#fff1f2}
+    .in-icon{font-size:16px}
+    .in{flex:1;border:none;background:transparent;outline:none;font-family:inherit;font-size:14px}
+    .toggle-pwd{border:none;background:transparent;cursor:pointer;font-size:16px}
+    .modal-actions{display:flex;gap:10px;margin-top:6px}
+    .btn-cancel{background:#e5e7eb;border:none;border-radius:10px;padding:10px 14px;font-weight:1000;cursor:pointer}
+    .btn-submit{background:linear-gradient(135deg,var(--primary),var(--primary-dark));border:none;border-radius:10px;padding:10px 16px;font-weight:1000;color:#fff;cursor:pointer;box-shadow:0 6px 18px rgba(14,165,233,.35)}
+
+    /* Contact (enhanced) */
+    .contact{margin:0 0 70px}
+    .contact-wrap{
+      display:grid;grid-template-columns:1fr;gap:18px;background:var(--glass);border:1px solid var(--glass-border);
+      border-radius:20px;padding:18px;backdrop-filter:blur(20px);box-shadow:var(--shadow)
+    }
+    .contact h2{text-align:center;font-size:clamp(22px,3.5vw,30px);font-weight:1000;margin-bottom:2px}
+    .contact-sub{color:var(--muted);text-align:center;margin-bottom:4px;font-weight:800}
+    .contact-grid{display:grid;grid-template-columns:1fr;gap:16px;max-width:var(--content-max);margin:0 auto}
+    @media (min-width: 920px){ .contact-grid{grid-template-columns:1.1fr .9fr} }
+    .card{background:#fff;border:1px solid var(--glass-border);border-radius:16px;padding:16px;box-shadow:var(--shadow-sm)}
+    .contact-form{display:grid;gap:12px}
+    .field{display:grid;gap:6px}
+    .label{font-weight:1000;color:#0f172a;font-size:14px}
+    .hint{font-size:12px;color:#64748b}
+    .in-wrap.cform{display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;transition:border-color .15s, box-shadow .15s, background .15s}
+    .in-wrap.cform:focus-within{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(147,197,253,.35);background:#fff}
+    .in.cform{flex:1;border:none;background:transparent;outline:none;font:inherit;font-size:14px;color:#0f172a}
+    .textarea{min-height:130px;resize:vertical}
+    .error .in-wrap.cform{border-color:#ef4444;background:#fff1f2}
+    .err-msg{display:none;color:#b91c1c;font-weight:800;font-size:12px}
+    .error .err-msg{display:block}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}
+    .submit{
+      background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border:none;border-radius:12px;
+      padding:12px 16px;font-weight:1000;cursor:pointer;box-shadow:0 10px 30px rgba(14,165,233,.35);
+      transition:transform .18s
+    }
+    .submit:hover{transform:translateY(-2px)}
+    .quick-row{display:flex;gap:10px;flex-wrap:wrap}
+    .quick{
+      display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;color:#0369a1;
+      font-weight:900;text-decoration:none;box-shadow:var(--shadow-xs);transition:transform .18s
+    }
+    .quick:hover{transform:translateY(-2px)}
+    .info-list{display:grid;gap:10px}
+    .info-item{display:flex;gap:10px;align-items:flex-start}
+    .badge{
+      width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+      color:#fff;display:grid;place-items:center;font-weight:900;box-shadow:0 6px 18px rgba(14,165,233,.25)
+    }
+    .i-text{font-weight:900;color:#334155}
+    .map{height:260px;border-radius:14px;overflow:hidden;margin-top:8px;background:linear-gradient(135deg,#e2e8f0,#f8fafc);display:grid;place-items:center;color:#64748b;font-weight:900;border:1px dashed #cbd5e1}
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#10b981;color:#fff;padding:12px 16px;border-radius:12px;box-shadow:var(--shadow);font-weight:900;opacity:0;transition:opacity .25s, transform .25s;z-index:1200}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+    /* Footer */
+    footer{background:var(--glass);backdrop-filter:blur(20px);border-top:1px solid var(--glass-border);padding:26px 20px;margin-top:auto}
+    .footer-content{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+    .footer-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .footer-logos{display:inline-flex;align-items:center;gap:6px}
+    .footer-logos img{width:28px;height:28px;object-fit:contain;border-radius:6px;box-shadow:var(--shadow-sm);background:#fff}
+    .footer-name{font-size:16px;font-weight:900;color:var(--primary)}
+    .footer-links{display:flex;gap:16px;flex-wrap:wrap}
+    .footer-links a{color:var(--gray);text-decoration:none;font-weight:800}
+    .footer-links a:hover{color:var(--primary)}
+    .footer-social{display:flex;gap:8px}
+    .footer-icon{display:inline-flex;width:40px;height:40px;border-radius:10px;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--primary),var(--primary-dark));box-shadow:var(--shadow-sm);color:#fff;text-decoration:none;transition:transform .2s}
+    .footer-icon:hover{transform:translateY(-2px)}
+    .f-ico{width:18px;height:18px;fill:#fff}
+
+    /* Responsive */
+    @media (max-width: 860px){
+      .nav-menu{display:none;position:absolute;top:100%;left:0;right:0;background:#fff;flex-direction:column;padding:12px;box-shadow:var(--shadow-lg);border-top:1px solid var(--glass-border)}
+      .nav-menu.active{display:flex}
+      .menu-toggle{display:block}
+      .contact-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <!-- Background -->
+  <div class="bg-wrapper" aria-hidden="true">
+    <img src="/assets/milk/images/bg.png" alt="">
+    <div class="bg-gradient"></div>
+  </div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header" id="header">
+      <nav class="nav">
+        <a href="/" class="brand" aria-label="الصفحة الرئيسية">
+          <span class="brand-logos">
+            <img src="/assets/milk/images/milkar.jpg" alt="MilkAR" loading="lazy">
+            <img src="/assets/milk/images/milken.jpg" alt="MilkEN" loading="lazy">
+          </span>
+          <span class="brand-name">ميلك اند تشيز — Milk & Cheese</span>
+        </a>
+
+        <div class="nav-menu" id="navMenu">
+          <a href="#about" class="nav-link route"><span>من نحن</span></a>
+          <a href="#products" class="nav-link route"><span>المنتجات</span></a>
+          <a href="#locations" class="nav-link route"><span>فروعنا</span></a>
+          <a href="#contact" class="nav-link route"><span>تواصل</span></a>
+        </div>
+
+        <button id="openLoginTop" class="login-btn" type="button" title="تسجيل الدخول" aria-label="تسجيل الدخول">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm-3 8V6a3 3 0 1 1 6 0v3H9zm3 5a2 2 0 0 0-1 3.732V19a1 1 0 1 0 2 0v-1.268A2 2 0 0 0 12 14z"/>
+          </svg>
+          <span class="pulse" aria-hidden="true"></span>
+        </button>
+
+        <button class="menu-toggle" id="menuToggle" aria-label="القائمة">
+          <div class="hamburger"><span></span><span></span><span></span></div>
+        </button>
+      </nav>
+    </header>
+
+    <!-- Main -->
+    <main id="about">
+      <!-- Hero -->
+      <section class="hero reveal">
+        <div class="hero-badge">منظومة صناعية متكاملة</div>
+        <h1>نجمع ونصنع ونوزع<br>منتجات الألبان والأجبان</h1>
+        <p>من المزرعة إلى المائدة خلال ساعات — بأعلى معايير الجودة والسلامة.</p>
+        <div class="hero-cta">
+          <a href="#features" class="btn-primary route">اكتشف المزيد ←</a>
+          <a href="#contact" class="btn-secondary route">تواصل معنا</a>
+        </div>
+      </section>
+
+      <!-- Features -->
+      <div class="features-grid centered reveal" id="features">
+        <div class="feature-card clickable" data-feature="overview">
+          <div class="feature-header">
+            <div class="feature-icon">📋</div>
+            <div class="feature-title">
+              <h3>نبذة سريعة</h3>
+              <span class="feature-badge">About</span>
+            </div>
+          </div>
+          <p>نحن في ميلك اند تشيز نجمع الألبان يوميًا خلال زمن لا يتجاوز ساعة عبر أسطول مبرد ومجهّز.</p>
+        </div>
+
+        <div class="feature-card clickable" data-feature="quality">
+          <div class="feature-header">
+            <div class="feature-icon">✅</div>
+            <div class="feature-title">
+              <h3>جودة يومية موثوقة</h3>
+              <span class="feature-badge">QA</span>
+            </div>
+          </div>
+          <p>سجّل جودة اللبن صباحًا ومساءً مع إدارة عينات دورية وتقارير تحليلية تلقائية.</p>
+        </div>
+
+        <div class="feature-card clickable" data-feature="erp">
+          <div class="feature-header">
+            <div class="feature-icon">💼</div>
+            <div class="feature-title">
+              <h3>فواتير وإجراءات أسرع</h3>
+              <span class="feature-badge">ERP</span>
+            </div>
+          </div>
+          <p>أتمتة دورة المشتريات والمبيعات والمصروفات مع أرشفة رقمية وسير موافقات مرن.</p>
+        </div>
+
+        <div class="feature-card clickable" data-feature="manufacturing">
+          <div class="feature-header">
+            <div class="feature-icon">🏭</div>
+            <div class="feature-title">
+              <h3>إنتاج الأجبان المتنوع</h3>
+              <span class="feature-badge">MFG</span>
+            </div>
+          </div>
+          <p>تحويل اللبن إلى أصناف متعددة عبر أوامر إنتاج قياسية وتتبع تكاليف آني.</p>
+        </div>
+
+        <div class="feature-card clickable" data-feature="logistics">
+          <div class="feature-header">
+            <div class="feature-icon">🚚</div>
+            <div class="feature-title">
+              <h3>جمع وتوريد اللبن</h3>
+              <span class="feature-badge">LOG</span>
+            </div>
+          </div>
+          <p>شبكة توريد ميدانية مع تتبع درجات الحرارة ومسارات السائقين ونقاط التجميع.</p>
+        </div>
+
+        <div class="feature-card clickable" data-feature="inventory">
+          <div class="feature-header">
+            <div class="feature-icon">📦</div>
+            <div class="feature-title">
+              <h3>المخزون وتتبع الدُفعات</h3>
+              <span class="feature-badge">INV</span>
+            </div>
+          </div>
+          <p>مستودعات ذكية بتتبّع الدُفعات وتواريخ الانتهاء والتنبيهات الوقائية.</p>
+        </div>
+      </div>
+
+      <!-- Products -->
+      <section class="products reveal" id="products">
+        <h2>منتجاتنا</h2>
+        <div class="centered">
+          <div class="products-grid" id="productsGrid">
+            <!-- Cards generated from productData -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Locations -->
+      <section class="locations reveal" id="locations">
+        <div class="centered">
+          <h2>فروعنا</h2>
+          <div class="loc-grid">
+            <article class="loc-card clickable">
+              <div class="loc-media"><img src="/assets/milk/images/shop1.jpg" alt="الفرع 1"></div>
+              <div class="loc-body"><div class="loc-title">اسم الفرع 1</div><div class="loc-address">العنوان الكامل 1 — المدينة</div></div>
+            </article>
+            <article class="loc-card clickable">
+              <div class="loc-media"><img src="/assets/milk/images/shop2.jpg" alt="الفرع 2"></div>
+              <div class="loc-body"><div class="loc-title">اسم الفرع 2</div><div class="loc-address">العنوان الكامل 2 — المدينة</div></div>
+            </article>
+            <article class="loc-card clickable">
+              <div class="loc-media"><img src="/assets/milk/images/shop3.jpg" alt="الفرع 3"></div>
+              <div class="loc-body"><div class="loc-title">اسم الفرع 3</div><div class="loc-address">العنوان الكامل 3 — المدينة</div></div>
+            </article>
+            <article class="loc-card clickable">
+              <div class="loc-media"><img src="/assets/milk/images/shop4.jpg" alt="الفرع 4"></div>
+              <div class="loc-body"><div class="loc-title">اسم الفرع 4</div><div class="loc-address">العنوان الكامل 4 — المدينة</div></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Gallery -->
+      <section class="gallery reveal" id="gallery">
+        <div class="centered">
+          <h2 class="section-title">معرض الصور</h2>
+          <div class="gallery-controls" aria-label="تصنيفات المعرض">
+            <button class="g-btn active" data-filter="all">الكل</button>
+            <button class="g-btn" data-filter="fleet">أسطول النقل</button>
+            <button class="g-btn" data-filter="products">المنتجات</button>
+            <button class="g-btn" data-filter="factory">المعمل</button>
+          </div>
+          <div class="gallery-grid" id="galleryGrid">
+            <div class="gallery-item clickable" data-cat="fleet" data-zoom="/assets/milk/images/cartank.jpg" data-caption="سيارة نقل مبردة">
+              <img src="/assets/milk/images/cartank.jpg" alt="سيارة نقل مبردة" loading="lazy" decoding="async">
+              <div class="gallery-caption">سيارة نقل مبردة</div>
+            </div>
+            <div class="gallery-item clickable" data-cat="products" data-zoom="/assets/milk/images/logoo.jpg" data-caption="منتجاتنا المتنوعة">
+              <img src="/assets/milk/images/logoo.jpg" alt="منتجاتنا المتنوعة" loading="lazy" decoding="async">
+              <div class="gallery-caption">منتجاتنا المتنوعة</div>
+            </div>
+            <div class="gallery-item clickable" data-cat="factory" data-zoom="/assets/milk/images/factory1.jpg" data-caption="خطوط الإنتاج">
+              <img src="/assets/milk/images/factory1.jpg" alt="خطوط الإنتاج" loading="lazy" decoding="async">
+              <div class="gallery-caption">خطوط الإنتاج</div>
+            </div>
+            <div class="gallery-item clickable" data-cat="products" data-zoom="/assets/milk/images/romi.jpg" data-caption="عرض المنتجات">
+              <img src="/assets/milk/images/romi.jpg" alt="عرض المنتجات" loading="lazy" decoding="async">
+              <div class="gallery-caption">عرض المنتجات</div>
+            </div>
+            <div class="gallery-item clickable" data-cat="fleet" data-zoom="/assets/milk/images/cartank2.jpg" data-caption="جاهزية التوزيع">
+              <img src="/assets/milk/images/cartank2.jpg" alt="جاهزية التوزيع" loading="lazy" decoding="async">
+              <div class="gallery-caption">جاهزية التوزيع</div>
+            </div>
+            <div class="gallery-item clickable" data-cat="factory" data-zoom="/assets/milk/images/milk-testing.jpg" data-caption="معايير الجودة">
+              <img src="/assets/milk/images/milk-testing.jpg" alt="معايير الجودة" loading="lazy" decoding="async">
+              <div class="gallery-caption">معايير الجودة</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Contact -->
+      <section class="contact reveal" id="contact">
+        <div class="contact-wrap">
+          <h2>تواصل معنا</h2>
+          <div class="contact-sub">نسعد باستفسارك أو طلبك — سنرد عليك سريعًا</div>
+
+          <div class="contact-grid">
+            <!-- Form card -->
+            <div class="card">
+              <form class="contact-form" id="contactForm" novalidate>
+                <div class="field" id="f-name">
+                  <label class="label" for="name">الاسم الكامل</label>
+                  <div class="in-wrap cform">
+                    <input class="in cform" id="name" name="name" type="text" required placeholder="اكتب اسمك">
+                  </div>
+                  <div class="hint">يفضل الاسم ثلاثي</div>
+                  <div class="err-msg">من فضلك أدخل الاسم</div>
+                </div>
+
+                <div class="field" id="f-phone">
+                  <label class="label" for="phone">رقم الهاتف</label>
+                  <div class="in-wrap cform">
+                    <input class="in cform" id="phone" name="phone" type="tel" inputmode="tel" placeholder="01XXXXXXXXX">
+                  </div>
+                  <div class="hint">سنتواصل معك عبر الهاتف أو واتساب</div>
+                  <div class="err-msg">أدخل رقم هاتف صحيحًا</div>
+                </div>
+
+                <div class="field" id="f-email">
+                  <label class="label" for="emailC">البريد الإلكتروني</label>
+                  <div class="in-wrap cform">
+                    <input class="in cform" id="emailC" name="email" type="email" inputmode="email" placeholder="name@example.com">
+                  </div>
+                  <div class="err-msg">أدخل بريدًا صالحًا</div>
+                </div>
+
+                <div class="field" id="f-msg">
+                  <label class="label" for="message">رسالتك</label>
+                  <div class="in-wrap cform">
+                    <textarea class="in cform textarea" id="message" name="message" placeholder="اكتب رسالتك أو استفسارك هنا" required></textarea>
+                  </div>
+                  <div class="err-msg">برجاء كتابة الرسالة</div>
+                </div>
+
+                <div class="actions">
+                  <button class="submit" type="submit">إرسال الرسالة</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Info card -->
+            <div class="card">
+              <div class="info-list" role="list">
+                <div class="info-item" role="listitem">
+                  <div class="badge">📞</div>
+                  <div class="i-text">الهاتف: 000000000</div>
+                </div>
+                <div class="info-item" role="listitem">
+                  <div class="badge">✉️</div>
+                  <div class="i-text">البريد: info@example.com</div>
+                </div>
+                <div class="info-item" role="listitem">
+                  <div class="badge">⏰</div>
+                  <div class="i-text">ساعات العمل: يوميًا 9 صباحًا — 9 مساءً</div>
+                </div>
+                <div class="info-item" role="listitem">
+                  <div class="badge">📍</div>
+                  <div class="i-text">العنوان: القاهرة — مصر</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-content">
+        <a href="/" class="footer-brand" aria-label="العودة للصفحة الرئيسية">
+          <span class="footer-logos">
+            <img src="/assets/milk/images/milkar.jpg" alt="MilkAR" loading="lazy">
+            <img src="/assets/milk/images/milken.jpg" alt="MilkEN" loading="lazy">
+          </span>
+          <span class="footer-name">ميلك اند تشيز — Milk & Cheese</span>
+        </a>
+        <div class="footer-links">
+          <a href="#about" class="route">من نحن</a>
+          <a href="#products" class="route">المنتجات</a>
+          <a href="#locations" class="route">فروعنا</a>
+          <a href="#contact" class="route">تواصل</a>
+        </div>
+        <div class="footer-social" aria-label="وسائل التواصل">
+          <a class="footer-icon" href="https://wa.me/" target="_blank" rel="noopener" aria-label="واتساب" title="واتساب">
+            <svg class="f-ico" viewBox="0 0 24 24"><path d="M16.2 13.3c-.3-.2-1.8-.9-2.1-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7 0c-.3-.2-1.3-.5-2.5-1.7-1-1-1.7-2.1-1.9-2.4s0-.6.2-.8c.2-.2.3-.4.5-.6.2-.2.2-.3.3-.5.1-.2 0-.4 0-.6S7.7 5 7.5 5c-.2 0-.4 0-.6 0-.2 0-.6.1-.9.4-.3.3-1.2 1.2-1.2 2.9s1.2 3.3 1.4 3.5c.2.3 2.4 3.6 5.8 4.9.8.3 1.5.5 2 .6.8.1 1.6.1 2.2.1.7 0 2.1-.4 2.4-1.5.3-1 .3-1.9.2-2-.1-.1-.2-.2-.4-.3z"/><path d="M20.5 3.5C18.3 1.3 15.4 0 12.3 0 5.7 0 .3 5.4.3 12c0 2.1.6 4.2 1.6 6L0 24l6.2-1.8c1.8 1 3.8 1.5 5.9 1.5 6.6 0 12-5.4 12-12 0-3.1-1.3-6-3.6-8.2zM12.1 21.4c-1.9 0-3.8-.5-5.4-1.4l-.4-.2-3.7 1.1 1.1-3.6-.2-.4c-1-1.6-1.5-3.5-1.5-5.5C1.9 6.5 6.5 2 12.1 2c2.8 0 5.4 1.1 7.4 3.1 2 2 3.1 4.6 3.1 7.4 0 5.6-4.6 10.2-10.5 10.2z"/></svg>
+          </a>
+          <a class="footer-icon" href="https://facebook.com/" target="_blank" rel="noopener" aria-label="فيسبوك" title="فيسبوك">
+            <svg class="f-ico" viewBox="0 0 24 24"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.7-3.9 1.1 0 2.3.2 2.3.2v2.6h-1.3c-1.3 0-1.7 .8-1.7 1.6V12h2.9l-.5 2.9h-2.4v7A10 10 0 0 0 22 12"/></svg>
+          </a>
+          <a class="footer-icon" href="https://linkedin.com/" target="_blank" rel="noopener" aria-label="لينكدإن" title="لينكدإن">
+            <svg class="f-ico" viewBox="0 0 24 24"><path d="M4.98 3.5a2.5 2.5 0 1 1-.02 5.001A2.5 2.5 0 0 1 4.98 3.5zM3 9h4v12H3zM14.5 9c-2.2 0-3.5 1.2-4.1 2.3V9H6.5v12h3.9v-6.7c0-1.8.9-2.9 2.4-2.9 1.4 0 2.2.9 2.2 2.9V21h3.9v-7c0-3.7-2-5-4.4-5z"/></svg>
+          </a>
+          <a class="footer-icon" href="https://youtube.com/" target="_blank" rel="noopener" aria-label="يوتيوب" title="يوتيوب">
+            <svg class="f-ico" viewBox="0 0 24 24"><path d="M23.5 6.2s-.2-1.6-.8-2.3c-.8-.8-1.6-.8-2-1C17.6 2.5 12 2.5 12 2.5h0s-5.6 0-8.7.4c-.4.1-1.2.2-2 1-.6.7-.8 2.3-.8 2.3s.2-2.1.2-4.2v-1.9c0-2.1-.2-4.2-.2-4.2zM9.5 14.9V7.9l6.4 3.5-6.4 3.5z"/></svg>
+          </a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-zoom" id="modal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal-box" role="document">
+      <div class="modal-headx">
+        <div class="modal-titlex" id="modalTitle">التفاصيل</div>
+        <button class="btn-close" id="modalClose" aria-label="إغلاق">×</button>
+      </div>
+      <div class="modal-bodyx" id="modalContent"></div>
+    </div>
+  </div>
+
+  <!-- Login modal -->
+  <div id="loginModalBackdrop" class="login-backdrop" aria-hidden="true">
+    <section class="login-modal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+      <header class="modal-head">
+        <div class="ico" aria-hidden="true">🔐</div>
+        <div class="modal-title" id="loginTitle">تسجيل الدخول</div>
+      </header>
+      <div class="modal-body">
+        <div id="loginError" class="alert" role="alert" aria-live="assertive"></div>
+        <form id="loginForm" novalidate>
+          <label class="label" for="email">اسم المستخدم أو البريد</label>
+          <div class="in-wrap" id="wrapEmail">
+            <div class="in-icon" aria-hidden="true">👤</div>
+            <input id="email" name="usr" type="text" class="in" autocomplete="username" required placeholder="example@company.com أو user123" />
+          </div>
+
+          <label class="label" for="pwd">كلمة المرور</label>
+          <div class="in-wrap" id="wrapPwd">
+            <div class="in-icon" aria-hidden="true">🔒</div>
+            <input id="pwd" name="pwd" type="password" class="in" autocomplete="current-password" required placeholder="••••••••" />
+            <button type="button" class="toggle-pwd" id="togglePwd" aria-label="إظهار/إخفاء كلمة المرور">👁️</button>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn-cancel" id="cancelLogin" type="button">إلغاء</button>
+            <button class="btn-submit" id="submitLogin" type="submit"><span>دخول</span></button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <!-- Toast -->
+  <div id="contactToast" class="toast" role="status" aria-live="polite">تم إرسال رسالتك بنجاح ✅</div>
+
+  <script>
+    // Sticky header
+    const header = document.getElementById('header');
+    const onScroll = () => header.classList.toggle('scrolled', window.scrollY > 4);
+    document.addEventListener('scroll', onScroll); onScroll();
+
+    // Mobile menu toggle
+    const menuToggle = document.getElementById('menuToggle');
+    const navMenu = document.getElementById('navMenu');
+    if (menuToggle && navMenu) menuToggle.addEventListener('click', () => navMenu.classList.toggle('active'));
+
+    // Reveal on scroll
+    const reveals = document.querySelectorAll('.reveal');
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('revealed'); io.unobserve(e.target);} });
+    },{threshold:.12, rootMargin:'0px 0px -10% 0px'});
+    reveals.forEach(el=>io.observe(el));
+
+    // Ripple effect
+    function addRipple(e){
+      const target = e.currentTarget;
+      const rect = target.getBoundingClientRect();
+      const r = document.createElement('span');
+      r.className = 'ripple';
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      r.style.left = x + 'px';
+      r.style.top = y + 'px';
+      target.appendChild(r);
+      setTimeout(()=> r.remove(), 600);
+    }
+    document.addEventListener('click', (e)=>{
+      const clickable = e.target.closest('.clickable, .login-btn, .g-btn');
+      if (clickable) addRipple(e);
+    });
+
+    // Soft route transition
+    function softScroll(e){
+      const href = e.currentTarget.getAttribute('href');
+      if (!href || !href.startsWith('#')) return;
+      const target = document.querySelector(href);
+      if (!target) return;
+      e.preventDefault();
+      target.classList.remove('revealed');
+      target.scrollIntoView({behavior:'smooth', block:'start'});
+      setTimeout(()=> target.classList.add('revealed'), 200);
+    }
+    document.querySelectorAll('a.route, .route').forEach(a=> a.addEventListener('click', softScroll));
+
+    // Modal (features + zoom + products)
+    const modal = document.getElementById('modal');
+    const modalClose = document.getElementById('modalClose');
+    const modalContent = document.getElementById('modalContent');
+    const modalTitle = document.getElementById('modalTitle');
+    function openModalHTML(title, html){
+      modalTitle.textContent = title || 'التفاصيل';
+      modalContent.innerHTML = html || '';
+      modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden';
+    }
+    function closeModal(){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); document.body.style.overflow=''; modalContent.innerHTML=''; modalTitle.textContent='التفاصيل'; }
+    modalClose.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
+    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal.classList.contains('open')) closeModal(); });
+
+    // Feature details content (enhanced)
+    const featureDetails = {
+      overview:{title:'نبذة سريعة', media:'/assets/milk/images/logoo.jpg', tags:['منظومة','تبريد سريع','توزيع يومي'], specs:['تجميع خلال ساعة','نقل أوتوماتيكي','مطابقة جودة'], body:`نحن في ميلك اند تشيز نجمع الألبان يوميًا من المزارع خلال زمن قياسي لا يتجاوز ساعة عبر أسطول سيارات مجهّزة ومبرّدة. يتم التسليم في المعامل دون تدخل يدوي.`},
+      quality:{title:'جودة يومية موثوقة (QA)', media:'/assets/milk/images/milk-testing.jpg', tags:['QA','تحاليل','تنبيهات'], specs:['+120 اختبار يومي','98.6% توافق','لوحات متابعة'], body:`سجّل جودة اللبن صباحًا ومساءً مع إدارة عينات دورية وتقارير تحليلية تلقائية وتنبيهات.`},
+      erp:{title:'فواتير وإجراءات أسرع (ERP)', media:'/assets/milk/images/factory1.jpg', tags:['ERP','أرشفة','موافقات'], specs:['سير موافقات مرن','مطابقات بنكية','فواتير مجمعة'], body:`أتمتة دورة المشتريات والمبيعات والمصروفات مع أرشفة رقمية وتقارير الربحية.`},
+      manufacturing:{title:'إنتاج الأجبان المتنوع (MFG)', media:'/assets/milk/images/romi.jpg', tags:['إنتاج','تكاليف','عائد'], specs:['أوامر إنتاج قياسية','تخطيط قدرات','تتبّع تكاليف'], body:`تحويل اللبن إلى أصناف متعددة عبر أوامر إنتاج قياسية وتتبع تكاليف آني.`},
+      logistics:{title:'جمع وتوريد اللبن (LOG)', media:'/assets/milk/images/cartank2.jpg', tags:['لوجستيات','تبريد','مسارات'], specs:['تسجيل كميات','قياس حرارة','إخطارات تأخير'], body:`شبكة توريد ميدانية مع تتبع درجات الحرارة ومسارات السائقين ونقاط التجميع.`},
+      inventory:{title:'المخزون وتتبع الدُفعات (INV)', media:'/assets/milk/images/cartank2.jpg', tags:['مخزون','دفعات','صلاحيات'], specs:['دفعات وصلاحيات','جرد متنقل','باركود متعدد'], body:`مستودعات ذكية بتتبّع الدُفعات وتواريخ الانتهاء والتنبيهات الوقائية.`}
+    };
+
+    function renderDetailCard({title, media, body, tags=[], specs=[]}){
+      const tagsHTML = tags.map(t=>`<span class="pd-tag">${t}</span>`).join('');
+      const specsHTML = specs.map(s=>`<div class="spec">${s}</div>`).join('');
+      return `
+        <div class="pd-wrap">
+          <div class="pd-media"><img src="${media || ''}" alt="${title || ''}"></div>
+          <div class="pd-meta">
+            <div class="pd-desc">${body || ''}</div>
+            <div class="pd-tags">${tagsHTML}</div>
+            <div class="pd-specs">${specsHTML}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    document.querySelectorAll('.feature-card').forEach(card=>{
+      card.addEventListener('click', ()=>{
+        const key = card.getAttribute('data-feature');
+        const c = featureDetails[key]; if (!c) return;
+        openModalHTML(c.title, renderDetailCard(c));
+      });
+    });
+
+    // Gallery filter
+    const filterButtons = document.querySelectorAll('.g-btn');
+    const galleryItems = document.querySelectorAll('.gallery-item');
+    filterButtons.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        filterButtons.forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        const f = btn.getAttribute('data-filter');
+        galleryItems.forEach(item=>{
+          const show = (f==='all' || f===item.getAttribute('data-cat'));
+          item.style.transition = 'opacity .25s ease, transform .25s ease';
+          item.style.opacity = show ? '1' : '0';
+          item.style.transform = show ? 'none' : 'scale(.98)';
+          setTimeout(()=>{ item.style.display = show ? '' : 'none'; }, show ? 0 : 250);
+        });
+      });
+    });
+    // Gallery zoom
+    galleryItems.forEach(item=>{
+      item.addEventListener('click', ()=>{
+        const src = item.getAttribute('data-zoom');
+        const caption = item.getAttribute('data-caption') || '';
+        openModalHTML('معرض الصور', `<p style="text-align:center;"><img src="${src}" alt="${caption}" style="max-width:100%;height:auto;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.18)"></p><p style="text-align:center;color:#334155;font-weight:900;">${caption}</p>`);
+      });
+    });
+
+    // Products data and rendering (click opens full details)
+    const productData = [
+      {
+        key:'cow-milk',
+        title:'لبن بقري',
+        desc:'طازج يوميًا — جاهز للشرب والاستخدام.',
+        img:'/assets/milk/images/cow-milk.jpg',
+        tags:['طازج','مبرد','جودة QA'],
+        specs:['دهون: 3.5-4.2%','حموضة معيارية','تعبئة محكمة'],
+        gallery:['/assets/milk/images/cow-milk.jpg']
+      },
+      {
+        key:'buffalo-milk',
+        title:'لبن جاموسي',
+        desc:'قوام غني ونكهة مميزة.',
+        img:'/assets/milk/images/buffalo-milk.jpg',
+        tags:['غني','مغذي'],
+        specs:['دهون أعلى','قوام كريمي'],
+        gallery:['/assets/milk/images/buffalo-milk.jpg']
+      },
+      {
+        key:'cheese-white',
+        title:'جبن أبيض',
+        desc:'طري ومتوازن للمائدة اليومية.',
+        img:'/assets/milk/images/cheese-white.jpg',
+        tags:['طري','متوازن'],
+        specs:['ملح متزن','قوام ناعم'],
+        gallery:['/assets/milk/images/cheese-white.jpg']
+      },
+      {
+        key:'romi',
+        title:'جبن رومي',
+        desc:'نضج تقليدي وطعم قوي.',
+        img:'/assets/milk/images/romi.jpg',
+        tags:['ناضج','طعم قوي'],
+        specs:['تحكم بالأعمار','نكهة مميزة'],
+        gallery:['/assets/milk/images/romi.jpg']
+      },
+      {
+        key:'yogurt',
+        title:'زبادي',
+        desc:'قوام مثالي وتعبئة محكمة.',
+        img:'/assets/milk/images/yogurt.jpg',
+        tags:['متماسك','طبيعي'],
+        specs:['بادئات مختارة','تبريد مناسب'],
+        gallery:['/assets/milk/images/yogurt.jpg']
+      },
+      {
+        key:'laban-rayeb',
+        title:'لبن رايب',
+        desc:'منعش وخفيف للهضم.',
+        img:'/assets/milk/images/laban-rayeb.jpg',
+        tags:['منعش','خفيف'],
+        specs:['تخمير مضبوط','قوام سلس'],
+        gallery:['/assets/milk/images/laban-rayeb.jpg']
+      },
+      {
+        key:'cheddar',
+        title:'جبنة شيدر',
+        desc:'مذاق غني لوصفاتك المفضلة.',
+        img:'/assets/milk/images/cheddar.jpg',
+        tags:['ناضجة','طهي'],
+        specs:['تتبّع دفعات','تحكم بالرطوبة'],
+        gallery:['/assets/milk/images/cheddar.jpg']
+      },
+      {
+        key:'cream',
+        title:'قشطة',
+        desc:'طازجة لتحلية وأطباق متعددة.',
+        img:'/assets/milk/images/cream.jpg',
+        tags:['كريمي','حلويات'],
+        specs:['تعبئة محكمة','جودة ثابتة'],
+        gallery:['/assets/milk/images/cream.jpg']
+      },
+      {
+        key:'ghee',
+        title:'سمن بلدي',
+        desc:'نكهة أصيلة للمطبخ العربي.',
+        img:'/assets/milk/images/ghee.jpg',
+        tags:['أصلي','نكهة قوية'],
+        specs:['نقاء عالٍ','عطر مميز'],
+        gallery:['/assets/milk/images/ghee.jpg']
+      }
+    ];
+
+    function productCardHTML(p){
+      return `
+        <article class="p-card clickable" data-product="${p.key}">
+          <img class="p-img" src="${p.img}" alt="${p.title}">
+          <div class="p-body"><div class="p-title">${p.title}</div><div class="p-desc">${p.desc}</div></div>
+        </article>
+      `;
+    }
+
+    function renderProducts(){
+      const grid = document.getElementById('productsGrid');
+      grid.innerHTML = productData.map(productCardHTML).join('');
+      grid.querySelectorAll('.p-card').forEach(card=>{
+        card.addEventListener('click', ()=>{
+          const key = card.getAttribute('data-product');
+          const p = productData.find(x=>x.key===key);
+          if (!p) return;
+          openModalHTML(p.title, renderDetailCard({
+            title:p.title,
+            media:(p.gallery && p.gallery[0]) || p.img,
+            body:p.desc,
+            tags:p.tags,
+            specs:p.specs
+          }));
+        });
+      });
+    }
+    renderProducts();
+
+    // Contact validation + toast
+    (function(){
+      const form = document.getElementById('contactForm');
+      const toast = document.getElementById('contactToast');
+
+      function showError(id, cond){
+        const field = document.getElementById(id);
+        field.classList.toggle('error', cond);
+      }
+      function emailValid(v){ return !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+      function phoneValid(v){ return !v || /^[0-9+\-\s()]{6,}$/.test(v.replace(/\s+/g,'')); }
+      function showToast(){ toast.classList.add('show'); setTimeout(()=> toast.classList.remove('show'), 2500); }
+
+      form.addEventListener('submit', (e)=>{
+        e.preventDefault();
+        const name = form.name.value.trim();
+        const phone = form.phone.value.trim();
+        const email = form.email.value.trim();
+        const msg = form.message.value.trim();
+
+        let invalid = false;
+        if (!name){ showError('f-name', true); invalid = true; } else { showError('f-name', false); }
+        if (!msg){ showError('f-msg', true); invalid = true; } else { showError('f-msg', false); }
+        if (!phoneValid(phone)){ showError('f-phone', true); invalid = true; } else { showError('f-phone', false); }
+        if (!emailValid(email)){ showError('f-email', true); invalid = true; } else { showError('f-email', false); }
+
+        if (invalid) return;
+        form.reset();
+        ['f-name','f-phone','f-email','f-msg'].forEach(id=>showError(id,false));
+        showToast();
+      });
+    })();
+
+    // Login modal behavior
+    const opener = document.getElementById('openLoginTop');
+    const backdrop = document.getElementById('loginModalBackdrop');
+    const loginModal = backdrop.querySelector('.login-modal');
+    const cancelBtn = document.getElementById('cancelLogin');
+    const formLogin = document.getElementById('loginForm');
+    const errorBox = document.getElementById('loginError');
+    const wrapEmail = document.getElementById('wrapEmail');
+    const wrapPwd = document.getElementById('wrapPwd');
+    const email = document.getElementById('email');
+    const pwd = document.getElementById('pwd');
+    const togglePwd = document.getElementById('togglePwd');
+
+    function showLogin(){ backdrop.classList.add('show'); requestAnimationFrame(()=>{ loginModal.classList.add('show'); backdrop.setAttribute('aria-hidden','false'); setTimeout(()=> email?.focus(), 140); }); }
+    function hideLogin(){ loginModal.classList.remove('show'); setTimeout(()=>{ backdrop.classList.remove('show'); backdrop.setAttribute('aria-hidden','true'); showErrorLogin(''); wrapEmail.classList.remove('error'); wrapPwd.classList.remove('error'); formLogin.reset(); }, 180); }
+    function showErrorLogin(msg){ errorBox.textContent = msg || ''; errorBox.classList.toggle('show', Boolean(msg)); }
+
+    opener.addEventListener('click', showLogin);
+    cancelBtn.addEventListener('click', hideLogin);
+    backdrop.addEventListener('click', (e)=> { if (e.target === backdrop) hideLogin(); });
+    document.addEventListener('keydown', (e)=> { if (e.key === 'Escape' && backdrop.classList.contains('show')) hideLogin(); });
+
+    togglePwd.addEventListener('click', ()=>{
+      const show = pwd.type === 'password';
+      pwd.type = show ? 'text' : 'password';
+      togglePwd.textContent = show ? '🙈' : '👁️';
+      togglePwd.setAttribute('aria-label', show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
+      pwd.selectionStart = pwd.selectionEnd = pwd.value.length;
+      pwd.focus();
+    });
+
+    function markInvalidLogin(fields = []){ wrapEmail.classList.toggle('error', fields.includes('usr')); wrapPwd.classList.toggle('error', fields.includes('pwd')); }
+
+    async function loginERPNext(usr, pwdVal){
+      const body = new URLSearchParams({ usr, pwd: pwdVal });
+      try {
+        const res = await fetch('/api/method/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body
+        });
+        const data = await res.json().catch(()=> ({}));
+        if (res.ok && (data?.message === 'Logged In' || data?.home_page)) {
+          window.location.href = data?.home_page || '/app';
+          return;
+        }
+        const raw = (data?._error_message || data?.exception || data?.message || '').toString();
+        let msg = 'بيانات الدخول غير صحيحة. تأكد من اسم المستخدم وكلمة المرور.';
+        if (/disabled|not\s*allowed/i.test(raw)) msg = 'تم تعطيل الحساب أو لا يسمح بتسجيل الدخول.';
+        if (/too many|rate/i.test(raw)) msg = 'محاولات كثيرة. يرجى المحاولة لاحقاً.';
+        showErrorLogin(msg); markInvalidLogin(['usr','pwd']);
+      } catch {
+        showErrorLogin('تعذر الاتصال بالخادم. تحقق من الشبكة وحاول مجدداً.');
+      }
+    }
+
+    formLogin.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const usr = (formLogin.usr.value || '').trim();
+      const pw = (formLogin.pwd.value || '').trim();
+      showErrorLogin(''); markInvalidLogin([]);
+      if (!usr || !pw) {
+        showErrorLogin('من فضلك أدخل اسم المستخدم وكلمة المرور.');
+        markInvalidLogin([!usr ? 'usr' : '', !pw ? 'pwd' : ''].filter(Boolean));
+        (!usr ? email : pwd).focus();
+        return;
+      }
+      await loginERPNext(usr, pw);
+    });
+  </script>
+</body>
+</html>
