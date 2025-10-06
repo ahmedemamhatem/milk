@@ -20,7 +20,14 @@
   "evening",
   "milk_type",
   "driver_name",
-  "driver_helper_name"
+  "driver_helper_name",
+  "section_break_tncm",
+  "density",
+  "hardness",
+  "protein",
+  "column_break_pdpn",
+  "pont",
+  "water"
  ],
  "fields": [
   {
@@ -131,13 +138,51 @@
    "fieldtype": "Data",
    "label": "\u0627\u0644\u0645\u0633\u0627\u0639\u062f",
    "read_only": 1
+  },
+  {
+   "fieldname": "section_break_tncm",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "water",
+   "fieldtype": "Float",
+   "label": "\u0627\u0644\u0645\u064a\u0627\u0647",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pont",
+   "fieldtype": "Float",
+   "label": "\u0627\u0644\u0628\u0646\u0637",
+   "read_only": 1
+  },
+  {
+   "fieldname": "density",
+   "fieldtype": "Float",
+   "label": "\u0627\u0644\u0643\u062b\u0627\u0641\u0647",
+   "read_only": 1
+  },
+  {
+   "fieldname": "hardness",
+   "fieldtype": "Float",
+   "label": "\u0627\u0644\u0635\u0644\u0627\u0628\u0647",
+   "read_only": 1
+  },
+  {
+   "fieldname": "protein",
+   "fieldtype": "Float",
+   "label": "\u0627\u0644\u0628\u0631\u0648\u062a\u064a\u0646",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_pdpn",
+   "fieldtype": "Column Break"
   }
  ],
  "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-02 15:03:40.281218",
+ "modified": "2025-10-06 13:38:05.616155",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Car Collection",
