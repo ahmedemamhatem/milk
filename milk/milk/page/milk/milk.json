@@ -1,0 +1,22 @@
+{
+ "content": null,
+ "creation": "2025-10-07 12:53:19.398631",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-10-07 12:53:19.398631",
+ "modified_by": "Administrator",
+ "module": "Milk",
+ "name": "milk",
+ "owner": "Administrator",
+ "page_name": "milk",
+ "roles": [
+  {
+   "role": "All"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}

@@ -32,10 +32,12 @@ def execute(filters=None):
         params["from_date"] = filters["from_date"]
         params["to_date"] = filters["to_date"]
 
+    # أضف شرط الاعتماد
+    conditions.append("mq.docstatus = 1")
+
     where_clause = " AND ".join(conditions) if conditions else "1=1"
 
     if filters.get("report_type") == "متوسط":
-        # متوسط لكل مورد + نوع اللبن
         query = f"""
             SELECT
                 smq.supplier as المورد,
@@ -56,8 +58,19 @@ def execute(filters=None):
             GROUP BY smq.supplier, نوع_اللبن
             ORDER BY smq.supplier, نوع_اللبن
         """
+
+        data = frappe.db.sql(query, params, as_dict=True)
+
+        for r in data:
+            r["الحالة"] = classify_status(
+                milk_type=r.get("نوع_اللبن"),
+                avg_pont=float(r.get("متوسط_بونت") or 0),
+                avg_protein=float(r.get("متوسط_بروتين") or 0),
+            )
+
+        return columns, data
+
     else:
-        # كل السجلات مع الفترة (صباح / مساء)
         query = f"""
             SELECT
                 mq.date as التاريخ,
@@ -84,9 +97,29 @@ def execute(filters=None):
             WHERE {where_clause}
             ORDER BY mq.date, smq.supplier
         """
+        data = frappe.db.sql(query, params, as_dict=True)
+        return columns, data
 
-    data = frappe.db.sql(query, params, as_dict=True)
-    return columns, data
+
+def classify_status(milk_type: str, avg_pont: float, avg_protein: float) -> str:
+    if milk_type == "جاموسي":
+        if avg_pont >= 7.0 and avg_protein >= 3.9:
+            return "ممتاز"
+        if avg_pont >= 6.8 and avg_protein >= 3.8:
+            return "جيد"
+        if avg_pont >= 6.5 and avg_protein >= 3.7:
+            return "مقبول"
+        return "مرفوض"
+    elif milk_type == "بقري":
+        if avg_pont >= 3.8 and avg_protein >= 3.3:
+            return "ممتاز"
+        if avg_pont >= 3.5 and avg_protein >= 3.2:
+            return "جيد"
+        if avg_pont >= 3.5 and avg_protein >= 3.1:
+            return "مقبول"
+        return "مرفوض"
+    else:
+        return "مرفوض"
 
 
 def get_columns(filters):
@@ -99,6 +132,7 @@ def get_columns(filters):
             {"label": "متوسط كثافة", "fieldname": "متوسط_كثافة", "fieldtype": "Float", "width": 120},
             {"label": "متوسط صلابة", "fieldname": "متوسط_صلابة", "fieldtype": "Float", "width": 120},
             {"label": "متوسط بونت", "fieldname": "متوسط_بونت", "fieldtype": "Float", "width": 120},
+            {"label": "الحالة", "fieldname": "الحالة", "fieldtype": "Data", "width": 100}
         ]
     else:
         return [

@@ -179,7 +179,21 @@ frappe.pages['car-collect'].on_page_load = function (wrapper) {
     });
     const warehouse_control = frappe.ui.form.make_control({
         parent: $('#warehouse-container'),
-        df: { fieldtype: 'Link', options: 'Warehouse', fieldname: 'warehouse', placeholder: 'اختر المخزن', fetch_if_empty: true },
+        df: {
+            fieldtype: 'Link',
+            options: 'Warehouse',
+            fieldname: 'warehouse',
+            placeholder: 'اختر المخزن',
+            fetch_if_empty: true,
+            get_query: () => {
+                return {
+                    filters: {
+                        "disabled": 0,   // only enabled
+                        "is_group": 0    // not a group
+                    }
+                };
+            }
+        },
         render_input: true
     });
     warehouse_control.set_value(frappe.boot.user_defaults?.warehouse || '');
