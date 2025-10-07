@@ -14,7 +14,6 @@ app_include_js = [
     "assets/milk/js/mw_sidebar_autocollapse.js",
 ]
 
-
 # Optional: include fallback CSS used only if core toggle isn't found
 app_include_css = [
     "assets/milk/css/mw_sidebar_autocollapse.css",

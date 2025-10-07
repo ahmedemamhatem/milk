@@ -1,6 +1,5 @@
 frappe.provide("milk");
 
-// Desk page: /app/milk
 frappe.pages["milk"].on_page_load = function (wrapper) {
   const page = frappe.ui.make_app_page({
     parent: wrapper,
@@ -22,7 +21,6 @@ frappe.pages["milk"].on_page_load = function (wrapper) {
   animate_entrance($container[0]);
 };
 
-/* ----------------------- HTML ----------------------- */
 function render_milk_workspace_html() {
   return `
 <div class="mw-container" dir="rtl" lang="ar">
