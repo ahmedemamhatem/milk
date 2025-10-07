@@ -5,19 +5,37 @@
   const BTN_QUAL_ID = 'mw-btn-qual';
   const BTN_COLL_ID = 'mw-btn-coll';
   const BTN_SALES_ID = 'mw-btn-sales';
-  const ROUTE_HOME = 'app/milk-work';
+  const ADMIN_HOME_ID = 'mw-btn-admin-home';
+  const ROUTE_HOME = 'app/milk';
+  const ROUTE_ADMIN_HOME = 'app/accounting';
 
   const MENU_ID = 'mw-actions-menu';
   const MENU_BTN_ID = 'mw-actions-trigger';
   const MOBILE_BREAKPOINT = 768; // px
 
-  function isAdmin() {
+  function isAdministrator() {
     try {
       const name = window.frappe?.boot?.user?.name || window.frappe?.session?.user || '';
       return String(name).toLowerCase() === 'administrator';
-    } catch {
-      return false;
-    }
+    } catch {}
+    return false;
+  }
+
+  function hasMilkAdminRole() {
+    try {
+      const roles = window.frappe?.boot?.user?.roles || [];
+      if (Array.isArray(roles)) {
+        return roles.some((r) => String(r).toLowerCase() === 'milk admin');
+      }
+      if (roles && typeof roles === 'object') {
+        return Object.keys(roles).some((k) => String(k).toLowerCase() === 'milk admin');
+      }
+    } catch {}
+    return false;
+  }
+
+  function isPrivileged() {
+    return isAdministrator() || hasMilkAdminRole();
   }
 
   function isMobile() {
@@ -33,22 +51,10 @@
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
 
-    // Keep default search visible for admin; hide for others (as in your original)
-    const hideSearchCss = isAdmin()
-      ? ''
-      : `
-      header.navbar .navbar-search, .navbar .navbar-search,
-      header.navbar .search-bar, .navbar .search-bar,
-      header.navbar .navbar-form, .navbar .navbar-form,
-      header.navbar .global-search, .navbar .global-search,
-      header.navbar .search-input, .navbar .search-input {
-        display: none !important;
-      }
-    `;
+    // Note: No blanket CSS to hide search here anymore.
+    // We will selectively hide found search nodes via a data attribute.
 
     const css = `
-      ${hideSearchCss}
-
       :root{
         --mw-gap: 8px;
         --mw-radius: 9999px;
@@ -60,21 +66,17 @@
 
       header.navbar, .navbar{ position: relative; }
 
-      /* We place our wrapper inline next to search (desktop), absolute fallback; mobile uses the action menu */
+      /* Center the wrapper in the middle of the bar */
       #${WRAP_ID}{
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
         display: inline-flex;
         align-items: center;
         gap: var(--mw-gap);
         pointer-events: none;
         z-index: 5;
-      }
-
-      /* When we need to absolutely position as a fallback, we add .fallback-pos */
-      #${WRAP_ID}.fallback-pos{
-        position: absolute;
-        top: 50%;
-        right: 12px;
-        transform: translateY(-50%);
       }
 
       #${WRAP_ID} .mw-group{
@@ -135,6 +137,16 @@
       #${BTN_SALES_ID}:hover{ filter: brightness(1.03); box-shadow: 0 4px 14px rgba(56,189,248,0.26); }
       #${BTN_SALES_ID}:active{ transform: translateY(1px) scale(0.99); }
 
+      /* Privileged-only Accounting button */
+      #${ADMIN_HOME_ID}{
+        color: #0f172a;
+        background: linear-gradient(135deg, #e5e7eb 0%, #ffffff 100%);
+        border-color: rgba(15,23,42,0.18);
+        box-shadow: 0 2px 6px rgba(15,23,42,0.14), 0 6px 16px rgba(15,23,42,0.10);
+      }
+      #${ADMIN_HOME_ID}:hover{ filter: brightness(1.02); box-shadow: 0 4px 14px rgba(15,23,42,0.18); }
+      #${ADMIN_HOME_ID}:active{ transform: translateY(1px) scale(0.99); }
+
       /* Actions trigger (mobile only) */
       #${MENU_BTN_ID}{
         pointer-events: auto;
@@ -169,10 +181,12 @@
         display: flex; align-items: center; justify-content: space-between; gap: 8px;
       }
 
-      /* Mobile: we will show only the actions button via JS */
       @media (max-width: ${MOBILE_BREAKPOINT}px){
-        #${WRAP_ID}.fallback-pos{ right: 8px; }
+        #${WRAP_ID}{ left: 50%; transform: translate(-50%, -50%); }
       }
+
+      /* Only hide search nodes we explicitly mark via JS for non-admin users */
+      .mw-hide-search-for-user { display: none !important; }
     `;
     const style = document.createElement('style');
     style.id = STYLE_ID;
@@ -190,29 +204,47 @@
     );
   }
 
-  function findSearchContainer(navbar) {
-    // Try typical Frappe search containers, prefer the outer wrapper to append after it
-    const order = [
-      '.navbar .navbar-search',
-      'header.navbar .navbar-search',
-      '.navbar .global-search',
-      'header.navbar .global-search',
-      '.navbar .search-bar',
-      'header.navbar .search-bar',
-      '.navbar .navbar-form',
-      'header.navbar .navbar-form'
+  // Gently gate search: only hide existing search elements for non-admins; never override admin; don't force anything if absent.
+  function gateNavbarSearch() {
+    const admin = isAdministrator();
+    const scope = findNavbar() || document;
+    if (!scope) return;
+
+    const selectors = [
+      '.navbar-search',
+      '.search-bar',
+      '.navbar-form',
+      '.global-search',
+      '.search-input'
     ];
-    for (const sel of order) {
-      const el = document.querySelector(sel);
-      if (el && navbar.contains(el)) return el;
-    }
-    return null;
+
+    const nodes = [];
+    selectors.forEach(sel => {
+      scope.querySelectorAll(sel).forEach(el => {
+        // Collect unique elements only
+        if (!nodes.includes(el)) nodes.push(el);
+      });
+    });
+
+    // If nothing found, do nothing.
+    if (!nodes.length) return;
+
+    nodes.forEach(el => {
+      if (admin) {
+        el.classList.remove('mw-hide-search-for-user');
+      } else {
+        el.classList.add('mw-hide-search-for-user');
+      }
+    });
   }
 
   function ensureCenterBundle() {
     const navbar = findNavbar();
     if (!navbar) return;
     injectStyles();
+
+    // Gate search without overriding if not present
+    gateNavbarSearch();
 
     // Ensure wrapper
     let wrap = document.getElementById(WRAP_ID);
@@ -229,7 +261,7 @@
       wrap.appendChild(group);
     }
 
-    // Buttons
+    // Primary buttons
     if (!document.getElementById(BTN_HOME_ID)) {
       const btn = document.createElement('button');
       btn.id = BTN_HOME_ID; btn.className = 'mw-btn'; btn.type = 'button';
@@ -251,9 +283,9 @@
       btn.id = BTN_COLL_ID; btn.className = 'mw-btn'; btn.type = 'button';
       btn.innerHTML = `
         <span class="mw-ico" aria-hidden="true">
-          <img src="/assets/milk/immages/259397.png" alt="">
+          <img src="/assets/milk/images/259397.png" alt="">
         </span>
-        <span>طباعة مسودة اللم</span>
+        <span>طباعة مسودة التجميع</span>
       `;
       btn.addEventListener('click', (e) => { e.preventDefault(); openCollectionDialog(); });
       group.appendChild(btn);
@@ -266,6 +298,9 @@
       btn.addEventListener('click', (e) => { e.preventDefault(); openSalesDialog(); });
       group.appendChild(btn);
     }
+
+    // Privileged-only Accounting button
+    createAdminHomeButton(group);
 
     // Actions trigger button (mobile only)
     let menuBtn = document.getElementById(MENU_BTN_ID);
@@ -284,12 +319,20 @@
       menu = document.createElement('div');
       menu.id = MENU_ID;
       menu.setAttribute('dir', 'rtl');
-      menu.innerHTML = `
+      let baseMenuHtml = `
         <button class="menu-item" data-act="home"><span class="ico">🏠</span><span>الصفحة الرئيسية</span></button>
         <button class="menu-item" data-act="qual"><span class="ico">🧪</span><span>طباعة مسودة الجوده</span></button>
-        <button class="menu-item" data-act="coll"><span class="ico"><img src="/assets/milk/immages/259397.png" alt="" style="width:18px;height:18px;object-fit:contain"></span><span>طباعة مسودة التجميع</span></button>
+        <button class="menu-item" data-act="coll"><span class="ico"><img src="/assets/milk/images/259397.png" alt="" style="width:18px;height:18px;object-fit:contain"></span><span>طباعة مسودة التجميع</span></button>
         <button class="menu-item" data-act="sales"><span class="ico">🧾</span><span>طباعة نموذج مبيعات</span></button>
       `;
+      if (isPrivileged()) {
+        baseMenuHtml += `
+        <div style="border-top:1px solid #e5e7eb; margin:6px 0;"></div>
+        <button class="menu-item" data-act="admin-home"><span class="ico">🧭</span><span>شاشة الحسابات</span></button>
+        `;
+      }
+      menu.innerHTML = baseMenuHtml;
+
       menu.addEventListener('click', (e) => {
         const btn = e.target.closest('.menu-item');
         if (!btn) return;
@@ -299,6 +342,7 @@
         if (act === 'qual') openQualityDialog();
         if (act === 'coll') openCollectionDialog();
         if (act === 'sales') openSalesDialog();
+        if (act === 'admin-home') go(ROUTE_ADMIN_HOME);
       });
       document.body.appendChild(menu);
       document.addEventListener('click', (e) => {
@@ -307,52 +351,54 @@
       });
       window.addEventListener('resize', closeMenu);
       window.addEventListener('scroll', closeMenu, true);
+    } else {
+      // Sync role-sensitive item
+      const adminItem = menu.querySelector('[data-act="admin-home"]');
+      if (isPrivileged() && !adminItem) {
+        const divider = document.createElement('div');
+        divider.style.borderTop = '1px solid #e5e7eb';
+        divider.style.margin = '6px 0';
+        const btn = document.createElement('button');
+        btn.className = 'menu-item';
+        btn.setAttribute('data-act', 'admin-home');
+        btn.innerHTML = `<span class="ico">🧭</span><span>شاشة الحسابات</span>`;
+        menu.appendChild(divider);
+        menu.appendChild(btn);
+      } else if (!isPrivileged() && adminItem) {
+        const divider = adminItem.previousElementSibling;
+        if (divider && divider.tagName === 'DIV') divider.remove();
+        adminItem.remove();
+      }
     }
 
-    placeNearSearch(navbar, wrap);
+    // Attach wrapper to navbar if not already
+    if (wrap.parentElement !== navbar) {
+      navbar.appendChild(wrap);
+    }
 
     // Mobile vs desktop visibility
     if (isMobile()) {
-      // Mobile: menu only
-      wrap.classList.add('fallback-pos');
-      wrap.style.position = 'absolute';
-      // Show only actions button
-      wrap.querySelector('.mw-group').style.display = 'none';
+      group.style.display = 'none';
       document.getElementById(MENU_BTN_ID).style.display = 'inline-flex';
     } else {
-      // Desktop: show full group near search; hide actions trigger
-      wrap.querySelector('.mw-group').style.display = 'flex';
+      group.style.display = 'flex';
       document.getElementById(MENU_BTN_ID).style.display = 'none';
     }
   }
 
-  // Place wrapper near the default search bar.
-  function placeNearSearch(navbar, wrap) {
-    // Remove from any previous parent
-    if (wrap.parentElement && wrap.parentElement !== document.body) {
-      wrap.parentElement.removeChild(wrap);
-    }
-
-    const searchContainer = findSearchContainer(navbar);
-
-    if (searchContainer && searchContainer.parentElement) {
-      // Insert wrap right before the search (for RTL it will appear to the left visually),
-      // or after the search based on preference. We'll use before to keep it immediately adjacent.
-      const parent = searchContainer.parentElement;
-
-      // Insert just before the search element so it's visually near it
-      parent.insertBefore(wrap, searchContainer);
-
-      // Ensure wrapper is inline with navbar content, not absolutely positioned
-      wrap.classList.remove('fallback-pos');
-      wrap.style.position = 'relative';
-      wrap.style.top = '';
-      wrap.style.right = '';
-      wrap.style.transform = '';
-    } else {
-      // Fallback: attach to navbar and absolutely position to the right
-      navbar.appendChild(wrap);
-      wrap.classList.add('fallback-pos');
+  function createAdminHomeButton(group) {
+    const existing = document.getElementById(ADMIN_HOME_ID);
+    if (isPrivileged()) {
+      if (!existing) {
+        const btn = document.createElement('button');
+        btn.id = ADMIN_HOME_ID; btn.className = 'mw-btn'; btn.type = 'button';
+        btn.title = 'الذهاب إلى شاشة الحسابات';
+        btn.innerHTML = `<span class="mw-ico">🧭</span><span>شاشة الحسابات</span>`;
+        btn.addEventListener('click', (e) => { e.preventDefault(); go(ROUTE_ADMIN_HOME); });
+        group.appendChild(btn);
+      }
+    } else if (existing) {
+      existing.remove();
     }
   }
 
@@ -434,6 +480,110 @@
     dlg.show();
   }
 
+  // Print Sales Blank
+  async function printSalesBlank(values) {
+    try {
+      const date = values.posting_date || '';
+      const group = values.customer_group || '';
+      const item = values.item_code || '';
+      const warehouse = values.set_warehouse || '';
+      const mop = values.mode_of_payment || '';
+      const limit_rows = values.limit_rows ? parseInt(values.limit_rows, 10) : null;
+
+      if (!item) {
+        frappe.throw(__('اختار الصنف قبل الطباعة.'));
+        return;
+      }
+      if (!group) {
+        frappe.throw(__('اختار مجموعة العملاء أو استخدم صفحة الفواتير السريعة لاختيار عملاء فرديين.'));
+        return;
+      }
+
+      frappe.dom.freeze(__('جاري تجهيز نموذج المبيعات...'));
+
+      const customers = await frappe.db.get_list('Customer', {
+        fields: ['name', 'customer_name', 'disabled'],
+        filters: [['customer_group', '=', group], ['disabled', '=', 0]],
+        order_by: 'customer_name asc',
+        limit: limit_rows && Number.isFinite(limit_rows) && limit_rows > 0 ? limit_rows : 1000
+      });
+
+      if (!customers || customers.length === 0) {
+        frappe.msgprint(__('مافيش عملاء نشطين في المجموعة.'));
+        return;
+      }
+
+      let balances = {};
+      try {
+        const r = await frappe.call({
+          method: 'milk.milk.page.fast_sales_invoice.api.get_customer_balances',
+          args: { customers: customers.map(c => c.name) }
+        });
+        balances = r.message || {};
+      } catch (e) {
+        balances = {};
+      }
+
+      const rows = customers.map((c, i) => ({
+        name: c.name,
+        balance: balances[c.name] != null ? Number(balances[c.name]) : null
+      }));
+
+      const esc = (s) => (s || '').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+      const css = `
+        *{box-sizing:border-box}
+        body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111827;margin:24px}
+        h1{font-size:18px;margin:0 0 8px 0}
+        .meta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+        .meta .kv{background:#fafafa;border:1px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-size:12px}
+        table{width:100%;border-collapse:collapse;table-layout:fixed}
+        th,td{border:1px solid #e5e7eb;padding:6px 8px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+        th{background:#fafafa}
+        col.idx{width:34px}
+        col.cust{width:46%}
+        col.qty{width:12%}
+        col.paid{width:12%}
+        col.old{width:15%}
+        col.note{width:15%}
+        @media print{ body{margin:8mm} .no-print{display:none !important} }
+      `;
+      const rows_html = rows.map((c, i) =>
+        '<tr>'
+          + '<td>'+(i+1)+'</td>'
+          + '<td>'+esc(c.name)+'</td>'
+          + '<td></td>'
+          + '<td></td>'
+          + '<td class="num">'+(c.balance == null ? '' : esc(c.balance.toFixed(2)))+'</td>'
+          + '<td></td>'
+        + '</tr>'
+      ).join('');
+
+      const html = '<!doctype html><html><head><meta charset="utf-8"><title>نموذج مبيعات</title><style>'+css+'</style></head><body>'
+        + '<h1>نموذج مبيعات</h1>'
+        + '<div class="meta">'
+          + '<div class="kv"><strong>التاريخ:</strong> '+esc(date)+'</div>'
+          + '<div class="kv"><strong>مجموعة العملاء:</strong> '+esc(group)+'</div>'
+          + '<div class="kv"><strong>الصنف:</strong> '+esc(item)+'</div>'
+          + (warehouse ? '<div class="kv"><strong>المخزن:</strong> '+esc(warehouse)+'</div>' : '')
+          + (mop ? '<div class="kv"><strong>طريقة الدفع:</strong> '+esc(mop)+'</div>' : '')
+        + '</div>'
+        + '<table><colgroup><col class="idx"><col class="cust"><col class="qty"><col class="paid"><col class="old"><col class="note"></colgroup>'
+        + '<thead><tr><th>#</th><th>العميل</th><th>الكمية</th><th>المدفوع</th><th>الرصيد القديم</th><th>ملاحظة</th></tr></thead>'
+        + '<tbody>'+rows_html+'</tbody></table>'
+        + '<div class="no-print" style="margin-top:10px;"><button onclick="window.print()">طباعة</button></div>'
+        + '</body></html>';
+
+      openPrintHTML(html);
+    } catch (e) {
+      console.error(e);
+      frappe.msgprint({ title: __('خطأ'), message: e.message || String(e), indicator: 'red' });
+    } finally {
+      frappe.dom.unfreeze();
+    }
+  }
+
+
+  
   function openPrintHTML(html) {
     const w = window.open('', '_blank');
     if (!w) { frappe?.msgprint?.(__('فضلاً فعّل النوافذ المنبثقة للسماح بالطباعة.')); return; }
@@ -527,7 +677,7 @@
     }
   }
 
-  // Print: Collection (same as before, omitted for brevity)
+  // Print: Collection
   async function printCollection(values) {
     const esc = (window.frappe?.utils?.escape_html || ((x)=>x));
     const selectedDriver = values.driver || '';
@@ -715,121 +865,20 @@
     }
   }
 
-  // Print Sales Blank
-  async function printSalesBlank(values) {
-    try {
-      const date = values.posting_date || '';
-      const group = values.customer_group || '';
-      const item = values.item_code || '';
-      const warehouse = values.set_warehouse || '';
-      const mop = values.mode_of_payment || '';
-      const limit_rows = values.limit_rows ? parseInt(values.limit_rows, 10) : null;
-
-      if (!item) {
-        frappe.throw(__('اختار الصنف قبل الطباعة.'));
-        return;
-      }
-      if (!group) {
-        frappe.throw(__('اختار مجموعة العملاء أو استخدم صفحة الفواتير السريعة لاختيار عملاء فرديين.'));
-        return;
-      }
-
-      frappe.dom.freeze(__('جاري تجهيز نموذج المبيعات...'));
-
-      const customers = await frappe.db.get_list('Customer', {
-        fields: ['name', 'customer_name', 'disabled'],
-        filters: [['customer_group', '=', group], ['disabled', '=', 0]],
-        order_by: 'customer_name asc',
-        limit: limit_rows && Number.isFinite(limit_rows) && limit_rows > 0 ? limit_rows : 1000
-      });
-
-      if (!customers || customers.length === 0) {
-        frappe.msgprint(__('مافيش عملاء نشطين في المجموعة.'));
-        return;
-      }
-
-      let balances = {};
-      try {
-        const r = await frappe.call({
-          method: 'milk.milk.page.fast_sales_invoice.api.get_customer_balances',
-          args: { customers: customers.map(c => c.name) }
-        });
-        balances = r.message || {};
-      } catch (e) {
-        balances = {};
-      }
-
-      const rows = customers.map((c, i) => ({
-        name: c.name,
-        balance: balances[c.name] != null ? Number(balances[c.name]) : null
-      }));
-
-      const esc = (s) => (s || '').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-      const css = `
-        *{box-sizing:border-box}
-        body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111827;margin:24px}
-        h1{font-size:18px;margin:0 0 8px 0}
-        .meta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
-        .meta .kv{background:#fafafa;border:1px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-size:12px}
-        table{width:100%;border-collapse:collapse;table-layout:fixed}
-        th,td{border:1px solid #e5e7eb;padding:6px 8px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
-        th{background:#fafafa}
-        col.idx{width:34px}
-        col.cust{width:46%}
-        col.qty{width:12%}
-        col.paid{width:12%}
-        col.old{width:15%}
-        col.note{width:15%}
-        @media print{ body{margin:8mm} .no-print{display:none !important} }
-      `;
-      const rows_html = rows.map((c, i) =>
-        '<tr>'
-          + '<td>'+(i+1)+'</td>'
-          + '<td>'+esc(c.name)+'</td>'
-          + '<td></td>'
-          + '<td></td>'
-          + '<td class="num">'+(c.balance == null ? '' : esc(c.balance.toFixed(2)))+'</td>'
-          + '<td></td>'
-        + '</tr>'
-      ).join('');
-
-      const html = '<!doctype html><html><head><meta charset="utf-8"><title>نموذج مبيعات</title><style>'+css+'</style></head><body>'
-        + '<h1>نموذج مبيعات</h1>'
-        + '<div class="meta">'
-          + '<div class="kv"><strong>التاريخ:</strong> '+esc(date)+'</div>'
-          + '<div class="kv"><strong>مجموعة العملاء:</strong> '+esc(group)+'</div>'
-          + '<div class="kv"><strong>الصنف:</strong> '+esc(item)+'</div>'
-          + (warehouse ? '<div class="kv"><strong>المخزن:</strong> '+esc(warehouse)+'</div>' : '')
-          + (mop ? '<div class="kv"><strong>طريقة الدفع:</strong> '+esc(mop)+'</div>' : '')
-        + '</div>'
-        + '<table><colgroup><col class="idx"><col class="cust"><col class="qty"><col class="paid"><col class="old"><col class="note"></colgroup>'
-        + '<thead><tr><th>#</th><th>العميل</th><th>الكمية</th><th>المدفوع</th><th>الرصيد القديم</th><th>ملاحظة</th></tr></thead>'
-        + '<tbody>'+rows_html+'</tbody></table>'
-        + '<div class="no-print" style="margin-top:10px;"><button onclick="window.print()">طباعة</button></div>'
-        + '</body></html>';
-
-      openPrintHTML(html);
-    } catch (e) {
-      console.error(e);
-      frappe.msgprint({ title: __('خطأ'), message: e.message || String(e), indicator: 'red' });
-    } finally {
-      frappe.dom.unfreeze();
-    }
-  }
-
   function boot() {
-    const run = () => setTimeout(ensureCenterBundle, 0);
-    [0, 100, 300, 800, 1500].forEach(t => setTimeout(ensureCenterBundle, t));
+    const run = () => setTimeout(() => { ensureCenterBundle(); gateNavbarSearch(); }, 0);
+    [0, 100, 300, 800, 1500].forEach(t => setTimeout(() => { ensureCenterBundle(); gateNavbarSearch(); }, t));
     window.addEventListener('resize', run);
     window.addEventListener('hashchange', run);
     document.addEventListener('frappe.router.change', run);
     if (window.frappe && frappe.after_ajax) frappe.after_ajax(run);
 
-    // Observe navbar changes
-    const nav = document.querySelector('header.navbar') || document.querySelector('.navbar');
+    // Observe navbar changes and re-gate search only if present
+    const nav = document.querySelector('header.navbar') || document.querySelector('.navbar') || document.body;
     if (nav && !nav._mwObserved) {
       nav._mwObserved = true;
-      new MutationObserver(() => ensureCenterBundle()).observe(nav, { childList: true, subtree: true });
+      new MutationObserver(() => { gateNavbarSearch(); ensureCenterBundle(); })
+        .observe(nav, { childList: true, subtree: true });
     }
   }
 

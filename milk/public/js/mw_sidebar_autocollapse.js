@@ -2,7 +2,7 @@
 // Uses native toggle; no custom button.
 
 (function () {
-  const EXEMPT_ROLE = 'System Manager';
+  const EXEMPT_ROLE = 'Milk Admin';
 
   function isExemptUser() {
     try {

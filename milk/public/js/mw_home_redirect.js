@@ -2,7 +2,7 @@
 // Safe, minimal, and only affects those exact routes.
 
 (function () {
-  const TARGET = '#/app/milk-work';
+  const TARGET = '#/app/milk';
 
   function redirectIfHome() {
     const h = window.location.hash || '';
