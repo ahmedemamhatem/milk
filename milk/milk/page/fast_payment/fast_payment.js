@@ -6,7 +6,7 @@ frappe.pages['fast-payment'].on_page_load = function (wrapper) {
     title: 'دفعة ',
     single_column: true
   });
-
+  document.title = " تسجيل دفعات ";
   const $section = $(wrapper).find('.layout-main-section');
   $section.empty();
 

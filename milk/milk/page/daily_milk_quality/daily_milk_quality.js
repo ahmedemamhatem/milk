@@ -6,7 +6,7 @@ frappe.pages['daily-milk-quality'].on_page_load = function (wrapper) {
 		title: 'تسجيل جودة اللبن اليومي',
 		single_column: true
 	});
-
+  document.title = " تسجيل جودة اللبن اليومي ";
 	const $section = $(wrapper).find('.layout-main-section');
 	$section.empty();
 

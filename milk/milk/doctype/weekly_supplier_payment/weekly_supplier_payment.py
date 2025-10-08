@@ -460,6 +460,10 @@ def refresh_week_one_method(
     Rebuild rows, fill quantities, apply Supplier Deductions (summed percent + amount),
     allocate Supplier Loans once per supplier across that supplier's rows,
     compute amounts, and aggregate parent totals.
+
+    Additionally:
+    - Collect all Milk Entries Log document names used in this run
+      and store them in the parent doctype's 'ledgers' Text field as JSON.
     """
     if not docname:
         frappe.throw("docname is required")
@@ -476,11 +480,15 @@ def refresh_week_one_method(
         doc.to_date = to_date
 
     _validate_parent(doc)
-
+    
+    doc.ledgers = ""
     eff_driver = (doc.driver or "").strip()
     eff_village = (doc.village or "").strip() or None
     sdate = doc.start_date
     tdate = doc.to_date
+
+    # Collector for Milk Entries Log names
+    all_mel_names: Set[str] = set()
 
     # 1) Clear child table
     doc.set("weekly_pay_table", [])
@@ -546,7 +554,17 @@ def refresh_week_one_method(
             driver=eff_driver,
             village=eff_village,
         )
+
+        # Fill computations
         _fill_row_from_entries(child, entries or [])
+
+        # Collect MIL names; optional per-row store
+        entry_names = [e["name"] for e in (entries or []) if e.get("name")]
+        if entry_names:
+            all_mel_names.update(entry_names)
+            # If you have a custom field on the child to store these, e.g., "mel_names_json"
+            if hasattr(child, "mel_names_json"):
+                child.mel_names_json = frappe.as_json(entry_names)
 
     # 4) Apply Supplier Deductions (aggregate sums within range by milk type)
     supplier_names = list({row.supplier for row in (doc.weekly_pay_table or []) if getattr(row, "supplier", None)})
@@ -612,12 +630,22 @@ def refresh_week_one_method(
 
     # 6) Parent totals and save
     _recompute_parent_totals(doc)
+
+    # Persist collected Milk Entries Log names to parent 'ledgers' text field.
+    # Store as JSON for reliable parsing later.
+    try:
+        names_list = sorted(all_mel_names)
+        doc.ledgers = frappe.as_json(names_list)  # requires 'ledgers' Text field on the DocType
+    except Exception:
+        # Fallback to CSV if JSON fails for any reason
+        doc.ledgers = ",".join(sorted(all_mel_names))
+
     doc.save(ignore_permissions=True)
 
     return {
         "status": "success",
         "rows": len(doc.weekly_pay_table or []),
-        "message": "Rows filled; deductions applied; supplier loans allocated; amounts computed; totals updated.",
+        "message": "Rows filled; deductions applied; supplier loans allocated; amounts computed; totals updated; ledgers captured.",
         "name": doc.name,
         "effective_filters": {
           "driver": eff_driver,
@@ -625,6 +653,7 @@ def refresh_week_one_method(
           "start_date": sdate,
           "to_date": tdate,
         },
+        "milk_entries_count": len(all_mel_names),
     }
 
 

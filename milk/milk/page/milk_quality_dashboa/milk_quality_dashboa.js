@@ -4,7 +4,7 @@ frappe.pages['milk-quality-dashboa'].on_page_load = function(wrapper) {
         title: 'لوحة مؤشرات جودة اللبن',
         single_column: true
     });
-
+    document.title = "  لوحة مؤشرات جودة اللبن";
     // Filters
     let filters = {
         from_date: frappe.datetime.month_start(),

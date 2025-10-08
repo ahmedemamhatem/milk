@@ -4,7 +4,7 @@ frappe.pages['car-collect'].on_page_load = function (wrapper) {
         title: 'استلام سياره',
         single_column: true
     });
-
+document.title = "استلام سيارة ";
     // Styles with responsive 2-line layout on medium screens
     const styles = `
         <style>

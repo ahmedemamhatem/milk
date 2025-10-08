@@ -4,7 +4,7 @@ frappe.pages["driver-report"].on_page_load = function (wrapper) {
 		title: "تقرير السائق اليومي",
 		single_column: true,
 	});
-
+  document.title = "  تقرير السائق اليومي";
 	$(page.wrapper).css("direction", "rtl");
 
 	// Styles for better UI + print

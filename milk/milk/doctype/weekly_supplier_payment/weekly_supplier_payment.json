@@ -33,7 +33,9 @@
   "loan_refund_entry",
   "column_break_cfer",
   "payment_entry",
-  "deduction_entry"
+  "deduction_entry",
+  "section_break_jwzw",
+  "ledgers"
  ],
  "fields": [
   {
@@ -225,13 +227,25 @@
    "label": "deduction_entry",
    "options": "Journal Entry",
    "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_jwzw",
+   "fieldtype": "Section Break",
+   "label": "Ledgers"
+  },
+  {
+   "fieldname": "ledgers",
+   "fieldtype": "Text",
+   "label": "ledgers",
+   "read_only": 1
   }
  ],
  "hide_toolbar": 1,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-07 22:19:02.320160",
+ "modified": "2025-10-08 11:59:08.007697",
  "modified_by": "Administrator",
  "module": "Milk",
  "name": "Weekly Supplier Payment",

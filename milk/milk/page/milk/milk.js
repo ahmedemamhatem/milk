@@ -6,19 +6,28 @@ frappe.pages["milk"].on_page_load = function (wrapper) {
     title: "",
     single_column: true,
   });
-
+  document.title = " اعمال الألبان";
   const $container = $(render_milk_workspace_html());
   $(page.body).empty().append($container);
 
   inject_mw_css();
   apply_mw_background();
 
-  // Permissions: keep visible; mark usable/disabled (+ red tag + popup)
+  // Permissions
   enforce_requirements_keep_visible($container);
 
   ensure_milk_icon_fallback();
   bind_route_clicks_disable_aware($container);
+
+  // Motion/feel
   animate_entrance($container[0]);
+  enable_card_parallax($container[0]);
+  enable_card_ripple($container[0]);
+  enable_card_group_hover($container[0]);
+  enable_bg_hover_intensify($container[0]);
+
+  // Start idle ambient after background is present
+  setTimeout(() => enable_idle_ambient($container[0]), 300);
 };
 
 function render_milk_workspace_html() {
@@ -179,96 +188,95 @@ function render_milk_workspace_html() {
 `;
 }
 
-/* ----------------------- Styles + subtle background ----------------------- */
+/* ----------------------- Styles: blur background re-enabled ----------------------- */
 function inject_mw_css() {
   if (document.getElementById("mw-style")) return;
   const css = `
-/* ===================== THEME TOKENS (Blue) ===================== */
 .mw-container {
-  --brand: #2563eb;             /* Blue 600 */
-  --brand-500: #3b82f6;         /* Blue 500 */
-  --brand-700: #1d4ed8;         /* Blue 700 */
-  --text: #0f172a;
-  --muted: #64748b;
-  --border: #e6eaf2;
-  --border-strong: #d5dbea;
+  --brand: #2563eb;
+  --brand-500: #3b82f6;
+  --brand-700: #1d4ed8;
+  --text: #0b1324;
+  --muted: #5b6b84;
+  --border: #dfe6f3;
+  --border-strong: #cfd8ec;
   --surface: #ffffff;
-  --surface-2: #f7f9fc;
   --disabled-bg: #f3f6fb;
 
   --shadow-sm: 0 2px 6px rgba(2, 6, 23, .06), 0 8px 18px rgba(2, 6, 23, .05);
-  --shadow-lg: 0 12px 24px rgba(2, 6, 23, .10), 0 28px 60px rgba(2, 6, 23, .12);
 
   --gloss: linear-gradient(120deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.6) 50%, rgba(255,255,255,0) 70%);
+
+  /* Background clarity + blur variables */
+  --bg-opacity: .24;          /* base visibility */
+  --bg-opacity-hover: .36;    /* on hover */
+  --bg-blur: 8px;             /* base blur */
+  --bg-blur-hover: 10px;      /* on hover */
 }
 
-/* ===================== BACKGROUND (More visible) ===================== */
+/* Background with blur */
 body .mw-bg-layer {
   position: fixed;
   inset: 0;
   background-position: center top;
   background-repeat: no-repeat;
-  background-size: contain;    /* not large: keep original aspect without filling entire screen */
-  opacity: .20;                /* visible but subtle */
-  filter: none;                /* no blur */
+  background-size: contain;
+  opacity: var(--bg-opacity);
+  filter: blur(var(--bg-blur));
+  -webkit-filter: blur(var(--bg-blur));
   pointer-events: none;
   z-index: 0;
-  transition: opacity .25s ease, background-size .25s ease;
+  transition:
+    opacity .28s ease,
+    filter .3s ease,
+    -webkit-filter .3s ease,
+    background-size .25s ease,
+    transform .7s ease;
+  will-change: opacity, transform, filter;
+}
+/* Increase clarity and blur a bit on hover for smoothness */
+body.mw-bg-hover .mw-bg-layer {
+  opacity: var(--bg-opacity-hover);
+  filter: blur(var(--bg-blur-hover));
+  -webkit-filter: blur(var(--bg-blur-hover));
+  transform: scale(1.01) translateY(-1px);
 }
 
-/* Light vignette to keep cards readable */
+/* Vignette + glow (kept light to avoid muddy look with blur) */
 body .mw-bg-layer::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(130% 85% at 50% 12%,
-      rgba(255,255,255,0.14),
-      rgba(255,255,255,0.08) 45%,
-      rgba(255,255,255,0.00) 80%);
+    radial-gradient(140% 90% at 50% 10%,
+      rgba(255,255,255,0.08),
+      rgba(255,255,255,0.04) 45%,
+      rgba(255,255,255,0.00) 78%);
   pointer-events: none;
 }
-
-/* Top glow + soft shade */
 body .mw-bg-layer::after {
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0.0) 40%);
-  mix-blend-mode: lighten;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(255,255,255,0.0) 38%);
   pointer-events: none;
 }
 
-/* Dark mode background tuning */
-html.dark body .mw-bg-layer {
-  opacity: .22;
-  filter: none; /* keep sharp */
-}
+/* Dark mode */
+html.dark .mw-container { --bg-opacity: .26; --bg-opacity-hover: .40; --bg-blur: 8px; --bg-blur-hover: 10px; }
 html.dark body .mw-bg-layer::before {
   background:
-    radial-gradient(130% 85% at 50% 12%,
-      rgba(0,0,0,0.24),
+    radial-gradient(135% 90% at 50% 10%,
+      rgba(0,0,0,0.22),
       rgba(0,0,0,0.12) 45%,
-      rgba(0,0,0,0.00) 80%);
+      rgba(0,0,0,0.00) 78%);
 }
 html.dark body .mw-bg-layer::after {
-  background:
-    linear-gradient(to bottom, rgba(0,0,0,0.12), rgba(0,0,0,0.0) 40%);
-  mix-blend-mode: normal;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.12), rgba(0,0,0,0.0) 38%);
 }
 
-/* Optional: stronger presence on very small screens */
-@media (max-width: 480px) {
-  body .mw-bg-layer {
-    background-size: contain;
-    opacity: .22;
-  }
-}
-
-/* ===================== LAYOUT/BASICS ===================== */
+/* Layout */
 .mw-container, .mw-page { position: relative; z-index: 1; }
-
 .mw-section { margin-bottom: 22px; }
 .mw-section-title {
   display: flex; align-items: center; gap: 8px;
@@ -292,39 +300,37 @@ html.dark body .mw-bg-layer::after {
 @media (max-width: 820px)  { .mw-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 480px)  { .mw-grid { grid-template-columns: 1fr; gap: 18px; } }
 
-/* ===================== CARDS ===================== */
-/* Base: blue accent, glassy surface, breathing-ready */
+/* Cards (same as previous enhanced version) */
 .mw-card {
   position: relative;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-  min-height: 124px;
+  min-height: 126px;
   text-decoration: none; color: inherit;
+  isolation: isolate;
 
   border: 1px solid var(--border);
   border-radius: 16px;
   background:
     radial-gradient(120% 120% at 50% -5%, rgba(59,130,246,.10), rgba(59,130,246,0) 35%),
-    linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.96)),
+    linear-gradient(180deg, rgba(255,255,255,.90), rgba(255,255,255,.98)),
     var(--surface);
-  backdrop-filter: saturate(1.05) blur(0.2px);
+  backdrop-filter: saturate(1.08) blur(0.25px);
   box-shadow: var(--shadow-sm);
 
   transition:
-    transform .25s cubic-bezier(.2,.7,.2,1),
+    transform .22s cubic-bezier(.2,.7,.2,1),
     box-shadow .28s ease,
     border-color .18s ease,
     background .28s ease,
     opacity .35s ease,
     filter .25s ease;
   opacity: 0;
-  transform: translateY(12px) scale(.985);
-  will-change: transform, box-shadow;
+  transform: translateY(14px) scale(.985);
+  will-change: transform, box-shadow, filter;
   perspective: 1000px;
   transform-style: preserve-3d;
   overflow: hidden;
 }
-
-/* Glossy sweep */
 .mw-card::before {
   content: "";
   position: absolute; inset: 0;
@@ -334,158 +340,105 @@ html.dark body .mw-bg-layer::after {
   transition: transform .9s ease, opacity .35s ease;
   pointer-events: none;
 }
-
-/* Blue focus halo container (animated) */
 .mw-card::after {
   content: "";
   position: absolute; inset: -1px; border-radius: 18px;
-  box-shadow: 0 0 0 0 rgba(37,99,235,.28);
+  box-shadow: 0 0 0 0 rgba(37,99,235,.26);
   opacity: 0; pointer-events: none;
   transition: box-shadow .25s ease, opacity .2s ease;
 }
-
-/* Content */
 .mw-card-icon {
-  font-size: 32px;
+  font-size: 34px;
   line-height: 1;
-  transform: translateZ(30px);
+  transform: translateZ(36px);
   transition: transform .22s ease, filter .2s ease, opacity .2s ease;
+  will-change: transform;
 }
 .mw-card-label {
-  font-weight: 800;
+  font-weight: 900;
   text-align: center;
-  font-size: 14.5px;
+  font-size: 15px;
+  letter-spacing: .1px;
   line-height: 1.35;
-  color: #0b1324;
+  color: var(--text);
   padding-inline: 10px;
-  transform: translateZ(20px);
+  transform: translateZ(24px);
+  transition: transform .22s ease;
 }
-
-/* Hover/focus: lift, blue border, breathing shadow, glossy sweep */
 .mw-card.usable:hover,
 .mw-card.usable:focus-visible {
-  transform: translateY(-8px) scale(1.02);
-  border-color: color-mix(in srgb, var(--brand) 32%, var(--border-strong));
+  transform: translateY(-9px) scale(1.022);
+  border-color: color-mix(in srgb, var(--brand) 36%, var(--border-strong));
   background:
-    radial-gradient(120% 120% at 50% -5%, rgba(59,130,246,.12), rgba(59,130,246,0) 40%),
+    radial-gradient(120% 120% at 50% -5%, rgba(59,130,246,.13), rgba(59,130,246,0) 40%),
     linear-gradient(180deg, #fafdff, #ffffff);
   box-shadow:
-    0 14px 30px rgba(37, 99, 235, .12),
-    0 26px 70px rgba(2, 6, 23, .14);
+    0 14px 28px rgba(37, 99, 235, .12),
+    0 28px 70px rgba(2, 6, 23, .16);
   animation: mw-shadow-breathe 1.8s ease-in-out infinite;
 }
 @keyframes mw-shadow-breathe {
-  0%, 100% {
-    box-shadow:
-      0 14px 30px rgba(37, 99, 235, .12),
-      0 26px 70px rgba(2, 6, 23, .14);
-  }
-  50% {
-    box-shadow:
-      0 18px 36px rgba(37, 99, 235, .16),
-      0 32px 84px rgba(2, 6, 23, .18);
-  }
+  0%, 100% { box-shadow: 0 14px 28px rgba(37,99,235,.12), 0 28px 70px rgba(2,6,23,.16); }
+  50% { box-shadow: 0 18px 36px rgba(37,99,235,.18), 0 36px 90px rgba(2,6,23,.20); }
 }
-
 .mw-card.usable:hover::before,
-.mw-card.usable:focus-visible::before {
-  opacity: .95;
-  transform: translateX(140%);
-}
+.mw-card.usable:focus-visible::before { opacity: .95; transform: translateX(140%); }
+.mw-card.usable:hover::after,
+.mw-card.usable:focus-visible::after { opacity: 1; box-shadow: 0 0 0 3px rgba(59,130,246,.28), 0 6px 24px rgba(59,130,246,.18); }
 .mw-card.usable:hover .mw-card-icon,
-.mw-card.usable:focus-visible .mw-card-icon {
-  transform: translateZ(30px) translateY(-2px) scale(1.06);
-}
-.mw-card.usable:focus-visible::after {
-  opacity: 1;
-  box-shadow: 0 0 0 3px rgba(59,130,246,.28), 0 0 0 8px rgba(59,130,246,.12);
-}
+.mw-card.usable:focus-visible .mw-card-icon { transform: translateZ(36px) translateY(-2px) scale(1.06); }
+.mw-card.usable:hover .mw-card-label,
+.mw-card.usable:focus-visible .mw-card-label { transform: translateZ(24px) translateY(-1px); }
 
-/* Pressed */
-.mw-card.usable:active {
-  transform: translateY(-3px) scale(0.997);
-  transition-duration: .08s;
-  animation: none;
-}
+.mw-card.usable:active { transform: translateY(-4px) scale(0.997); transition-duration: .08s; animation: none; }
 
-/* Disabled */
 .mw-card.disabled {
   cursor: not-allowed;
-  pointer-events: auto; /* keep events for popover */
-  opacity: 0.78;
-  background:
-    linear-gradient(180deg, var(--disabled-bg), #fff);
+  pointer-events: auto;
+  opacity: 0.8;
+  background: linear-gradient(180deg, var(--disabled-bg), #fff);
   border-style: dashed;
   border-color: #cdd6ea;
   filter: saturate(.9);
   box-shadow: none;
 }
-.mw-card.disabled .mw-card-icon { filter: grayscale(100%) opacity(.65); }
+.mw-card.disabled .mw-card-icon { filter: grayscale(100%) opacity(.6); }
 .mw-card.disabled .mw-card-label { color: #6b7280; }
 
-/* Red "no permission" tag */
 .mw-card.disabled .mw-ribbon {
-  position: absolute;
-  top: 8px;
-  inset-inline-start: 8px;
-  background: #ef4444;
-  color: #fff;
-  border-radius: 999px;
-  padding: 4px 8px;
-  font-size: 11.5px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: .2px;
-  pointer-events: none;
-  box-shadow: 0 2px 6px rgba(239,68,68,.35);
+  position: absolute; top: 8px; inset-inline-start: 8px;
+  background: #ef4444; color: #fff; border-radius: 999px;
+  padding: 4px 8px; font-size: 11.5px; font-weight: 800; line-height: 1; letter-spacing: .2px;
+  pointer-events: none; box-shadow: 0 2px 6px rgba(239,68,68,.35);
 }
 
-/* Remove sweep/focus ring on disabled */
 .mw-card.disabled::before, .mw-card.disabled::after { display: none; }
 
-/* Entrance animation */
-.mw-card.mw-in {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  transition-duration: .65s;
-}
+.mw-card.mw-in { opacity: 1; transform: translateY(0) scale(1); transition-duration: .7s; }
 
-/* Keyboard outline */
-.mw-card:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--brand-500) 55%, transparent);
-  outline-offset: 2px;
-}
+.mw-card:focus-visible { outline: 2px solid color-mix(in srgb, var(--brand-500) 55%, transparent); outline-offset: 2px; }
 
-/* Dark mode cards */
 html.dark .mw-card {
   background:
     radial-gradient(120% 120% at 50% -5%, rgba(37,99,235,.10), rgba(37,99,235,0) 35%),
-    linear-gradient(180deg, rgba(17,24,39,.88), rgba(17,24,39,.94));
-  border-color: #334155;
-  box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 24px rgba(0,0,0,.35);
+    linear-gradient(180deg, rgba(19,26,41,.90), rgba(17,24,39,.96));
+  border-color: #344256;
+  box-shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 26px rgba(0,0,0,.38);
 }
 html.dark .mw-card.usable:hover,
 html.dark .mw-card.usable:focus-visible {
-  border-color: color-mix(in srgb, var(--brand) 38%, #334155);
+  border-color: color-mix(in srgb, var(--brand) 42%, #334155);
   background:
-    radial-gradient(120% 120% at 50% -5%, rgba(59,130,246,.16), rgba(59,130,246,0) 40%),
-    linear-gradient(180deg, rgba(30,41,59,.96), rgba(17,24,39,.96));
+    radial-gradient(120% 120% at 50% -5%, rgba(59,130,246,.18), rgba(59,130,246,0) 40%),
+    linear-gradient(180deg, rgba(31,41,59,.96), rgba(17,24,39,.98));
 }
-html.dark .mw-card-label { color: #e5e7eb; }
-html.dark .mw-card.disabled {
-  background: linear-gradient(180deg, #0b1220, #111827);
-  border-color: #475569;
-}
+html.dark .mw-card-label { color: #e8edf6; }
+html.dark .mw-card.disabled { background: linear-gradient(180deg, #0b1220, #111827); border-color: #475569; }
 
-/* ===================== REDUCED MOTION ===================== */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .mw-card,
-  .mw-card::before,
-  .mw-card::after,
-  .mw-card-icon,
-  .mw-bg-layer {
-    transition: none !important;
-    animation: none !important;
+  .mw-card, .mw-card::before, .mw-card::after, .mw-card-icon, .mw-bg-layer {
+    transition: none !important; animation: none !important;
   }
 }
 `;
@@ -495,7 +448,7 @@ html.dark .mw-card.disabled {
   document.head.appendChild(style);
 }
 
-/* Subtle, non-stretched background */
+/* Background setup */
 function apply_mw_background() {
   const BG_SRC = "/assets/milk/images/milken.jpg";
 
@@ -512,8 +465,18 @@ function apply_mw_background() {
   const run = () => {
     const bg = ensureBgLayer();
     const img = new Image();
-    img.onload = () => { bg.style.backgroundImage = "url('" + BG_SRC + "')"; };
-    img.onerror = () => { console.warn("[Milk Workspace] Background NOT found:", BG_SRC); bg.style.backgroundImage = ""; };
+    img.onload = () => {
+      bg.style.backgroundImage = "url('" + BG_SRC + "')";
+      bg.style.transform = "translateY(-6px)";
+      requestAnimationFrame(() => {
+        setTimeout(() => { bg.style.transform = "translateY(0)"; }, 10);
+      });
+    };
+    img.onerror = () => {
+      console.warn("[Milk Workspace] Background NOT found:", BG_SRC);
+      bg.style.backgroundImage = "";
+      bg.style.opacity = "0";
+    };
     img.src = BG_SRC + "?v=" + Date.now();
   };
 
@@ -524,281 +487,181 @@ function apply_mw_background() {
   }
 }
 
-/* ----------------------- Popup helpers ----------------------- */
-function ensurePermPopover() {
-  let el = document.getElementById("mw-perm-popover");
-  if (el) return el;
-  el = document.createElement("div");
-  el.id = "mw-perm-popover";
-  el.style.position = "fixed";
-  el.style.zIndex = "999999";
-  el.style.maxWidth = "320px";
-  el.style.background = "#111827";
-  el.style.color = "#fff";
-  el.style.padding = "10px 12px";
-  el.style.borderRadius = "10px";
-  el.style.boxShadow = "0 12px 30px rgba(0,0,0,.25)";
-  el.style.fontSize = "12px";
-  el.style.lineHeight = "1.5";
-  el.style.display = "none";
-  el.style.pointerEvents = "none";
-  el.style.wordWrap = "break-word";
-  el.innerHTML =
-    '<div style="font-weight:800;margin-bottom:6px">' +
-    __("Permissions needed") +
-    '</div><ul class="mw-perm-list" style="margin:0;padding-inline-start:16px"></ul>';
-  document.body.appendChild(el);
-  return el;
-}
-function setPermPopoverContent(reasons) {
-  const pop = ensurePermPopover();
-  const ul = pop.querySelector(".mw-perm-list");
-  ul.innerHTML = "";
-  (reasons || []).slice(0, 10).forEach(r => {
-    const li = document.createElement("li");
-    li.textContent = r;
-    ul.appendChild(li);
+/* Background hover intensify */
+function enable_bg_hover_intensify(root) {
+  const el = root instanceof HTMLElement ? root : document.querySelector("#milk-workspace") || document.body;
+  let pointerType = "mouse";
+  window.addEventListener("pointerdown", (e) => { pointerType = e.pointerType || "mouse"; }, { passive: true });
+
+  function enter() { if (pointerType === "mouse") document.body.classList.add("mw-bg-hover"); }
+  function leave(e) {
+    if (pointerType !== "mouse") return;
+    if (!el.contains(e?.relatedTarget)) document.body.classList.remove("mw-bg-hover");
+  }
+  el.addEventListener("mouseenter", enter);
+  el.addEventListener("mouseleave", leave);
+  el.addEventListener("mouseover", (e) => {
+    if (pointerType !== "mouse") return;
+    if (e.target.closest && e.target.closest(".mw-card")) document.body.classList.add("mw-bg-hover");
+  });
+  el.addEventListener("mouseout", (e) => {
+    if (pointerType !== "mouse") return;
+    const to = e.relatedTarget;
+    if (!el.contains(to)) document.body.classList.remove("mw-bg-hover");
   });
 }
-function showPermPopoverAt(x, y) {
-  const pop = ensurePermPopover();
-  const px = Math.min(window.innerWidth - 20, Math.max(0, x + 12));
-  const py = Math.min(window.innerHeight - 20, Math.max(0, y + 12));
-  pop.style.left = px + "px";
-  pop.style.top = py + "px";
-  pop.style.display = "block";
-}
-function hidePermPopover() {
-  const pop = document.getElementById("mw-perm-popover");
-  if (pop) pop.style.display = "none";
-}
-function attachPermHover(el, reasons) {
-  if (reasons && reasons.length) {
-    el.dataset.permReasons = JSON.stringify(reasons);
-  }
-  const getReasons = () => {
-    try {
-      if (el.dataset.permReasons) return JSON.parse(el.dataset.permReasons);
-    } catch {}
-    const list = [];
-    const dt = el.getAttribute("data-requires-doctype");
-    const pg = el.getAttribute("data-requires-page");
-    const fields = (el.getAttribute("data-requires-fields") || "")
-      .split(",").map(s => s.trim()).filter(Boolean);
-    if (dt) {
-      list.push(`read: ${dt}`);
-      fields.forEach(f => {
-        if (f.includes(".")) list.push(`field read: ${f}`);
-        else list.push(`field read: ${dt}.${f}`);
-      });
-    } else if (pg) {
-      if (pg.startsWith("query-report/"))
-        list.push(`run report: ${pg.slice("query-report/".length)}`);
-      else
-        list.push(`open page: ${pg}`);
-      fields.forEach(f => { if (f.includes(".")) list.push(`field read: ${f}`); });
-    }
-    if (!list.length) list.push(__("Insufficient permission"));
-    return list;
-  };
 
-  function onEnter(e) {
-    if (!el.classList.contains("disabled")) return;
-    const r = getReasons();
-    setPermPopoverContent(r);
-    const p = e?.touches ? e.touches[0] : e;
-    showPermPopoverAt(p?.clientX || 0, p?.clientY || 0);
+/* Idle ambient drift (very subtle) */
+function enable_idle_ambient() {
+  const prefersReduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefersReduced) return;
+  const bg = document.querySelector("body > .mw-bg-layer");
+  if (!bg) return;
+  let t = 0;
+  let raf;
+  function tick() {
+    t += 0.002;
+    const dx = Math.sin(t) * 0.6;
+    const dy = Math.cos(t * 0.8) * 0.6;
+    bg.style.transform = "translate(" + dx + "px, " + dy + "px)";
+    raf = requestAnimationFrame(tick);
   }
-  function onMove(e) {
-    if (!el.classList.contains("disabled")) return;
-    const p = e?.touches ? e.touches[0] : e;
-    showPermPopoverAt(p?.clientX || 0, p?.clientY || 0);
-  }
-  function onLeave() { hidePermPopover(); }
-
-  if (!el._mwPermHoverBound) {
-    el._mwPermHoverBound = true;
-    el.addEventListener("mouseenter", onEnter);
-    el.addEventListener("mousemove", onMove);
-    el.addEventListener("mouseleave", onLeave);
-    el.addEventListener("focus", onEnter);
-    el.addEventListener("blur", onLeave);
-    el.addEventListener("touchstart", onEnter, { passive: true });
-    el.addEventListener("touchend", onLeave);
-  }
-}
-
-/* ----------------------- Permissions (batch + red tag + popup) ----------------------- */
-async function enforce_requirements_keep_visible($root) {
-  // Gather cards
-  const cards = Array.from($root.find(".mw-card")).map((el, idx) => {
-    const id = el.getAttribute("id") || el.getAttribute("data-id") || el.getAttribute("data-route") || `card-${idx}`;
-    el.dataset.cardId = id;
-    const fields = (el.getAttribute("data-requires-fields") || "")
-      .split(",").map(s => s.trim()).filter(Boolean);
-    return {
-      id,
-      doctype: el.getAttribute("data-requires-doctype") || null,
-      page: el.getAttribute("data-requires-page") || null,
-      fields
-    };
+  raf = requestAnimationFrame(tick);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) cancelAnimationFrame(raf);
+    else raf = requestAnimationFrame(tick);
   });
-
-  function ensureRibbon(el) {
-    let tag = el.querySelector(".mw-ribbon");
-    if (!tag) {
-      tag = document.createElement("span");
-      tag.className = "mw-ribbon";
-      tag.textContent = "لا صلاحية";
-      el.appendChild(tag);
-    }
-  }
-
-  function removeRibbon(el) {
-    const tag = el.querySelector(".mw-ribbon");
-    if (tag) tag.remove();
-  }
-
-  function paint(el, allowed) {
-    // Reset
-    el.classList.remove("disabled", "usable");
-    el.removeAttribute("aria-disabled");
-    el.removeAttribute("tabindex");
-    el.removeAttribute("aria-describedby");
-    if (el.getAttribute("title") === __("ليست لديك صلاحية لفتح هذه الشاشة")) {
-      el.removeAttribute("title");
-    }
-    removeRibbon(el);
-
-    if (!allowed) {
-      el.classList.add("disabled");
-      el.setAttribute("aria-disabled", "true");
-      el.setAttribute("title", __("ليست لديك صلاحية لفتح هذه الشاشة"));
-      el.setAttribute("tabindex", "0");
-      el.setAttribute("aria-describedby", "mw-perm-popover");
-      ensureRibbon(el);
-      return "disabled";
-    } else {
-      el.classList.add("usable");
-      return "usable";
-    }
-  }
-
-  // Detect privileged quickly
-  const roles = (frappe.boot?.user?.roles || []).map(r => String(r || "").toLowerCase());
-  const is_privileged =
-    roles.includes("milk admin") ||
-    roles.includes("system manager") ||
-    (String(frappe.session?.user || "").toLowerCase() === "administrator");
-
-  if (is_privileged) {
-    $root.find(".mw-card").each(function () {
-      paint(this, true);
-    });
-    return;
-  }
-
-  if (!cards.length) return;
-
-  // Backend batch call
-  try {
-    const r = await frappe.call({
-      method: "milk.milk.page.milk.api.check_card_access",
-      args: { cards }
-    });
-    const msg = r && r.message ? r.message : {};
-    const allowedMap = msg.allowed || {};
-    const reasonsMap = msg.reasons || {};
-    $root.find(".mw-card").each(function () {
-      const id = this.dataset.cardId;
-      const ok = id && id in allowedMap ? !!allowedMap[id] : false;
-      const reasons = (reasonsMap && reasonsMap[id]) || null;
-      const state = paint(this, ok);
-      if (state === "disabled") {
-        attachPermHover(this, reasons || null);
-      }
-    });
-  } catch (e) {
-    // Fallback: basic checks; still attach popup inference
-    $root.find(".mw-card").each(function () {
-      const dt = this.getAttribute("data-requires-doctype");
-      const pg = this.getAttribute("data-requires-page");
-      let ok = true;
-      try {
-        if (dt) ok = !!(frappe.perm && typeof frappe.perm.has_perm === "function" && frappe.perm.has_perm(dt, 0, "read"));
-        else if (pg) {
-          const pages = (frappe.boot?.allowed_pages || []).map(x => (x && x.name) || x).filter(Boolean);
-          ok = pages.includes(pg);
-        }
-      } catch {
-        ok = false;
-      }
-      const state = paint(this, ok);
-      if (state === "disabled") attachPermHover(this, null);
-    });
-  }
 }
 
-/* ----------------------- Icon fallback ----------------------- */
-function ensure_milk_icon_fallback() {
-  // No external image icons now; nothing to patch.
+/* Ripple on click */
+function enable_card_ripple(root) {
+  root.addEventListener("click", (e) => {
+    const card = e.target.closest && e.target.closest(".mw-card.usable");
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = (e.clientX || (rect.left + rect.width/2)) - rect.left;
+    const y = (e.clientY || (rect.top + rect.height/2)) - rect.top;
+
+    const ripple = document.createElement("span");
+    ripple.className = "mw-ripple";
+    ripple.style.position = "absolute";
+    ripple.style.top = (y - 10) + "px";
+    ripple.style.left = (x - 10) + "px";
+    ripple.style.width = ripple.style.height = "20px";
+    ripple.style.borderRadius = "50%";
+    ripple.style.background = "radial-gradient(circle, rgba(59,130,246,.35) 0%, rgba(59,130,246,0) 65%)";
+    ripple.style.transform = "translate(-50%, -50%) scale(0.6)";
+    ripple.style.opacity = "0.7";
+    ripple.style.pointerEvents = "none";
+    ripple.style.transition = "transform .6s ease, opacity .6s ease";
+    card.appendChild(ripple);
+    requestAnimationFrame(() => {
+      ripple.style.transform = "translate(-50%, -50%) scale(4)";
+      ripple.style.opacity = "0";
+    });
+    setTimeout(() => ripple.remove(), 620);
+  });
 }
 
-/* ----------------------- Entrance Animation ----------------------- */
+/* Neighbor reaction on hover */
+function enable_card_group_hover(root) {
+  const grid = root.querySelector(".mw-grid");
+  if (!grid) return;
+  grid.addEventListener("mousemove", (e) => {
+    const card = e.target.closest && e.target.closest(".mw-card.usable");
+    const cards = grid.querySelectorAll(".mw-card");
+    if (!card) { cards.forEach(c => c.style.filter = ""); return; }
+    const rect = card.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    cards.forEach(c => {
+      if (c === card) { c.style.filter = ""; return; }
+      const r2 = c.getBoundingClientRect();
+      const dx = (r2.left + r2.width/2) - cx;
+      const dy = (r2.top + r2.height/2) - cy;
+      const dist = Math.hypot(dx, dy);
+      const falloff = Math.max(0, 1 - dist / 420);
+      c.style.filter = "saturate(" + (0.92 + falloff * 0.08) + ") brightness(" + (0.98 + falloff * 0.04) + ")";
+    });
+  });
+  grid.addEventListener("mouseleave", () => {
+    grid.querySelectorAll(".mw-card").forEach(c => c.style.filter = "");
+  });
+}
+
+/* Parallax with smoothed tilt */
 function enable_card_parallax(root) {
   const cards = root.querySelectorAll(".mw-card");
   cards.forEach(card => {
     let raf = null;
+    let lastRX = 0, lastRY = 0;
 
     function onMove(e) {
       if (!card.classList.contains("usable")) return;
       const rect = card.getBoundingClientRect();
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
-      const dx = (e.clientX - cx) / rect.width;   // -0.5..0.5
-      const dy = (e.clientY - cy) / rect.height;  // -0.5..0.5
-      const maxTilt = 5; // degrees
+      const dx = (e.clientX - cx) / rect.width;
+      const dy = (e.clientY - cy) / rect.height;
+      const maxTilt = 6;
       const rx = (-dy * maxTilt);
       const ry = (dx * maxTilt);
-      const tz = 18; // px
+
+      lastRX = lastRX + (rx - lastRX) * 0.18;
+      lastRY = lastRY + (ry - lastRY) * 0.18;
 
       if (raf) cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
-        card.style.transform = `translateY(-6px) scale(1.02) rotateX(${rx}deg) rotateY(${ry}deg) translateZ(0)`;
-        card.style.transition = "transform .08s ease";
+        card.style.transform = "translateY(-8px) scale(1.022) rotateX(" + lastRX + "deg) rotateY(" + lastRY + "deg)";
+        card.style.transition = "transform .06s ease";
+        const icon = card.querySelector(".mw-card-icon");
+        const label = card.querySelector(".mw-card-label");
+        if (icon) icon.style.transform = "translateZ(36px) translate(" + (lastRY*0.8) + "px, " + (-lastRX*0.8) + "px) scale(1.06)";
+        if (label) label.style.transform = "translateZ(24px) translate(" + (lastRY*0.4) + "px, " + (-lastRX*0.4) + "px)";
       });
     }
 
     function onLeave() {
       if (raf) cancelAnimationFrame(raf);
       card.style.transition = "transform .25s cubic-bezier(.2,.7,.2,1)";
-      card.style.transform = ""; // let hover/focus CSS take over
+      card.style.transform = "";
+      const icon = card.querySelector(".mw-card-icon");
+      const label = card.querySelector(".mw-card-label");
+      if (icon) icon.style.transform = "";
+      if (label) label.style.transform = "";
     }
 
     card.addEventListener("mousemove", onMove);
     card.addEventListener("mouseleave", onLeave);
     card.addEventListener("blur", onLeave);
+
+    card.addEventListener("touchstart", () => {
+      if (!card.classList.contains("usable")) return;
+      card.style.transform = "translateY(-6px) scale(1.02)";
+      setTimeout(() => { card.style.transform = ""; }, 160);
+    }, { passive: true });
   });
 }
 
-// Optional: slightly stronger entrance stagger
+/* Entrance: stagger + springy settle */
 function animate_entrance(root) {
   const cards = root.querySelectorAll(".mw-card");
   cards.forEach((card, i) => {
-    const delay = i * 60;
-    const tilt = (Math.random() * 0.6 - 0.3).toFixed(2);
+    const delay = i * 55;
+    const tilt = (Math.random() * 0.8 - 0.4).toFixed(2);
     card.style.transitionDelay = delay + "ms";
-    card.style.transform += ` rotate(${tilt}deg)`;
+    card.style.transform += " rotate(" + tilt + "deg)";
     requestAnimationFrame(() => {
       setTimeout(() => {
         card.classList.add("mw-in");
-        setTimeout(() => { card.style.transform = ""; }, 680 + delay);
-      }, 16);
+        setTimeout(() => { card.style.transform = "translateY(-2px)"; }, 60 + delay);
+        setTimeout(() => { card.style.transform = ""; }, 220 + delay);
+      }, 12);
     });
   });
 }
 
-/* ----------------------- Routing (disable-aware; no view/list; soft refresh) ----------------------- */
+/* Routing (disable-aware; soft refresh) */
 function bind_route_clicks_disable_aware($root) {
   const DOCTYPE_MAP = new Set([
     "Weekly Supplier Payment",
@@ -839,21 +702,24 @@ function bind_route_clicks_disable_aware($root) {
     const try_soft_refresh = () => {
       const r = frappe.get_route ? frappe.get_route() : null;
       if (Array.isArray(r) && r.length) {
-        const [type, name] = r;
+        const type = r[0];
+        const name = r[1];
 
         if (type === "List") {
           const lv = window.cur_list || (frappe.container && frappe.container.page && frappe.container.page.listview);
           if (lv && typeof lv.refresh === "function") { lv.refresh(); return true; }
-          if (frappe.views?.listview?.refresh) { frappe.views.listview.refresh(); return true; }
+          if (frappe.views && frappe.views.listview && typeof frappe.views.listview.refresh === "function") {
+            frappe.views.listview.refresh(); return true;
+          }
         }
 
         if (type === "query-report") {
           if (window.cur_report && typeof window.cur_report.refresh === "function") { cur_report.refresh(); return true; }
           const reg = frappe.query_reports && frappe.query_reports[name];
-          if (reg?.report?.refresh) { reg.report.refresh(); return true; }
+          if (reg && reg.report && typeof reg.report.refresh === "function") { reg.report.refresh(); return true; }
         }
 
-        if (type === "Form" && window.cur_frm?.refresh) {
+        if (type === "Form" && window.cur_frm && typeof window.cur_frm.refresh === "function") {
           window.cur_frm.refresh(); return true;
         }
       }
@@ -872,4 +738,191 @@ function bind_route_clicks_disable_aware($root) {
     document.addEventListener("frappe.router.change", on_router_change, { once: true });
     setTimeout(on_router_change, 400);
   });
+}
+
+/* Permissions helpers */
+function ensure_milk_icon_fallback() {}
+async function enforce_requirements_keep_visible($root) {
+  const cards = Array.from($root.find(".mw-card")).map((el, idx) => {
+    const id = el.getAttribute("id") || el.getAttribute("data-id") || el.getAttribute("data-route") || "card-" + idx;
+    el.dataset.cardId = id;
+    const fields = (el.getAttribute("data-requires-fields") || "")
+      .split(",").map(function(s){return s.trim();}).filter(Boolean);
+    return { id, doctype: el.getAttribute("data-requires-doctype") || null, page: el.getAttribute("data-requires-page") || null, fields };
+  });
+
+  function ensureRibbon(el) {
+    let tag = el.querySelector(".mw-ribbon");
+    if (!tag) {
+      tag = document.createElement("span");
+      tag.className = "mw-ribbon";
+      tag.textContent = "لا صلاحية";
+      el.appendChild(tag);
+    }
+  }
+  function removeRibbon(el) { const tag = el.querySelector(".mw-ribbon"); if (tag) tag.remove(); }
+
+  function paint(el, allowed) {
+    el.classList.remove("disabled", "usable");
+    el.removeAttribute("aria-disabled");
+    el.removeAttribute("tabindex");
+    el.removeAttribute("aria-describedby");
+    if (el.getAttribute("title") === __("ليست لديك صلاحية لفتح هذه الشاشة")) el.removeAttribute("title");
+    removeRibbon(el);
+
+    if (!allowed) {
+      el.classList.add("disabled");
+      el.setAttribute("aria-disabled", "true");
+      el.setAttribute("title", __("ليست لديك صلاحية لفتح هذه الشاشة"));
+      el.setAttribute("tabindex", "0");
+      el.setAttribute("aria-describedby", "mw-perm-popover");
+      ensureRibbon(el);
+      return "disabled";
+    } else {
+      el.classList.add("usable");
+      return "usable";
+    }
+  }
+
+  const roles = (frappe.boot && frappe.boot.user && frappe.boot.user.roles ? frappe.boot.user.roles : []).map(function(r){return String(r || "").toLowerCase();});
+  const is_privileged =
+    roles.indexOf("milk admin") !== -1 ||
+    roles.indexOf("system manager") !== -1 ||
+    (String((frappe.session && frappe.session.user) || "").toLowerCase() === "administrator");
+
+  if (is_privileged) {
+    $root.find(".mw-card").each(function () { paint(this, true); });
+    return;
+  }
+
+  if (!cards.length) return;
+
+  try {
+    const r = await frappe.call({ method: "milk.milk.page.milk.api.check_card_access", args: { cards: cards } });
+    const msg = r && r.message ? r.message : {};
+    const allowedMap = msg.allowed || {};
+    const reasonsMap = msg.reasons || {};
+    $root.find(".mw-card").each(function () {
+      const id = this.dataset.cardId;
+      const ok = id && Object.prototype.hasOwnProperty.call(allowedMap, id) ? !!allowedMap[id] : false;
+      const reasons = (reasonsMap && reasonsMap[id]) || null;
+      const state = paint(this, ok);
+      if (state === "disabled") attachPermHover(this, reasons || null);
+    });
+  } catch (e) {
+    $root.find(".mw-card").each(function () {
+      const dt = this.getAttribute("data-requires-doctype");
+      const pg = this.getAttribute("data-requires-page");
+      let ok = true;
+      try {
+        if (dt) ok = !!(frappe.perm && typeof frappe.perm.has_perm === "function" && frappe.perm.has_perm(dt, 0, "read"));
+        else if (pg) {
+          const pagesRaw = (frappe.boot && frappe.boot.allowed_pages) ? frappe.boot.allowed_pages : [];
+          const pages = pagesRaw.map(function(x){ return (x && x.name) || x; }).filter(Boolean);
+          ok = pages.indexOf(pg) !== -1;
+        }
+      } catch (err) { ok = false; }
+      const state = paint(this, ok);
+      if (state === "disabled") attachPermHover(this, null);
+    });
+  }
+}
+
+/* Permission popover */
+function ensurePermPopover() {
+  let el = document.getElementById("mw-perm-popover");
+  if (el) return el;
+  el = document.createElement("div");
+  el.id = "mw-perm-popover";
+  el.style.position = "fixed";
+  el.style.zIndex = "999999";
+  el.style.maxWidth = "320px";
+  el.style.background = "#111827";
+  el.style.color = "#fff";
+  el.style.padding = "10px 12px";
+  el.style.borderRadius = "10px";
+  el.style.boxShadow = "0 12px 30px rgba(0,0,0,.25)";
+  el.style.fontSize = "12px";
+  el.style.lineHeight = "1.5";
+  el.style.display = "none";
+  el.style.pointerEvents = "none";
+  el.style.wordWrap = "break-word";
+  el.innerHTML =
+    '<div style="font-weight:800;margin-bottom:6px">' +
+    __("Permissions needed") +
+    '</div><ul class="mw-perm-list" style="margin:0;padding-inline-start:16px"></ul>';
+  document.body.appendChild(el);
+  return el;
+}
+function setPermPopoverContent(reasons) {
+  const pop = ensurePermPopover();
+  const ul = pop.querySelector(".mw-perm-list");
+  ul.innerHTML = "";
+  (reasons || []).slice(0, 10).forEach(function(r) {
+    const li = document.createElement("li");
+    li.textContent = r;
+    ul.appendChild(li);
+  });
+}
+function showPermPopoverAt(x, y) {
+  const pop = ensurePermPopover();
+  const px = Math.min(window.innerWidth - 20, Math.max(0, x + 12));
+  const py = Math.min(window.innerHeight - 20, Math.max(0, y + 12));
+  pop.style.left = px + "px";
+  pop.style.top = py + "px";
+  pop.style.display = "block";
+}
+function hidePermPopover() {
+  const pop = document.getElementById("mw-perm-popover");
+  if (pop) pop.style.display = "none";
+}
+function attachPermHover(el, reasons) {
+  if (reasons && reasons.length) el.dataset.permReasons = JSON.stringify(reasons);
+  function getReasons() {
+    try { if (el.dataset.permReasons) return JSON.parse(el.dataset.permReasons); } catch(e){}
+    const list = [];
+    const dt = el.getAttribute("data-requires-doctype");
+    const pg = el.getAttribute("data-requires-page");
+    const fields = (el.getAttribute("data-requires-fields") || "")
+      .split(",").map(function(s){return s.trim();}).filter(Boolean);
+    if (dt) {
+      list.push("read: " + dt);
+      fields.forEach(function(f) {
+        if (f.indexOf(".") !== -1) list.push("field read: " + f);
+        else list.push("field read: " + dt + "." + f);
+      });
+    } else if (pg) {
+      if (pg.indexOf("query-report/") === 0)
+        list.push("run report: " + pg.slice("query-report/".length));
+      else
+        list.push("open page: " + pg);
+      fields.forEach(function(f){ if (f.indexOf(".") !== -1) list.push("field read: " + f); });
+    }
+    if (!list.length) list.push(__("Insufficient permission"));
+    return list;
+  }
+  function onEnter(e) {
+    if (!el.classList.contains("disabled")) return;
+    const r = getReasons();
+    setPermPopoverContent(r);
+    const p = e && e.touches ? e.touches[0] : e;
+    showPermPopoverAt((p && p.clientX) || 0, (p && p.clientY) || 0);
+  }
+  function onMove(e) {
+    if (!el.classList.contains("disabled")) return;
+    const p = e && e.touches ? e.touches[0] : e;
+    showPermPopoverAt((p && p.clientX) || 0, (p && p.clientY) || 0);
+  }
+  function onLeave() { hidePermPopover(); }
+
+  if (!el._mwPermHoverBound) {
+    el._mwPermHoverBound = true;
+    el.addEventListener("mouseenter", onEnter);
+    el.addEventListener("mousemove", onMove);
+    el.addEventListener("mouseleave", onLeave);
+    el.addEventListener("focus", onEnter);
+    el.addEventListener("blur", onLeave);
+    el.addEventListener("touchstart", onEnter, { passive: true });
+    el.addEventListener("touchend", onLeave);
+  }
 }

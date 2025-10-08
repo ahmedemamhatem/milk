@@ -6,7 +6,7 @@ frappe.pages['fast-purchase-invoic'].on_page_load = function (wrapper) {
     title: 'فاتورة مشتريات',
     single_column: true
   });
-
+  document.title = "  فاتورة مشتريات ";
   const $section = $(wrapper).find('.layout-main-section');
   $section.empty();
 

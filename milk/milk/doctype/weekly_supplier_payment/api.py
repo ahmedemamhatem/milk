@@ -530,4 +530,39 @@ def make_weekly_supplier_journals(docname: str, mode_of_payment: str):
         "payment_entry": je2.name
     }, update_modified=False)
 
+    try:
+        # Read names from doc.ledgers (supports JSON or CSV)
+        ledgers_raw = (doc.ledgers or "").strip()
+        if ledgers_raw:
+            try:
+                mel_names = frappe.parse_json(ledgers_raw)
+                if not isinstance(mel_names, list):
+                    mel_names = []
+            except Exception:
+                mel_names = [x.strip() for x in ledgers_raw.split(",") if x.strip()]
+        else:
+            mel_names = []
+
+        if mel_names:
+            # Efficient bulk update using SQL (fewer round trips)
+            chunksize = 1000
+            for i in range(0, len(mel_names), chunksize):
+                chunk = mel_names[i:i+chunksize]
+                # Set paid = 1 and link weekly_supplier_payment
+                # Use parameterized query to avoid SQL injection
+                # Note: replace fieldnames if your custom fields are named differently
+                frappe.db.sql(
+                    """
+                    UPDATE `tabMilk Entries Log`
+                    SET paid = 1,
+                        weekly_supplier_payment = %s
+                    WHERE name IN ({placeholders})
+                    """.format(placeholders=", ".join(["%s"] * len(chunk))),
+                    [doc.name] + chunk,
+                )
+            # Commit so updates persist even if called from background jobs
+            frappe.db.commit()
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Mark Milk Entries Log as paid failed")
+        
     return {"status": "success", "message": "تم إنشاء القيود وربطها بكشف الأسبوع.", **created_jes}

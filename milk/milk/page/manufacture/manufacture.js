@@ -6,7 +6,7 @@ frappe.pages['manufacture'].on_page_load = function(wrapper) {
     title: 'التصنيع',
     single_column: true
   });
-
+  document.title = "التصنيع";
   const $section = $(wrapper).find('.layout-main-section');
   $section.empty();
 

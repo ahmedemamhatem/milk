@@ -6,7 +6,7 @@ frappe.pages['fast-expense'].on_page_load = function (wrapper) {
     title: 'مصروف',
     single_column: true
   });
-
+  document.title = " مصروف";
   const $section = $(wrapper).find('.layout-main-section');
   $section.empty();
 

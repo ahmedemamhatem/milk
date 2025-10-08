@@ -6,7 +6,7 @@ frappe.pages['stock-transfer'].on_page_load = function (wrapper) {
     title: 'تحويل مخزون',
     single_column: true
   });
-
+  document.title = "  تحويل مخزني";
   const $section = $(wrapper).find('.layout-main-section');
   $section.empty();
 
