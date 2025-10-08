@@ -16,8 +16,7 @@
   <!-- Language/Region -->
   <link rel="alternate" href="https://milkcheeses.com/" hreflang="ar-eg">
   <link rel="alternate" href="https://milkcheeses.com/" hreflang="ar">
-  <!-- If you add an English version, enable the line below -->
-  <!-- <link rel="alternate" href="https://milkcheeses.com/en/" hreflang="en"> -->
+  <link rel="alternate" href="https://milkcheeses.com/home" hreflang="en">
   <link rel="alternate" href="https://milkcheeses.com/" hreflang="x-default">
 
   <!-- Open Graph -->
@@ -138,6 +137,62 @@
   </script>
 
   <style>
+    /* Contact section — full-width cards, equal heights */
+.contact-wrap{
+  display:grid;
+  gap:16px;
+  background:rgba(255,255,255,.94);
+  border:1px solid rgba(2,132,199,.16);
+  border-radius:18px;
+  padding:18px;
+  backdrop-filter:blur(10px);
+  box-shadow:0 12px 28px rgba(2,132,199,.10);
+}
+
+/* Let the section span the full content width */
+.contact-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;          /* two equal columns on desktop */
+  align-items:start;                      /* start align to let equal height work with stretch */
+  gap:16px;
+  max-width:var(--content-max);
+  margin:0 auto;
+  width:100%;
+}
+
+/* Make cards stretch full width and equal height */
+.contact-grid > .card{
+  display:flex;
+  flex-direction:column;
+  align-self:stretch;
+  height:100%;
+  width:100%;
+  background:#fff;
+  border:1px solid rgba(2,132,199,.14);
+  border-radius:14px;
+  padding:16px;
+  box-shadow:0 10px 24px rgba(2,132,199,.08);
+}
+
+/* Form fills full width */
+.contact-form{ display:grid; gap:12px; width:100%; }
+.in-wrap.cform, .in, .textarea{ width:100%; }
+
+/* Submit button fills width on small screens, auto on wide */
+.actions{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:2px }
+.actions .submit{ min-width:180px }
+@media (max-width:640px){
+  .actions .submit{ width:100% }
+}
+
+/* Social/info column spacing */
+.info-list{ display:grid; gap:12px }
+.social-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px dashed #e2e8f0 }
+
+/* Stack on tablets/phones */
+@media (max-width: 920px){
+  .contact-grid{ grid-template-columns:1fr } /* full-width single column */
+}
     :root{
       --primary:#0ea5e9; --primary-dark:#0284c7; --primary-light:#7dd3fc;
       --dark:#0f172a; --muted:#475569; --white:#ffffff;
@@ -240,6 +295,18 @@
     .login-pill:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(14,165,233,.18);background:#f8fdff}
     .login-pill:focus-visible{box-shadow:0 0 0 3px rgba(147,197,253,.35)}
 
+    /* Language switch button */
+    .lang-switch {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:10px 14px; border-radius:12px; font-weight:1000; font-size:14px;
+      background:#fff; color:#075985; text-decoration:none; cursor:pointer;
+      border:2px solid rgba(14,165,233,.35);
+      transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+      min-height:40px; line-height:1;
+    }
+    .lang-switch:hover { transform:translateY(-2px); box-shadow:0 10px 24px rgba(14,165,233,.18); background:#f8fdff; }
+    .lang-flag { width:18px; height:18px; border-radius:50%; display:inline-block; box-shadow:0 1px 3px rgba(0,0,0,.1); background-size:cover; background-position:center; }
+
     /* Mobile hamburger */
     .menu-toggle{display:none;background:none;border:none;cursor:pointer;padding:8px}
     .hamburger{width:28px;height:20px;position:relative}
@@ -314,7 +381,7 @@
     .p-img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#f8fafc;transition:transform .6s}
     .p-card:hover .p-img{transform:scale(1.03)}
     .p-body{padding:10px 12px;display:grid;gap:4px}
-    .p-title{font-weight:1000;color:#0f2a5a;font-size:15px}
+    .p-title{font-weight:1000;color:#0f2a5ا;font-size:15px}
     .p-desc{font-size:13px;color:#475569;font-weight:800}
 
     /* Locations */
@@ -476,7 +543,7 @@
       .nav-menu.active{display:flex}
       .nav-link{width:100%;text-align:center}
       .menu-toggle{display:block}
-      .login-pill{width:100%;border-radius:12px;min-height:44px}
+      .login-pill,.lang-switch{width:100%;border-radius:12px;min-height:44px}
     }
     @media (max-width:360px){
       .btn-primary,.btn-secondary{width:100%;justify-content:center}
@@ -513,6 +580,12 @@
           <a href="#gallery" class="nav-link route" role="menuitem" data-section="gallery"><span>المعرض</span></a>
           <a href="#contact" class="nav-link route" role="menuitem" data-section="contact"><span>تواصل معنا</span></a>
           <button id="openLoginTop" class="login-pill" type="button" title="تسجيل الدخول" aria-label="تسجيل الدخول">تسجيل الدخول</button>
+
+          <!-- Language switch to English -->
+          <a href="/home" class="lang-switch" hreflang="en" aria-label="Switch to English" id="langSwitchAR">
+            <span aria-hidden="true">🇬🇧</span>
+            <span>English</span>
+          </a>
         </div>
 
         <button class="menu-toggle" id="menuToggle" aria-label="فتح القائمة" aria-expanded="false" aria-controls="navMenu">
@@ -786,6 +859,7 @@
             <img src="/assets/milk/images/whatsapp-logo.png" alt="WhatsApp" loading="lazy" decoding="async">
           </a>
         </div>
+
       </div>
     </footer>
   </div>
@@ -834,6 +908,21 @@
   </div>
 
   <script>
+    // Optional: auto-redirect returning users who chose English before (comment to disable)
+    try {
+      if (localStorage.getItem('prefLang') === 'en' && location.pathname === '/') {
+        // location.replace('/home');
+      }
+    } catch(e){}
+
+    // Remember language choice
+    document.getElementById('langSwitchAR')?.addEventListener('click', ()=> {
+      try { localStorage.setItem('prefLang','en'); } catch(e){}
+    });
+    document.getElementById('langSwitchARFooter')?.addEventListener('click', ()=> {
+      try { localStorage.setItem('prefLang','en'); } catch(e){}
+    });
+
     // Sticky header
     const header = document.getElementById('header');
     const onScroll = () => header.classList.toggle('scrolled', window.scrollY > 4);
@@ -892,11 +981,11 @@
       setTimeout(()=> { r.remove(); if (prevPos === 'static') target.style.position=''; }, 650);
     }
     document.addEventListener('click', (e)=>{
-      const clickable = e.target.closest('.clickable, .g-btn, .btn-primary, .btn-secondary, .nav-link, .login-pill, .social-icon, .footer-icon');
+      const clickable = e.target.closest('.clickable, .g-btn, .btn-primary, .btn-secondary, .nav-link, .login-pill, .social-icon, .footer-icon, .lang-switch');
       if (clickable) addRipple(e);
     }, {passive:true});
     document.addEventListener('touchstart', (e)=>{
-      const clickable = e.target.closest('.clickable, .g-btn, .btn-primary, .btn-secondary, .nav-link, .login-pill, .social-icon, .footer-icon');
+      const clickable = e.target.closest('.clickable, .g-btn, .btn-primary, .btn-secondary, .nav-link, .login-pill, .social-icon, .footer-icon, .lang-switch');
       if (clickable) addRipple(e);
     }, {passive:true});
 
@@ -933,7 +1022,7 @@
       overview:{title:'نبذة سريعة', media:'/assets/milk/images/logoo.jpg', tags:['منظومة','تبريد سريع','توزيع يومي'], specs:['تجميع خلال ساعة','نقل أوتوماتيكي','مطابقة جودة'], body:`نجمع الألبان يوميًا من المزارع خلال زمن قياسي عبر أسطول مجهّز ومبرّد، وتسليم مباشر للمعامل.`},
       quality:{title:'جودة يومية موثوقة (QA)', media:'/assets/milk/images/milk-testing.jpg', tags:['QA','تحاليل','تنبيهات'], specs:['+120 اختبار يومي','98.6% توافق','لوحات متابعة'], body:`تحاليل صباحًا ومساءً مع إدارة عينات دورية وتقارير تحليلية وتنبيهات.`},
       erp:{title:'فواتير وإجراءات أسرع (ERP)', media:'/assets/milk/images/factory1.jpg', tags:['ERP','أرشفة','موافقات'], specs:['سير موافقات مرن','مطابقات بنكية','فواتير مجمعة'], body:`أتمتة دورة المشتريات والمبيعات والمصروفات مع أرشفة رقمية وتقارير الربحية.`},
-      manufacturing:{title:'إنتاج الأجبان المتنوع (MFG)', media:'/assets/milk/images/romi.jpg', tags:['إنتاج','تكاليف','عائد'], specs:['أوامر إنتاج قياسية','تخطيط قدرات','تتبّع تكاليف'], body:`تحويل اللبن إلى أصناف متعددة عبر أوامر إنتاج قياسية وتتبع تكاليف لحظي.`},
+      manufacturing:{title:'إنتاج الأجبان المتنوع (MFG)', media:'/assets/milk/images/romi.jpg', tags:['إنتاج','تكاليف','عائد'], specs:['أوامر إنتاج قياسية','تخطيط قدرات','تتبع تكاليف'], body:`تحويل اللبن إلى أصناف متعددة عبر أوامر إنتاج قياسية وتتبع تكاليف لحظي.`},
       logistics:{title:'جمع وتوريد اللبن (LOG)', media:'/assets/milk/images/cartank2.jpg', tags:['لوجستيات','تبريد','مسارات'], specs:['تسجيل كميات','قياس حرارة','إخطارات تأخير'], body:`شبكة توريد ميدانية مع تتبع لدرجات الحرارة ومسارات السائقين ونقاط التجميع.`},
       inventory:{title:'المخزون وتتبع الدُفعات (INV)', media:'/assets/milk/images/cartank2.jpg', tags:['مخزون','دفعات','صلاحيات'], specs:['دفعات وصلاحيات','جرد متنقل','باركود متعدد'], body:`مستودعات بتتبّع الدُفعات وتواريخ الانتهاء والتنبيهات الوقائية.`}
     };
