@@ -480,7 +480,7 @@ def refresh_week_one_method(
         doc.to_date = to_date
 
     _validate_parent(doc)
-    
+
     doc.ledgers = ""
     eff_driver = (doc.driver or "").strip()
     eff_village = (doc.village or "").strip() or None
@@ -500,7 +500,10 @@ def refresh_week_one_method(
         sup_name = s.get("name")
         sup_display = s.get("supplier_name") or sup_name
         custom_sort_val = int(s.get("custom_sort") or 0)
-        village_link = s.get("custom_villages") or ""
+
+        # Use your single-link field consistently. Assuming "custom_village" is the field on Supplier.
+        village_link = s.get("custom_village") or ""
+
         has_cow = 1 if int(s.get("custom_cow") or 0) == 1 else 0
         has_buff = 1 if int(s.get("custom_buffalo") or 0) == 1 else 0
         if has_cow == 0 and has_buff == 0:
@@ -517,9 +520,11 @@ def refresh_week_one_method(
             _safe_set(child, "custom_cow", 1)
             _safe_set(child, "custom_buffalo", 0)
             _reset_day_fields(child)
-            for f in ("total_qty","total_amount","total_morning_qty","total_evening_qty","total_week_amount",
-                      "supplier_loan","less_5","deduction_percent","deduction_amount","total_deduction_amount",
-                      "total_amount_to_pay"):
+            for f in (
+                "total_qty", "total_amount", "total_morning_qty", "total_evening_qty",
+                "total_week_amount", "supplier_loan", "less_5", "deduction_percent",
+                "deduction_amount", "total_deduction_amount", "total_amount_to_pay"
+            ):
                 if hasattr(child, f):
                     setattr(child, f, 0)
 
@@ -534,9 +539,11 @@ def refresh_week_one_method(
             _safe_set(child, "custom_cow", 0)
             _safe_set(child, "custom_buffalo", 1)
             _reset_day_fields(child)
-            for f in ("total_qty","total_amount","total_morning_qty","total_evening_qty","total_week_amount",
-                      "supplier_loan","less_5","deduction_percent","deduction_amount","total_deduction_amount",
-                      "total_amount_to_pay"):
+            for f in (
+                "total_qty", "total_amount", "total_morning_qty", "total_evening_qty",
+                "total_week_amount", "supplier_loan", "less_5", "deduction_percent",
+                "deduction_amount", "total_deduction_amount", "total_amount_to_pay"
+            ):
                 if hasattr(child, f):
                     setattr(child, f, 0)
 
@@ -546,13 +553,25 @@ def refresh_week_one_method(
         milk_type_label = getattr(child, "milk_type", None)
         if not supplier or not milk_type_label:
             continue
+
+        # Read custom_village from Supplier (single fetch per child to keep logic simple)
+        sup_row = frappe.db.get_value(
+            "Supplier",
+            supplier,
+            ["custom_villages"],
+            as_dict=True
+        ) or {}
+
+        # Use the correct field key returned above
+        supplier_village = sup_row.get("custom_villages") or None
+
         entries = _fetch_milk_entries(
             supplier=supplier,
             milk_type_label=milk_type_label,
             start_date=sdate,
             to_date=tdate,
             driver=eff_driver,
-            village=eff_village,
+            village=supplier_village,  # supplier's village overrides filter
         )
 
         # Fill computations
@@ -572,7 +591,9 @@ def refresh_week_one_method(
 
     for child in (doc.weekly_pay_table or []):
         sup = getattr(child, "supplier", None)
-        milk_flag = "cow" if int(getattr(child, "custom_cow", 0) or 0) == 1 else ("buffalo" if int(getattr(child, "custom_buffalo", 0) or 0) == 1 else None)
+        milk_flag = "cow" if int(getattr(child, "custom_cow", 0) or 0) == 1 else (
+            "buffalo" if int(getattr(child, "custom_buffalo", 0) or 0) == 1 else None
+        )
         if not sup or not milk_flag:
             continue
 
@@ -648,10 +669,10 @@ def refresh_week_one_method(
         "message": "Rows filled; deductions applied; supplier loans allocated; amounts computed; totals updated; ledgers captured.",
         "name": doc.name,
         "effective_filters": {
-          "driver": eff_driver,
-          "village": eff_village,
-          "start_date": sdate,
-          "to_date": tdate,
+            "driver": eff_driver,
+            "village": eff_village,
+            "start_date": sdate,
+            "to_date": tdate,
         },
         "milk_entries_count": len(all_mel_names),
     }
