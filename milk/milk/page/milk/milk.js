@@ -11,7 +11,6 @@ frappe.pages["milk"].on_page_load = function (wrapper) {
   $(page.body).empty().append($container);
 
   inject_mw_css();
-  apply_mw_background();
 
   // Permissions
   enforce_requirements_keep_visible($container);

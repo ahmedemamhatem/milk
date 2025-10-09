@@ -482,106 +482,196 @@
 
   // Print Sales Blank
   async function printSalesBlank(values) {
-    try {
-      const date = values.posting_date || '';
-      const group = values.customer_group || '';
-      const item = values.item_code || '';
-      const warehouse = values.set_warehouse || '';
-      const mop = values.mode_of_payment || '';
-      const limit_rows = values.limit_rows ? parseInt(values.limit_rows, 10) : null;
+  try {
+    const date = values.posting_date || '';
+    const group = values.customer_group || '';
+    const item = values.item_code || '';
+    const warehouse = values.set_warehouse || '';
+    const mop = values.mode_of_payment || '';
+    const limit_rows = values.limit_rows ? parseInt(values.limit_rows, 10) : null;
 
-      if (!item) {
-        frappe.throw(__('اختار الصنف قبل الطباعة.'));
-        return;
-      }
-      if (!group) {
-        frappe.throw(__('اختار مجموعة العملاء أو استخدم صفحة الفواتير السريعة لاختيار عملاء فرديين.'));
-        return;
-      }
-
-      frappe.dom.freeze(__('جاري تجهيز نموذج المبيعات...'));
-
-      const customers = await frappe.db.get_list('Customer', {
-        fields: ['name', 'customer_name', 'disabled'],
-        filters: [['customer_group', '=', group], ['disabled', '=', 0]],
-        order_by: 'customer_name asc',
-        limit: limit_rows && Number.isFinite(limit_rows) && limit_rows > 0 ? limit_rows : 1000
-      });
-
-      if (!customers || customers.length === 0) {
-        frappe.msgprint(__('مافيش عملاء نشطين في المجموعة.'));
-        return;
-      }
-
-      let balances = {};
-      try {
-        const r = await frappe.call({
-          method: 'milk.milk.page.fast_sales_invoice.api.get_customer_balances',
-          args: { customers: customers.map(c => c.name) }
-        });
-        balances = r.message || {};
-      } catch (e) {
-        balances = {};
-      }
-
-      const rows = customers.map((c, i) => ({
-        name: c.name,
-        balance: balances[c.name] != null ? Number(balances[c.name]) : null
-      }));
-
-      const esc = (s) => (s || '').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-      const css = `
-        *{box-sizing:border-box}
-        body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111827;margin:24px}
-        h1{font-size:18px;margin:0 0 8px 0}
-        .meta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
-        .meta .kv{background:#fafafa;border:1px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-size:12px}
-        table{width:100%;border-collapse:collapse;table-layout:fixed}
-        th,td{border:1px solid #e5e7eb;padding:6px 8px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
-        th{background:#fafafa}
-        col.idx{width:34px}
-        col.cust{width:46%}
-        col.qty{width:12%}
-        col.paid{width:12%}
-        col.old{width:15%}
-        col.note{width:15%}
-        @media print{ body{margin:8mm} .no-print{display:none !important} }
-      `;
-      const rows_html = rows.map((c, i) =>
-        '<tr>'
-          + '<td>'+(i+1)+'</td>'
-          + '<td>'+esc(c.name)+'</td>'
-          + '<td></td>'
-          + '<td></td>'
-          + '<td class="num">'+(c.balance == null ? '' : esc(c.balance.toFixed(2)))+'</td>'
-          + '<td></td>'
-        + '</tr>'
-      ).join('');
-
-      const html = '<!doctype html><html><head><meta charset="utf-8"><title>نموذج مبيعات</title><style>'+css+'</style></head><body>'
-        + '<h1>نموذج مبيعات</h1>'
-        + '<div class="meta">'
-          + '<div class="kv"><strong>التاريخ:</strong> '+esc(date)+'</div>'
-          + '<div class="kv"><strong>مجموعة العملاء:</strong> '+esc(group)+'</div>'
-          + '<div class="kv"><strong>الصنف:</strong> '+esc(item)+'</div>'
-          + (warehouse ? '<div class="kv"><strong>المخزن:</strong> '+esc(warehouse)+'</div>' : '')
-          + (mop ? '<div class="kv"><strong>طريقة الدفع:</strong> '+esc(mop)+'</div>' : '')
-        + '</div>'
-        + '<table><colgroup><col class="idx"><col class="cust"><col class="qty"><col class="paid"><col class="old"><col class="note"></colgroup>'
-        + '<thead><tr><th>#</th><th>العميل</th><th>الكمية</th><th>المدفوع</th><th>الرصيد القديم</th><th>ملاحظة</th></tr></thead>'
-        + '<tbody>'+rows_html+'</tbody></table>'
-        + '<div class="no-print" style="margin-top:10px;"><button onclick="window.print()">طباعة</button></div>'
-        + '</body></html>';
-
-      openPrintHTML(html);
-    } catch (e) {
-      console.error(e);
-      frappe.msgprint({ title: __('خطأ'), message: e.message || String(e), indicator: 'red' });
-    } finally {
-      frappe.dom.unfreeze();
+    if (!item) {
+      frappe.throw(__('اختار الصنف قبل الطباعة.'));
+      return;
     }
-  }
+    if (!group) {
+      frappe.throw(__('اختار مجموعة العملاء أو استخدم صفحة الفواتير السريعة لاختيار عملاء فرديين.'));
+      return;
+    }
 
+    frappe.dom.freeze(__('جاري تجهيز نموذج المبيعات...'));
+
+    const customers = await frappe.db.get_list('Customer', {
+      fields: ['name', 'customer_name', 'disabled'],
+      filters: [['customer_group', '=', group], ['disabled', '=', 0]],
+      order_by: 'customer_name asc',
+      limit: limit_rows && Number.isFinite(limit_rows) && limit_rows > 0 ? limit_rows : 1000
+    });
+
+    if (!customers || customers.length === 0) {
+      frappe.msgprint(__('مافيش عملاء نشطين في المجموعة.'));
+      return;
+    }
+
+    // Fetch balances safely
+    let balances = {};
+    try {
+      const r = await frappe.call({
+        method: 'milk.api.get_customer_balances',
+        args: { customers: customers.map(c => c.name) }
+      });
+      balances = (r && r.message && typeof r.message === 'object') ? r.message : {};
+    } catch (e) {
+      console.warn('get_customer_balances failed:', e);
+      balances = {};
+    }
+
+    // Build rows with a guaranteed numeric balance (default 0)
+    const rows = customers.map((c) => {
+      const raw = balances[c.name];
+      const num = Number(raw);
+      const balance = Number.isFinite(num) ? num : 0;
+      return { name: c.name, balance };
+    });
+
+    const esc = (s) =>
+      (s || '')
+        .toString()
+        .replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
+    // Typography and spacing upgrades for visibility
+    const css = `
+      *{box-sizing:border-box}
+      html,body{height:100%}
+      body{
+        font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+        color:#111827;
+        margin:24px;
+        font-size:14px;        /* bigger base font */
+        line-height:1.5;       /* looser line height */
+      }
+      h1{
+        font-size:22px;        /* bigger title */
+        margin:0 0 12px 0;
+        font-weight:700;
+        letter-spacing:0.2px;
+      }
+      .meta{
+        display:flex;
+        gap:14px;
+        flex-wrap:wrap;
+        margin-bottom:12px
+      }
+      .meta .kv{
+        background:#fafafa;
+        border:1px solid #e5e7eb;
+        border-radius:8px;
+        padding:8px 10px;
+        font-size:13px;
+      }
+      table{
+        width:100%;
+        border-collapse:separate;       /* separate for nicer borders & row height */
+        border-spacing:0;
+        table-layout:fixed;
+      }
+      th,td{
+        border:1px solid #e5e7eb;
+        padding:10px 10px;             /* larger padding */
+        font-size:14px;                 /* bigger cell font */
+        vertical-align:middle;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        height:40px;                    /* taller rows */
+      }
+      th{
+        background:#f3f4f6;
+        font-weight:600;
+      }
+      /* Adjust column widths: wider customer and note cells */
+      col.idx{width:48px}
+      col.cust{width:50%}
+      col.qty{width:10%}
+      col.paid{width:12%}
+      col.old{width:14%}
+      col.note{width:14%}
+
+      /* Right align numbers for readability */
+      td.num{text-align:right}
+
+      /* Improve print clarity: larger margins and darker borders */
+      @media print{
+        body{margin:10mm; font-size:13pt}
+        th,td{border-color:#d1d5db}
+        .no-print{display:none !important}
+      }
+    `;
+
+    const rows_html = rows.map((c, i) =>
+      '<tr>'
+        + '<td>' + (i + 1) + '</td>'
+        + '<td title="' + esc(c.name) + '">' + esc(c.name) + '</td>'
+        + '<td></td>'
+        + '<td></td>'
+        + '<td class="num">' + esc(c.balance.toFixed(2)) + '</td>'
+        + '<td></td>'
+      + '</tr>'
+    ).join('');
+
+    const html =
+      '<!doctype html><html><head><meta charset="utf-8"><title>نموذج مبيعات</title><style>' + css + '</style></head>'
+      + '<body onload="setTimeout(function(){window.print();}, 100)">'
+      + '<h1>نموذج مبيعات</h1>'
+      + '<div class="meta">'
+        + '<div class="kv"><strong>التاريخ:</strong> ' + esc(date) + '</div>'
+        + '<div class="kv"><strong>مجموعة العملاء:</strong> ' + esc(group) + '</div>'
+        + '<div class="kv"><strong>الصنف:</strong> ' + esc(item) + '</div>'
+        + (warehouse ? '<div class="kv"><strong>المخزن:</strong> ' + esc(warehouse) + '</div>' : '')
+        + (mop ? '<div class="kv"><strong>طريقة الدفع:</strong> ' + esc(mop) + '</div>' : '')
+      + '</div>'
+      + '<table><colgroup>'
+        + '<col class="idx"><col class="cust"><col class="qty"><col class="paid"><col class="old"><col class="note">'
+      + '</colgroup>'
+      + '<thead><tr>'
+        + '<th>#</th><th>العميل</th><th>الكمية</th><th>المدفوع</th><th>الرصيد القديم</th><th>ملاحظة</th>'
+      + '</tr></thead>'
+      + '<tbody>' + rows_html + '</tbody></table>'
+      + '<div class="no-print" style="margin-top:12px;"><button onclick="window.print()">طباعة</button></div>'
+      + '</body></html>';
+
+    openPrintHTML(html);
+  } catch (e) {
+    console.error(e);
+    frappe.msgprint({ title: __('خطأ'), message: e.message || String(e), indicator: 'red' });
+  } finally {
+    frappe.dom.unfreeze();
+  }
+}
+
+function openPrintHTML(html) {
+  const w = window.open('', '_blank');
+  if (!w) {
+    frappe.msgprint(__('السماح بفتح النوافذ المنبثقة (Pop-ups) لإتمام الطباعة.'));
+    return;
+  }
+  w.document.open();
+
+  // Ensure an onload print trigger exists
+  const autoPrintHtml = html.replace(
+    /<body([^>]*)>/i,
+    (m, attrs) => `<body${attrs} onload="setTimeout(function(){window.print();}, 100)">`
+  );
+
+  w.document.write(autoPrintHtml);
+  w.document.close();
+
+  try {
+    w.addEventListener('afterprint', () => {
+      try { w.close(); } catch (e) {}
+    });
+  } catch (e) {}
+}
 
   
   function openPrintHTML(html) {

@@ -95,7 +95,7 @@ html, body {
 	background: #fff;
 }
 
-/* Table head: sticky look-alike (not position: sticky to avoid stacking issues) */
+/* Table head */
 .table-head {
 	display: grid;
 	grid-template-columns: 64px minmax(420px,1fr) 140px 140px 140px 140px 140px 84px;
@@ -122,70 +122,55 @@ html, body {
 	z-index: 0;
 }
 
-/* Row grid with stable full-width highlights behind fields
-   Row height increased to ~1.25x: we raise min-height and input heights slightly */
+/* Row grid */
 .table-row {
 	display: grid;
 	grid-template-columns: 64px minmax(420px,1fr) 140px 140px 140px 140px 140px 84px;
 	align-items: center;
-	padding: 10px 8px;                 /* was 8px; add a bit more padding */
-	min-height: 54px;                  /* ensure about 1.25x height */
+	padding: 10px 8px;
+	min-height: 54px;
 	border-bottom: 1px solid var(--border);
-	position: relative;                /* for highlight layers */
+	position: relative;
 	z-index: 1;
 	overflow: visible;
-	background: transparent;           /* fields use Frappe default backgrounds */
+	background: transparent;
 }
-
-/* Make each cell sit above highlight layers; add soft vertical guides */
 .table-row > div {
 	border-inline-start: 1px solid #f1f5f9;
 	padding-inline: 6px;
 	position: relative;
-	z-index: 2;                         /* content above highlights */
+	z-index: 2;
 	overflow: visible;
 }
 .table-row > div:first-child {
 	border-inline-start: none;
 }
-
-/* Full-row highlight layer */
 .table-row::before {
 	content: "";
 	position: absolute;
-	inset: 0;                           /* full coverage */
+	inset: 0;
 	background: transparent;
 	transition: background-color .12s ease, box-shadow .12s ease;
 	z-index: 1;
 	pointer-events: none;
 }
-
-/* Left stripe layer (filled or active) */
 .table-row::after {
 	content: "";
 	position: absolute;
 	inset-inline-start: 0;
 	top: 0; bottom: 0;
-	width: 0;                           /* default hidden */
+	width: 0;
 	background: transparent;
 	border-radius: 0 6px 6px 0;
 	z-index: 1;
 	pointer-events: none;
 }
-
-/* Hover: clean and full-width */
-.table-row:hover::before {
-	background: var(--row-hover);
-}
-
-/* Filled: subtle green stripe; fields unchanged */
+.table-row:hover::before { background: var(--row-hover); }
 .table-row.is-filled::after {
 	width: 4px;
 	background: var(--row-filled-stripe);
 	border-radius: 0 4px 4px 0;
 }
-
-/* Active: strong blue row tint + outline; fields unchanged */
 .table-row.is-active::before {
 	background: var(--row-active-bg);
 	box-shadow: 0 0 0 1px var(--border-strong) inset, 0 2px 8px var(--row-active-shadow);
@@ -196,26 +181,24 @@ html, body {
 	border-radius: 0 6px 6px 0;
 }
 
-/* Inputs inside rows: use Frappe default skins; optional center text for uniform columns */
+/* Inputs inside rows */
 .table-row .frappe-control .control-label {
 	display: none !important;
 }
-/* Slightly increase control height to match row height (keeps Frappe look) */
 .table-row :is(.frappe-control, .control-input, input, select, textarea) {
-	height: 36px;           /* up from default ~30–32 */
+	height: 36px;
 	min-height: 36px;
-	line-height: 1.25;      /* readable line height */
+	line-height: 1.25;
 	font-size: 12px;
-	text-align: center;     /* remove if you prefer left alignment */
+	text-align: center;
 }
-/* Do not alter borders/backgrounds; keep Frappe defaults */
 
 /* Delete button and footer */
 .btn-del-row { color:#b91c1c; }
 .btn-del-row:hover { color:#7f1d1d; text-decoration:none; }
 .table-bottom { padding: 10px; }
 
-/* Ensure link dropdowns are above the grid (Awesomplete / Selectize) */
+/* Dropdown z-index */
 .dmq-root .awesomplete > ul,
 .dmq-root .awesomplete ul,
 .dmq-root .awesomplete,
@@ -224,26 +207,41 @@ html, body {
 .dmq-root .selectize-dropdown {
 	z-index: 9999 !important;
 }
-/* Some builds attach the list to body */
 .awesomplete ul { z-index: 9999 !important; }
-/* Supplier input: slightly larger and bold, keep default borders/background */
+
+/* Supplier input emphasis */
 .table-row .supplier :is(input, .control-input) {
-	font-size: 16px;   /* modest bump */
-	font-weight: 700;  /* bold */
+	font-size: 16px;
+	font-weight: 700;
 	line-height: 1.25;
 }
 
-/* Make numbers in all measurement fields bold */
+/* Bold numbers */
 .table-row .water :is(input, .control-input),
 .table-row .protein :is(input, .control-input),
 .table-row .density :is(input, .control-input),
 .table-row .hardness :is(input, .control-input),
 .table-row .pont :is(input, .control-input) {
-	font-weight: 700;   /* bold numbers */
-	/* keep font-size as default; or uncomment next line to bump a bit */
-	/* font-size: 15px; */
+	font-weight: 700;
 }
-	
+
+/* Inline error badge */
+.input-hint {
+	position: absolute;
+	inset-inline-end: 8px;
+	bottom: 2px;
+	font-size: 10px;
+	color: #b91c1c;
+	background: #fee2e2;
+	padding: 1px 6px;
+	border-radius: 8px;
+	white-space: nowrap;
+	pointer-events: none;
+}
+.table-row.has-error::before {
+	background: #fff1f2;
+	box-shadow: 0 0 0 1px #fecaca inset;
+}
 		</style>
 		
 		<!-- Toolbar -->
@@ -325,6 +323,23 @@ html, body {
 		});
 	}
 
+	// Validation rules for animal type
+	const RULES = {
+		Buffalo: { // جاموسي
+			pont:   { min: 5.0,  max: 8.0,  name: 'بنط' },
+			protein:{ min: 3.0,  max: 4.2,  name: 'بروتين' }
+		},
+		Cow: {     // بقري
+			pont:   { min: 2.0,  max: 5.0,  name: 'بنط' },
+			protein:{ min: 2.5,  max: 3.5,  name: 'بروتين' }
+		}
+	};
+
+	function get_current_rules() {
+		const a = controls.animal_type?.get_value() || 'Buffalo';
+		return RULES[a] || RULES.Buffalo;
+	}
+
 	// State
 	const state = {
 		driver: "",
@@ -358,7 +373,11 @@ html, body {
 	controls.animal_type = Control({
 		fieldtype: "Select", fieldname: "animal_type", label: "النوع",
 		options: [{label:"بقر", value:"Cow"}, {label:"جاموس", value:"Buffalo"}],
-		change: () => { state.animal_type = controls.animal_type.get_value(); }
+		change: () => {
+			state.animal_type = controls.animal_type.get_value();
+			// Re-validate all rows when animal type changes
+			validate_all_rows_and_mark();
+		}
 	}, '[data-field="animal_type"]'); controls.animal_type.set_value(state.animal_type);
 
 	controls.session = Control({
@@ -448,7 +467,7 @@ html, body {
 			}
 
 			// Numeric cells
-			function mkNumberCell(sel, field) {
+			function mkNumberCell(sel, field, validatorFn) {
 				const c = new frappe.ui.form.ControlData({
 					df: { fieldtype:"Data", fieldname:`${field}_${i}`, label:"" },
 					parent: $row.find(sel)[0], render_input: true
@@ -456,14 +475,51 @@ html, body {
 				const $inp = c.$input;
 				$inp.attr('inputmode','decimal').attr('placeholder','0.00').val(rec[field] ?? '');
 				$inp.css({ 'text-align':'center' });
-				wireNumeric($inp, rec, field, () => apply_row_state($row, rec));
+				wireNumeric($inp, rec, field, () => {
+					apply_row_state($row, rec);
+					if (validatorFn) validatorFn($row, rec, field, $inp);
+				}, (val) => {
+					// number-only check already done inside wireNumeric; keep hook for future
+					return true;
+				});
 				return c;
 			}
-			const ctrl_water    = mkNumberCell('.water','water');
-			const ctrl_protein  = mkNumberCell('.protein','protein');
-			const ctrl_density  = mkNumberCell('.density','density');
-			const ctrl_hardness = mkNumberCell('.hardness','hardness');
-			const ctrl_pont     = mkNumberCell('.pont','pont');
+
+			// Row field validators: only pont and protein have min/max
+			const validateField = ($row, rec, field, $input) => {
+				const rules = get_current_rules();
+				let v = (rec[field] ?? '').trim();
+				const container = $input.closest('.num');
+				container.find('.input-hint').remove();
+				$input.removeClass('is-invalid');
+				$row.removeClass('has-error');
+
+				if (v === '') return true; // empty allowed (row may be partial)
+
+				const num = Number(v);
+				if (Number.isNaN(num)) {
+					$input.addClass('is-invalid');
+					container.append(`<div class="input-hint">قيمة غير صالحة</div>`);
+					$row.addClass('has-error');
+					return false;
+				}
+				if ((field === 'pont' || field === 'protein') && rules[field]) {
+					const { min, max, name } = rules[field];
+					if (num < min || num > max) {
+						$input.addClass('is-invalid');
+						container.append(`<div class="input-hint">${name} يجب أن يكون بين ${min} و ${max}</div>`);
+						$row.addClass('has-error');
+						return false;
+					}
+				}
+				return true;
+			};
+
+			const ctrl_water    = mkNumberCell('.water','water',   validateField);
+			const ctrl_protein  = mkNumberCell('.protein','protein',validateField);
+			const ctrl_density  = mkNumberCell('.density','density',validateField);
+			const ctrl_hardness = mkNumberCell('.hardness','hardness',validateField);
+			const ctrl_pont     = mkNumberCell('.pont','pont',     validateField);
 
 			// Init Supplier
 			if (rec.supplier) {
@@ -502,9 +558,13 @@ html, body {
 
 			rowRefs.push({
 				$row, idx: i,
-				ctrls: { supplier: supplierCtrl, water: ctrl_water, protein: ctrl_protein, density: ctrl_density, hardness: ctrl_hardness, pont: ctrl_pont }
+				ctrls: { supplier: supplierCtrl, water: ctrl_water, protein: ctrl_protein, density: ctrl_density, hardness: ctrl_hardness, pont: ctrl_pont },
+				validateField
 			});
 		});
+
+		// Validate all after render (useful when reloading/animal type change)
+		validate_all_rows_and_mark();
 	}
 
 	function set_active_row($row) {
@@ -515,7 +575,8 @@ html, body {
 		$row.toggleClass('is-filled', is_filled(rec));
 	}
 
-	function wireNumeric($input, rec, key, on_change) {
+	// Enhanced wireNumeric with optional validator hook
+	function wireNumeric($input, rec, key, on_change, precheck) {
 		$input.on('wheel', e => e.preventDefault(), { passive:false });
 		$input.on('keydown', (e) => {
 			const ok = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'];
@@ -532,14 +593,26 @@ html, body {
 			}
 			e.preventDefault();
 		});
+		function normalize(val) {
+			let v = (val || '').replace(',', '.');
+			if (v === '.' || v === '-.' || v === '-') v = '';
+			return v;
+		}
+		function basicValidity(v) {
+			return v === '' || /^-?\d*\.?\d*$/.test(v);
+		}
 		$input.on('input', (e) => {
-			let v = (e.target.value || '').replace(',', '.');
-			if (!/^-?\d*\.?\d*$/.test(v)) $input.addClass('is-invalid'); else $input.removeClass('is-invalid');
+			let v = normalize(e.target.value);
+			if (!basicValidity(v)) {
+				$input.addClass('is-invalid');
+			} else {
+				$input.removeClass('is-invalid');
+			}
 			rec[key] = v; e.target.value = v; on_change && on_change();
 		});
 		$input.on('blur', (e) => {
-			let v = (e.target.value || '').trim().replace(',', '.');
-			if (v === '.' || v === '-.' || v === '-') v = '';
+			let v = normalize(e.target.value);
+			if (precheck && !precheck(v)) return;
 			if (v && !/^-?\d*\.?\d+$/.test(v)) $input.addClass('is-invalid'); else $input.removeClass('is-invalid');
 			rec[key] = v; e.target.value = v; on_change && on_change();
 		});
@@ -590,6 +663,62 @@ html, body {
 			rows.push({ supplier, water: vals[0], protein: vals[1], density: vals[2], hardness: vals[3], pont: vals[4] });
 		});
 		return rows;
+	}
+
+	// Validate a single row against current rules, mark UI, and return array of error messages for that row
+	function validate_row_and_mark($row, rec) {
+		const rules = get_current_rules();
+		let errors = [];
+		const mapName = { pont:'بنط', protein:'بروتين' };
+
+		function check(field) {
+			const v = (rec[field] ?? '').trim();
+			if (v === '') return;
+			const num = Number(v);
+			if (Number.isNaN(num)) {
+				errors.push(`${mapName[field]} غير صالح`);
+				return;
+			}
+			const rule = rules[field];
+			if (rule && (num < rule.min || num > rule.max)) {
+				errors.push(`${mapName[field]} يجب أن يكون بين ${rule.min} و ${rule.max}`);
+			}
+		}
+
+		check('pont');
+		check('protein');
+
+		// Mark/unmark UI hints
+		$row.removeClass('has-error');
+		$row.find('.num .input-hint').remove();
+		if (errors.length) {
+			$row.addClass('has-error');
+			// Add badges to each offending field
+			['pont','protein'].forEach(field => {
+				const v = (rec[field] ?? '').trim();
+				if (v === '') return;
+				const num = Number(v);
+				const rule = rules[field];
+				if (Number.isNaN(num) || (rule && (num < rule.min || num > rule.max))) {
+					const $cell = $row.find(`.${field}`);
+					if ($cell.length) {
+						$cell.find('input').addClass('is-invalid');
+						$cell.append(`<div class="input-hint">${mapName[field]} خارج النطاق</div>`);
+					}
+				}
+			});
+		}
+		return errors;
+	}
+
+	function validate_all_rows_and_mark() {
+		let anyErrors = false;
+		rowRefs.forEach(ref => {
+			const rec = state.rows[ref.idx];
+			const errs = validate_row_and_mark(ref.$row, rec);
+			if (errs.length) anyErrors = true;
+		});
+		return !anyErrors;
 	}
 
 	// Print Draft: clean table with empty numeric cells
@@ -677,7 +806,6 @@ html, body {
 <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 100); };</script>
 </body>
 </html>`;
-
 		const w = window.open('', '_blank');
 		if (!w) {
 			show_error('خطأ', 'لم يتم فتح نافذة الطباعة. يرجى السماح بالنوافذ المنبثقة (Pop-ups).');
@@ -717,12 +845,43 @@ html, body {
 		}
 	}
 
+	// Validate all rows and stop if any out of range before submit
+	function validate_all_rows_and_collect_messages() {
+		let messages = [];
+		rowRefs.forEach((ref, idx) => {
+			const rec = state.rows[ref.idx];
+			const errs = validate_row_and_mark(ref.$row, rec);
+			if (errs.length) {
+				const name = rec.supplier_name || rec.supplier || `صف #${idx+1}`;
+				messages.push(`المورد "${name}":\n- ${errs.join('\n- ')}`);
+			}
+		});
+		return messages;
+	}
+
+	function validate_all_rows_and_mark() {
+		let ok = true;
+		rowRefs.forEach(ref => {
+			const rec = state.rows[ref.idx];
+			const errs = validate_row_and_mark(ref.$row, rec);
+			if (errs.length) ok = false;
+		});
+		return ok;
+	}
+
 	async function submit_all() {
 		const driver = controls.driver.get_value();
 		const village = controls.village.get_value();
 		const date = controls.date.get_value();
 		const { morning, evening, cow, buffalo } = get_flags_from_controls();
 		if (!date) { frappe.msgprint("يرجى تحديد التاريخ."); return; }
+
+		// Validation gate
+		const invalidMsgs = validate_all_rows_and_collect_messages();
+		if (invalidMsgs.length) {
+			show_error('خطأ في القيم', `يرجى تصحيح القيم الخارجة عن الحدود:\n\n${invalidMsgs.join('\n\n')}`);
+			return;
+		}
 
 		let child_rows;
 		try { child_rows = build_child_rows(); }
